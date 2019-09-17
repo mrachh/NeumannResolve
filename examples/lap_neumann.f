@@ -1,33 +1,34 @@
       implicit real *8 (a-h,o-z)
-      parameter (ncnodes = 100000)
       parameter (nmax = 20000)
       parameter (nvmax = 1000)
-      real *8 ts(ncnodes),wts(ncnodes)
-      real *8 ts0(1000),wts0(1000)
-      real *8 xs(nmax),ys(nmax),rnx(nmax),rny(nmax),qwts(nmax)
-      real *8 rkappa(nmax),rnxe(nvmax),rnye(nvmax),diags(nmax)
+      real *8, allocatable :: ts(:),wts(:)
+
+      real *8, allocatable :: verts(:,:),xverts(:),yverts(:)
+      integer, allocatable :: el(:),er(:),iregl(:),iregr(:),imid(:)
+
+      real *8, allocatable :: pl(:),pr(:),rnxe(:),rnye(:)
+
+      real *8, allocatable :: xs(:),ys(:),rnx(:),rny(:),qwts(:),
+     1   rkappa(:)
+
+      integer, allocatable :: lns(:),rns(:),nepts(:)
+      real *8, allocatable :: rlen(:)
+
+      integer, allocatable :: icl(:),icr(:),icsgnl(:),icsgnr(:)
+      integer, allocatable :: ixmatc(:)
+
+      real *8, allocatable :: xsgnl(:),xsgnr(:),alpha(:)
 
 
-      real *8 verts(2,nvmax),pl(nvmax),pr(nvmax),alpha(nvmax)
-      real *8 src(2),trg(2),xsrc(nvmax),ysrc(nvmax),charges(nvmax)
-      real *8 xverts(nvmax),yverts(nvmax),rlen(nvmax)
+      real *8 src(2),trg(2)
+      real *8, allocatable :: xsrc(:),ysrc(:),charges(:)
 
-      real *8 rmus(nvmax),rnus(nvmax),fex(nvmax),rsgn(nvmax)
 
-      integer nepts(nvmax),icl(nvmax),icr(nvmax),icsgnl(nvmax)
-      integer icsgnr(nvmax),ixmatc(nvmax),iregl(nvmax),iregr(nvmax)
-
-      integer el(nvmax),er(nvmax),lns(nvmax),rns(nvmax),imid(nvmax)
-
-      real *8 xsgnl(nvmax),xsgnr(nvmax),xprin(1000)
-      real *8 umat(100000),vmat(100000)
-      real *8 gradr(2),grad(2),gradex(2)
+      real *8 grad(2),gradex(2)
 
       real *8, allocatable :: rhs(:),soln(:)
-      real *8, allocatable :: rhsneu(:),solnneu(:)
-      real *8, allocatable :: xmatc(:,:,:), xmat(:,:),xmat2(:,:)
-      real *8, allocatable :: xmatneu(:,:)
-      real *8, allocatable :: xtmp(:,:),work(:)
+      real *8, allocatable :: xmatc(:,:,:), xmat(:,:)
+      real *8, allocatable :: xtmp(:,:)
 
       real *8 errs(1000),pars(1000)
       integer, allocatable :: ipiv(:)
@@ -54,15 +55,9 @@ c
 
        k = 16
        irefinelev = 100
-       call getcornerdis(k,irefinelev,ts,wts)
        ncorner = k*irefinelev
-
-
-       call prinf('ncorner=*',ncorner,1)
-       call prin2('ts=*',ts,ncorner)
-       call prin2('wts=*',wts,ncorner)
-       call prin2('umat=*',umat,24)
-       call prin2('vmat=*',vmat,24)
+       allocate(ts(ncorner),wts(ncorner))
+       call getcornerdis(k,irefinelev,ts,wts)
 
 
 c
@@ -76,7 +71,9 @@ cc       call prinf('ncorner=*',ncorner,1)
 c
 cc       locations of corner vertices
 c
-       nverts = 4
+
+       nverts = 3
+       allocate(verts(2,nverts),xverts(nverts),yverts(nverts))
        verts(1,1) = 0
        verts(2,1) = 0
 
@@ -117,6 +114,10 @@ c             panels
 
 
        nedges = 3
+
+       allocate(el(nedges),er(nedges),iregl(nedges),iregr(nedges))
+       allocate(pl(nedges),pr(nedges),rnxe(nedges),rnye(nedges))
+       allocate(imid(nedges))
        el(1) = 1
        er(1) = 2
        iregl(1) = 1
@@ -134,22 +135,27 @@ c             panels
 
        rtmp = 0.15d0
 
+       n = 0
+       kmid = 16
        do i=1,nedges
 
-       dxt = verts(1,er(i)) - verts(1,el(i))
-       dyt = verts(2,er(i)) - verts(2,el(i))
+         dxt = verts(1,er(i)) - verts(1,el(i))
+         dyt = verts(2,er(i)) - verts(2,el(i))
 
-       dst = sqrt(dxt**2 + dyt**2)
-       rnxe(i) = dyt/dst
-       rnye(i) = -dxt/dst
+         dst = sqrt(dxt**2 + dyt**2)
+         rnxe(i) = dyt/dst
+         rnye(i) = -dxt/dst
 
-       pl(i) = rtmp
-       pr(i) = rtmp
-       imid(i) = 10
-
+         pl(i) = rtmp
+         pr(i) = rtmp
+         imid(i) = 5
+         n = n + imid(i)*kmid + 2*ncorner
        enddo
 
-       kmid = 16
+       allocate(xs(n),ys(n),rnx(n),rny(n),rkappa(n),qwts(n))
+       allocate(lns(nedges+1),rns(nedges+1),nepts(nedges+1))
+       allocate(rlen(nedges+1))
+
 c
 cc      generate discretization nodes
 c
@@ -161,14 +167,13 @@ c
      2         rns,nepts,rlen)
 
       do i=1,nverts
-
-      xverts(i) = verts(1,i)
-      yverts(i) = verts(2,i)
-
+        xverts(i) = verts(1,i)
+        yverts(i) = verts(2,i)
       enddo
 
       call pyplot2(11,xverts,yverts,nverts,3,xs,ys,n,
      1    1,'a*')
+
 
 
 c
@@ -190,6 +195,9 @@ c      ixmatc(i) - corner discretization matrix index
 c                  corresponding to angle alpha(i)
 c
       ncint = 3
+      allocate(icl(ncint),icr(ncint),icsgnl(ncint),icsgnr(ncint))
+      allocate(alpha(ncint),xsgnl(ncint),xsgnr(ncint))
+      allocate(ixmatc(ncint))
       icl(1) = 1
       icr(1) = 3
       icsgnl(1) = 0
@@ -207,116 +215,87 @@ c
       icsgnl(3) = 1
       icsgnr(3) = 0
 
-       allocate(xmatc(ncorner,ncorner,ncint))
+      allocate(xmatc(ncorner,ncorner,ncint))
       do icint = 1,ncint
 
-      if(icsgnl(icint).eq.0.and.icsgnr(icint).eq.0) then
+        if(icsgnl(icint).eq.0.and.icsgnr(icint).eq.0) then
+          ivert1 = er(icl(icint))
+          ivert2 = el(icl(icint))
+          ivert3 = er(icr(icint))
 
-      ivert1 = er(icl(icint))
-      ivert2 = el(icl(icint))
-      ivert3 = er(icr(icint))
+          xsgnl(icint) = -1
+          xsgnr(icint) = 1
+        endif
 
-      xsgnl(icint) = -1
-      xsgnr(icint) = 1
+        if(icsgnl(icint).eq.1.and.icsgnr(icint).eq.1) then
+          ivert1 = el(icl(icint))
+          ivert2 = er(icl(icint))
+          ivert3 = el(icr(icint))
 
-      endif
-
-      if(icsgnl(icint).eq.1.and.icsgnr(icint).eq.1) then
-
-      ivert1 = el(icl(icint))
-      ivert2 = er(icl(icint))
-      ivert3 = el(icr(icint))
-
-      xsgnl(icint) = 1
-      xsgnr(icint) = -1
-
-      endif
+          xsgnl(icint) = 1
+          xsgnr(icint) = -1
+        endif
 
 
-      if(icsgnl(icint).eq.1.and.icsgnr(icint).eq.0) then
+        if(icsgnl(icint).eq.1.and.icsgnr(icint).eq.0) then
+          ivert1 = el(icl(icint))
+          ivert2 = er(icl(icint))
+          ivert3 = er(icr(icint))
 
-      ivert1 = el(icl(icint))
-      ivert2 = er(icl(icint))
-      ivert3 = er(icr(icint))
-
-      xsgnl(icint) = -1
-      xsgnr(icint) = -1
-
-      endif
+          xsgnl(icint) = -1
+          xsgnr(icint) = -1
+        endif
 
 
-      if(icsgnl(icint).eq.0.and.icsgnr(icint).eq.1) then
+        if(icsgnl(icint).eq.0.and.icsgnr(icint).eq.1) then
 
-      ivert1 = er(icl(icint))
-      ivert2 = el(icl(icint))
-      ivert3 = el(icr(icint))
+          ivert1 = er(icl(icint))
+          ivert2 = el(icl(icint))
+          ivert3 = el(icr(icint))
 
-      xsgnl(icint) = 1
-      xsgnr(icint) = 1
+          xsgnl(icint) = 1
+          xsgnr(icint) = 1
 
-      endif
+        endif
 
-      xvert1 = verts(1,ivert1)
-      yvert1 = verts(2,ivert1)
-
-
-      xvert2 = verts(1,ivert2)
-      yvert2 = verts(2,ivert2)
-
-      xvert3 = verts(1,ivert3)
-      yvert3 = verts(2,ivert3)
-
-      ifprin = 1
-
-      if(ifprin.eq.1) then
-
-      xprin(1) = xvert1
-      xprin(2) = yvert1
-
-      xprin(3) = xvert2
-      xprin(4) = yvert2
-
-      xprin(5) = xvert3
-      xprin(6) = yvert3
-
-      call prinf('icint=*',icint,1)
-      call prinf('ivert1=*',ivert1,1)
-      call prinf('ivert2=*',ivert2,1)
-      call prinf('ivert3=*',ivert3,1)
-      call prin2('xverts=*',xprin,6)
-
-      endif
+        xvert1 = verts(1,ivert1)
+        yvert1 = verts(2,ivert1)
 
 
-      ixmatc(icint) = icint
+        xvert2 = verts(1,ivert2)
+        yvert2 = verts(2,ivert2)
 
-      dx1 = xvert1-xvert2
-      dy1 = yvert1-yvert2
-      dr1 = sqrt(dx1**2 + dy1**2)
+        xvert3 = verts(1,ivert3)
+        yvert3 = verts(2,ivert3)
 
-      dx2 = xvert3-xvert2
-      dy2 = yvert3-yvert2
-      dr2 = sqrt(dx2**2 + dy2**2)
+        ixmatc(icint) = icint
 
-      drp = dx1*dx2 + dy1*dy2
-      drp = drp/(dr1*dr2)
-      alpha(icint) = acos(drp)
+        dx1 = xvert1-xvert2
+        dy1 = yvert1-yvert2
+        dr1 = sqrt(dx1**2 + dy1**2)
 
-      alpha(icint) = atan2(dy2,dx2) - atan2(dy1,dx1)
+        dx2 = xvert3-xvert2
+        dy2 = yvert3-yvert2
+        dr2 = sqrt(dx2**2 + dy2**2)
+
+        drp = dx1*dx2 + dy1*dy2
+        drp = drp/(dr1*dr2)
+        alpha(icint) = acos(drp)
+
+        alpha(icint) = atan2(dy2,dx2) - atan2(dy1,dx1)
 cc      if(alpha(icint).lt.0) alpha(icint) = alpha(icint)+pi
 
-      rpan = 0.3d0
-      thet = alpha(icint)
+        rpan = 0.3d0
+        thet = alpha(icint)
 
-      call getcornermat(thet,ncorner,rpan,ts,wts,xmatc(1,1,icint))
-      
-
+        call getcornermat(thet,ncorner,rpan,ts,wts,xmatc(1,1,icint))
       enddo
 
       call prin2('alpha=*',alpha,ncint)
 
       call prinf('n=*',n,1)
-      allocate(xmat(n,n),xmatneu(n,n))
+      allocate(xmat(n,n))
+
 
 c
 cc      generate matrix edge by edge
@@ -326,25 +305,25 @@ c
        call prinf('building matrix*',i,0)
 
       rfac = 1.0d0
-      do 1400 iedge=1,nedges
-      do 1300 jedge=1,nedges
+      do iedge=1,nedges
+        do jedge=1,nedges
 
-      nss = nepts(jedge)
-      nts = nepts(iedge)
-      allocate(xtmp(nts,nss))
+          nss = nepts(jedge)
+          nts = nepts(iedge)
+          allocate(xtmp(nts,nss))
 
-      call getedgemat(iedge,jedge,n,xs,ys,rnx,rny,rkappa,qwts,lns,rns,
-     1  nepts,ncint,icl,icr,icsgnl,icsgnr,alpha,ixmatc,xsgnl,xsgnr,
-     2  ncorner,xmatc,nts,nss,xtmp)
+          call getedgemat(iedge,jedge,n,xs,ys,rnx,rny,rkappa,qwts,
+     1      lns,rns,nepts,ncint,icl,icr,icsgnl,icsgnr,alpha,ixmatc,
+     2      xsgnl,xsgnr,ncorner,xmatc,nts,nss,xtmp)
       
-      its = lns(iedge) -1
-      iss = lns(jedge) -1
+          its = lns(iedge) -1
+          iss = lns(jedge) -1
 
-      call xreplmat(nts,nss,n,its,iss,xtmp,xmat,rfac)
+          call xreplmat(nts,nss,n,its,iss,xtmp,xmat,rfac)
 
-      deallocate(xtmp)
- 1300 continue
- 1400 continue
+          deallocate(xtmp)
+        enddo
+      enddo
 
 
 
@@ -364,26 +343,23 @@ c
 cc       set up sources for the rhs
 c
 
-      ncharges = 100
+      ncharges = 2
+
+      allocate(xsrc(ncharges),ysrc(ncharges),charges(ncharges))
  
- 1111 format(3(2x,d22.16))
-      write(33,*) ncharges
       do i=1,ncharges
          thet = hkrand(0)*2*pi
-         rr = 0.7d0 + hkrand(0)*10.0d0
+         rr = (0.7d0 + hkrand(0))*10.0d0
          xsrc(i) = 0.5d0 + rr*cos(thet)
          ysrc(i) = rr*sin(thet)
          charges(i) = hkrand(0)*10
-         write(33,1111) xsrc(i),ysrc(i),charges(i)
       enddo
+
+      call prin2('xsrc=*',xsrc,ncharges)
+      call prin2('ysrc=*',ysrc,ncharges)
 
 
       allocate(rhs(n),soln(n))
-      allocate(rhsneu(n),solnneu(n))
-
-      call prin2('rnxe=*',rnxe,nedges)
-      call prin2('rnye=*',rnye,nedges)
-
 
 
 c
@@ -391,69 +367,55 @@ cc      fix the diagonal and get rhs
 c
 
       call prinf('ncharges=*',ncharges,1)
+
+      ra = 0
       do iedge=1,nedges
+        do ipt = 1,nepts(iedge)
+          i = lns(iedge) + ipt-1
+          xmat(i,i) = 0.5d0
 
-      do ipt = 1,nepts(iedge)
+          call getrhs(ncharges,xsrc,ysrc,charges,xs(i),ys(i),pot,grad)
 
-      i = lns(iedge) + ipt-1
+          rhs(i) = sqrt(qwts(i))*(grad(1)*rnxe(iedge)+
+     1       grad(2)*rnye(iedge))
 
-      xmat(i,i) =0.5d0
-
-      call getrhs(ncharges,xsrc,ysrc,charges,xs(i),ys(i),pot,grad)
-      rhs(i) = sqrt(qwts(i))*(grad(1)*rnxe(iedge)+grad(2)*rnye(iedge))
-
+        enddo
       enddo
+
+      do i=1,n
+        do j=1,n
+          xmat(i,j) = xmat(i,j) 
+        enddo
       enddo
 
 
 
+      do i=1,n
+        soln(i) = rhs(i)
+      enddo
 
-      do 2200 i=1,n
-
-      soln(i) = rhs(i)
-
- 2200 continue   
-
-      do 2210 i=1,n
-      do 2205 j=1,n
-
-      xmatneu(i,j) = xmat(j,i)
-
- 2205 continue
- 2210 continue
- 
        call prinf('end of building matrix*',i,0)
 
-c
-cc      solve using gmres
-c
-
+      info = 0
       allocate(ipiv(n))
 
-      call dgetrf(n,n,xmatneu,n,ipiv,info)
-      call dgetrs('n',n,1,xmatneu,n,ipiv,soln,n,info)  
+      call dgetrf(n,n,xmat,n,ipiv,info)
+
+      info = 0
+      call dgetrs('t',n,1,xmat,n,ipiv,soln,n,info)
 
 
        call prin2('rhs=*',rhs,24)
        call prin2('soln=*',soln,24)
-       call prin2('xmatneu=*',xmatneu,24)
 
-
-       call prinf('niter=*',niter,1)
-       call prin2('errs=*',errs,niter)
-       call prinf('End of solving Neumann=*',i,0)
-
- 3500 format(2x,i3,2x,e11.5,2x,e11.5)
 
 c
 cc      test solution in region 1
 c
 
-      trg(1) = 0.4d0
-      trg(2) = 0.11d0
-      
+      trg(1) = 0.7d0
+      trg(2) = -0.01d0
 
-      ireg = 1
       call getrhs(ncharges,xsrc,ysrc,charges,trg(1),trg(2),
      1    potex,gradex)
 
@@ -466,7 +428,35 @@ c
       call prin2('pot=*',pot,1)
       call prin2('potex=*',potex,1)
 
-      erra = abs(pot-potex)/abs(potex)
+cc      print *, pot,potex,pot-potex
+
+      rdiff1 = potex-pot
+
+
+      trg(1) = 0.61d0
+      trg(2) = -0.01d0
+
+      call getrhs(ncharges,xsrc,ysrc,charges,trg(1),trg(2),
+     1    potex,gradex)
+
+      pot = 0
+      do i=1,n
+        rr = (trg(1)-xs(i))**2 + (trg(2)-ys(i))**2
+        pot = pot - log(rr)/4/pi*soln(i)*sqrt(qwts(i))
+      enddo
+
+      call prin2('pot=*',pot,1)
+      call prin2('potex=*',potex,1)
+
+cc      print *, pot,potex,pot-potex
+
+
+
+      rdiff2 = potex-pot
+
+      print *, rdiff1,rdiff2,rdiff1-rdiff2
+
+      erra = abs(rdiff1-rdiff2)/abs(rdiff1)
 
       call prin2('error1=*',erra,1)
 
@@ -516,9 +506,9 @@ c--------------------------------------------
 
          rrr = sqrt(dx**2 + dy**2)
 
-         pot = log(rrr)*charges(i)
-         grad(1) = dx/rrr**2*charges(i)
-         grad(2) = dy/rrr**2*charges(i)
+         pot = pot + log(rrr)*charges(i)
+         grad(1) = grad(1) + dx/rrr**2*charges(i)
+         grad(2) = grad(2) + dy/rrr**2*charges(i)
 
       enddo
 

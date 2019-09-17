@@ -5,10 +5,11 @@ FC = gfortran
 FFLAGS = -O2 -c -w 
 FLINK = gfortran -w -o $(EXEC)
 FEND = -L/usr/local/opt/openblas/lib -lopenblas
+FEND = -lopenblas
 
 SRC = ../src
 
-EFOL = ../helm_neuamnn_Data
+EFOL = ../data
 
 
 .PHONY: all clean list
