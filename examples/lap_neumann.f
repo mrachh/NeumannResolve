@@ -2,6 +2,7 @@
       parameter (nmax = 20000)
       parameter (nvmax = 1000)
       real *8, allocatable :: ts(:),wts(:)
+      real *8, allocatable :: ts2(:),wts2(:),umat(:),vmat(:)
 
       real *8, allocatable :: verts(:,:),xverts(:),yverts(:)
       integer, allocatable :: el(:),er(:),iregl(:),iregr(:),imid(:)
@@ -10,8 +11,11 @@
 
       real *8, allocatable :: xs(:),ys(:),rnx(:),rny(:),qwts(:),
      1   rkappa(:)
+      real *8, allocatable :: xs2(:),ys2(:),rnx2(:),rny2(:),qwts2(:),
+     1   rkappa2(:)
 
       integer, allocatable :: lns(:),rns(:),nepts(:)
+      integer, allocatable :: lns2(:),rns2(:),nepts2(:)
       real *8, allocatable :: rlen(:)
 
       integer, allocatable :: icl(:),icr(:),icsgnl(:),icsgnr(:)
@@ -19,19 +23,19 @@
 
       real *8, allocatable :: xsgnl(:),xsgnr(:),alpha(:)
 
-
       real *8 src(2),trg(2)
       real *8, allocatable :: xsrc(:),ysrc(:),charges(:)
-
 
       real *8 grad(2),gradex(2)
 
       real *8, allocatable :: rhs(:),soln(:)
+      real *8, allocatable :: rhs2(:),soln2(:)
       real *8, allocatable :: xmatc(:,:,:), xmat(:,:)
+      real *8, allocatable :: xmatc2(:,:,:), xmat2(:,:)
       real *8, allocatable :: xtmp(:,:)
 
       real *8 errs(1000),pars(1000)
-      integer, allocatable :: ipiv(:)
+      integer, allocatable :: ipiv(:),ipiv2(:)
 
       external multaslow
 
@@ -58,6 +62,19 @@ c
        ncorner = k*irefinelev
        allocate(ts(ncorner),wts(ncorner))
        call getcornerdis(k,irefinelev,ts,wts)
+
+
+       itype = 1
+       lu = 100000
+       allocate(umat(lu),vmat(lu))
+       ln = 50
+       allocate(ts2(ln),wts2(ln))
+       call lapdisc(ts2,wts2,umat,vmat,ncorner2,itype)
+
+       do i=1,ncorner2
+         ts2(i) = 2*ts2(i)
+         wts2(i) = 2*wts2(i)
+       enddo
 
 
 c
@@ -136,6 +153,7 @@ c             panels
        rtmp = 0.15d0
 
        n = 0
+       n2 = 0
        kmid = 16
        do i=1,nedges
 
@@ -150,11 +168,16 @@ c             panels
          pr(i) = rtmp
          imid(i) = 5
          n = n + imid(i)*kmid + 2*ncorner
+         n2 = n2 + imid(i)*kmid + 2*ncorner2
        enddo
 
        allocate(xs(n),ys(n),rnx(n),rny(n),rkappa(n),qwts(n))
+       allocate(xs2(n2),ys2(n2),rnx2(n2),rny2(n2),
+     1    rkappa2(n2),qwts2(n2))
        allocate(lns(nedges+1),rns(nedges+1),nepts(nedges+1))
+       allocate(lns2(nedges+1),rns2(nedges+1),nepts2(nedges+1))
        allocate(rlen(nedges+1))
+
 
 c
 cc      generate discretization nodes
@@ -166,6 +189,10 @@ c
      1         kmid,ncorner,ts,wts,n,xs,ys,rnx,rny,rkappa,qwts,lns,
      2         rns,nepts,rlen)
 
+       call getgeom(nverts,verts,nedges,el,er,rnxe,rnye,pl,pr,imid,
+     1         kmid,ncorner2,ts2,wts2,n2,xs2,ys2,rnx2,rny2,rkappa2,
+     2         qwts2,lns2,rns2,nepts2,rlen)
+
       do i=1,nverts
         xverts(i) = verts(1,i)
         yverts(i) = verts(2,i)
@@ -174,6 +201,8 @@ c
       call pyplot2(11,xverts,yverts,nverts,3,xs,ys,n,
      1    1,'a*')
 
+      call pyplot2(12,xverts,yverts,nverts,3,xs2,ys2,n2,
+     1    1,'a*')
 
 
 c
@@ -216,6 +245,7 @@ c
       icsgnr(3) = 0
 
       allocate(xmatc(ncorner,ncorner,ncint))
+      allocate(xmatc2(ncorner2,ncorner2,ncint))
       do icint = 1,ncint
 
         if(icsgnl(icint).eq.0.and.icsgnr(icint).eq.0) then
@@ -289,12 +319,26 @@ cc      if(alpha(icint).lt.0) alpha(icint) = alpha(icint)+pi
         thet = alpha(icint)
 
         call getcornermat(thet,ncorner,rpan,ts,wts,xmatc(1,1,icint))
+
+
+        thet = alpha(icint)/pi
+        if(thet<0) thet = thet+2
+
+        call lapcornmat(thet,xmatc2(1,1,icint),ncorner2)
+        do ipt=1,ncorner2
+          do jpt=1,ncorner2
+            xmatc2(ipt,jpt,icint) = xmatc2(ipt,jpt,icint)/2/pi
+          enddo
+        enddo
+
       enddo
+
 
       call prin2('alpha=*',alpha,ncint)
 
       call prinf('n=*',n,1)
-      allocate(xmat(n,n))
+      call prinf('n2=*',n2,1)
+      allocate(xmat(n,n),xmat2(n2,n2))
 
 
 c
@@ -322,22 +366,29 @@ c
           call xreplmat(nts,nss,n,its,iss,xtmp,xmat,rfac)
 
           deallocate(xtmp)
+
+          nss = nepts2(jedge)
+          nts = nepts2(iedge)
+          allocate(xtmp(nts,nss))
+
+          call getedgemat(iedge,jedge,n2,xs2,ys2,rnx2,rny2,rkappa2,
+     1      qwts2,lns2,rns2,nepts2,ncint,icl,icr,icsgnl,icsgnr,
+     2      alpha,ixmatc,xsgnl,xsgnr,ncorner2,xmatc2,nts,nss,xtmp)
+      
+          its = lns2(iedge) -1
+          iss = lns2(jedge) -1
+
+          call xreplmat(nts,nss,n2,its,iss,xtmp,xmat2,rfac)
+
+          deallocate(xtmp)
+          
         enddo
       enddo
 
-
-
-cc       call prin2('xmat12=*',xmat(lns(1),lns(2)),24)
+      call prinf('done building matrix*',i,0)
 
 
 
-c
-cc       set material properties
-c
-c 
-
-      pars(1) = 3.0d0
-      pars(2) = 0 
 
 c
 cc       set up sources for the rhs
@@ -360,6 +411,7 @@ c
 
 
       allocate(rhs(n),soln(n))
+      allocate(rhs2(n2),soln2(n2))
 
 
 c
@@ -380,18 +432,27 @@ c
      1       grad(2)*rnye(iedge))
 
         enddo
-      enddo
 
-      do i=1,n
-        do j=1,n
-          xmat(i,j) = xmat(i,j) 
+        
+        do ipt = 1,nepts2(iedge)
+          i = lns2(iedge) + ipt-1
+          xmat2(i,i) = 0.5d0
+
+          call getrhs(ncharges,xsrc,ysrc,charges,xs2(i),ys2(i),pot,
+     1        grad)
+
+          rhs2(i) = sqrt(qwts(i))*(grad(1)*rnxe(iedge)+
+     1       grad(2)*rnye(iedge))
+
         enddo
       enddo
 
-
-
       do i=1,n
         soln(i) = rhs(i)
+      enddo
+
+      do i=1,n2
+        soln2(i) = rhs2(i)
       enddo
 
        call prinf('end of building matrix*',i,0)
@@ -404,13 +465,18 @@ c
       info = 0
       call dgetrs('t',n,1,xmat,n,ipiv,soln,n,info)
 
+      info = 0
+      allocate(ipiv2(n2))
 
-       call prin2('rhs=*',rhs,24)
-       call prin2('soln=*',soln,24)
+      call dgetrf(n2,n2,xmat2,n2,ipiv2,info)
+
+      info = 0
+      call dgetrs('t',n2,1,xmat2,n2,ipiv2,soln2,n2,info)
+
 
 
 c
-cc      test solution in region 1
+cc      test solution 
 c
 
       trg(1) = 0.7d0
@@ -425,12 +491,19 @@ c
         pot = pot - log(rr)/4/pi*soln(i)*sqrt(qwts(i))
       enddo
 
+      pot2 = 0
+      do i=1,n2
+        rr = (trg(1)-xs2(i))**2 + (trg(2)-ys2(i))**2
+        pot2 = pot2 - log(rr)/4/pi*soln2(i)*sqrt(qwts2(i))
+      enddo
+
       call prin2('pot=*',pot,1)
       call prin2('potex=*',potex,1)
 
 cc      print *, pot,potex,pot-potex
 
       rdiff1 = potex-pot
+      rdiff2 = potex-pot2
 
 
       trg(1) = 0.61d0
@@ -445,6 +518,12 @@ cc      print *, pot,potex,pot-potex
         pot = pot - log(rr)/4/pi*soln(i)*sqrt(qwts(i))
       enddo
 
+      pot2 = 0
+      do i=1,n2
+        rr = (trg(1)-xs2(i))**2 + (trg(2)-ys2(i))**2
+        pot2 = pot2 - log(rr)/4/pi*soln2(i)*sqrt(qwts2(i))
+      enddo
+
       call prin2('pot=*',pot,1)
       call prin2('potex=*',potex,1)
 
@@ -452,13 +531,16 @@ cc      print *, pot,potex,pot-potex
 
 
 
-      rdiff2 = potex-pot
+      rdiff1_2 = potex-pot
+      rdiff2_2 = potex-pot2
 
       print *, rdiff1,rdiff2,rdiff1-rdiff2
 
-      erra = abs(rdiff1-rdiff2)/abs(rdiff1)
+      erra = abs(rdiff1-rdiff1_2)/abs(rdiff1)
+      erra2 = abs(rdiff2-rdiff2_2)/abs(rdiff2)
 
-      call prin2('error1=*',erra,1)
+      call prin2('error bisection=*',erra,1)
+      call prin2('error sp-dis=*',erra2,1)
 
 
        stop
