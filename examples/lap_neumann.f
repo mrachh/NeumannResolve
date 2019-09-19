@@ -30,14 +30,48 @@
 
       real *8, allocatable :: rhs(:),soln(:)
       real *8, allocatable :: rhs2(:),soln2(:)
+
+      real *8, allocatable :: rhs_px(:),soln_px(:)
+      real *8, allocatable :: rhs2_px(:),soln2_px(:)
+      real *8, allocatable :: rhs_py(:),soln_py(:)
+      real *8, allocatable :: rhs2_py(:),soln2_py(:)
+
       real *8, allocatable :: xmatc(:,:,:), xmat(:,:)
       real *8, allocatable :: xmatc2(:,:,:), xmat2(:,:)
       real *8, allocatable :: xtmp(:,:)
+
+      real *8 pol_t(2,2),pol_t2(2,2),err_t(2,2)
+
+      real *8, allocatable :: targ(:,:),pottarg(:),pottarg2(:)
 
       real *8 errs(1000),pars(1000)
       integer, allocatable :: ipiv(:),ipiv2(:)
 
       external multaslow
+
+c
+c
+c      Solve three right hand sides,
+c        known solution, x polarization, y polarization
+c
+c      Metrics to compare,
+c
+c        1. Error in polarization
+c
+c        2. potential computed using adaptive integration
+c        on a polar grid in the vicinity of the corner at the origin
+c
+c        use 10x10 grid with exponential spacing in r, and compute
+c        solution using adaptive integration for all three cases
+c        
+c        3. density on the fine mesh
+c
+c        compare solutions with different 4 different levels of resolve
+c          10,20,30,40 for (2) and (3), no refinement needed for (1) 
+c
+c
+c
+
 
       call prini(6,13)
       call prin2('Enter n*',n,0)
@@ -406,12 +440,16 @@ c
          charges(i) = hkrand(0)*10
       enddo
 
-      call prin2('xsrc=*',xsrc,ncharges)
-      call prin2('ysrc=*',ysrc,ncharges)
+cc      call prin2('xsrc=*',xsrc,ncharges)
+cc      call prin2('ysrc=*',ysrc,ncharges)
 
 
       allocate(rhs(n),soln(n))
+      allocate(rhs_px(n),soln_px(n))
+      allocate(rhs_py(n),soln_py(n))
       allocate(rhs2(n2),soln2(n2))
+      allocate(rhs2_px(n2),soln2_px(n2))
+      allocate(rhs2_py(n2),soln2_py(n2))
 
 
 c
@@ -430,6 +468,9 @@ c
 
           rhs(i) = sqrt(qwts(i))*(grad(1)*rnxe(iedge)+
      1       grad(2)*rnye(iedge))
+          
+          rhs_px(i) = sqrt(qwts(i))*rnxe(iedge)
+          rhs_py(i) = sqrt(qwts(i))*rnye(iedge)
 
         enddo
 
@@ -441,18 +482,37 @@ c
           call getrhs(ncharges,xsrc,ysrc,charges,xs2(i),ys2(i),pot,
      1        grad)
 
-          rhs2(i) = sqrt(qwts(i))*(grad(1)*rnxe(iedge)+
+          rhs2(i) = sqrt(qwts2(i))*(grad(1)*rnxe(iedge)+
      1       grad(2)*rnye(iedge))
+
+          rhs2_px(i) = sqrt(qwts2(i))*rnxe(iedge)
+          rhs2_py(i) = sqrt(qwts2(i))*rnye(iedge)
 
         enddo
       enddo
 
       do i=1,n
+        do j=1,n
+          xmat(j,i) = xmat(j,i) + sqrt(qwts(j)*qwts(i))
+        enddo
+      enddo
+
+      do i=1,n2
+        do j=1,n2
+          xmat2(j,i) = xmat2(j,i) + sqrt(qwts2(j)*qwts2(i))
+        enddo
+      enddo
+
+      do i=1,n
         soln(i) = rhs(i)
+        soln_px(i) = rhs_px(i)
+        soln_py(i) = rhs_py(i)
       enddo
 
       do i=1,n2
         soln2(i) = rhs2(i)
+        soln2_px(i) = rhs2_px(i)
+        soln2_py(i) = rhs2_py(i)
       enddo
 
        call prinf('end of building matrix*',i,0)
@@ -466,12 +526,24 @@ c
       call dgetrs('t',n,1,xmat,n,ipiv,soln,n,info)
 
       info = 0
+      call dgetrs('t',n,1,xmat,n,ipiv,soln_px,n,info)
+
+      info = 0
+      call dgetrs('t',n,1,xmat,n,ipiv,soln_py,n,info)
+
+      info = 0
       allocate(ipiv2(n2))
 
       call dgetrf(n2,n2,xmat2,n2,ipiv2,info)
 
       info = 0
       call dgetrs('t',n2,1,xmat2,n2,ipiv2,soln2,n2,info)
+
+      info = 0
+      call dgetrs('t',n2,1,xmat2,n2,ipiv2,soln2_px,n2,info)
+
+      info = 0
+      call dgetrs('t',n2,1,xmat2,n2,ipiv2,soln2_py,n2,info)
 
 
 
@@ -483,12 +555,12 @@ c
       trg(2) = -0.01d0
 
       call getrhs(ncharges,xsrc,ysrc,charges,trg(1),trg(2),
-     1    potex,gradex)
+     1    potex_1,gradex)
 
-      pot = 0
+      pot1 = 0
       do i=1,n
         rr = (trg(1)-xs(i))**2 + (trg(2)-ys(i))**2
-        pot = pot - log(rr)/4/pi*soln(i)*sqrt(qwts(i))
+        pot1 = pot1 - log(rr)/4/pi*soln(i)*sqrt(qwts(i))
       enddo
 
       pot2 = 0
@@ -497,50 +569,103 @@ c
         pot2 = pot2 - log(rr)/4/pi*soln2(i)*sqrt(qwts2(i))
       enddo
 
-      call prin2('pot=*',pot,1)
-      call prin2('potex=*',potex,1)
+      call prin2('pot=*',pot1,1)
+      call prin2('potex=*',potex_1,1)
 
 cc      print *, pot,potex,pot-potex
 
-      rdiff1 = potex-pot
-      rdiff2 = potex-pot2
+      rdiff1 = potex_1-pot1
+      rdiff2 = potex_1-pot2
 
 
-      trg(1) = 0.61d0
+      trg(1) = 0.65d0
       trg(2) = -0.01d0
 
       call getrhs(ncharges,xsrc,ysrc,charges,trg(1),trg(2),
-     1    potex,gradex)
+     1    potex_2,gradex)
 
-      pot = 0
+      pot1_2 = 0
       do i=1,n
         rr = (trg(1)-xs(i))**2 + (trg(2)-ys(i))**2
-        pot = pot - log(rr)/4/pi*soln(i)*sqrt(qwts(i))
+        pot1_2 = pot1_2 - log(rr)/4/pi*soln(i)*sqrt(qwts(i))
       enddo
 
-      pot2 = 0
+      
+
+      pot2_2 = 0
       do i=1,n2
         rr = (trg(1)-xs2(i))**2 + (trg(2)-ys2(i))**2
-        pot2 = pot2 - log(rr)/4/pi*soln2(i)*sqrt(qwts2(i))
+        pot2_2 = pot2_2 - log(rr)/4/pi*soln2(i)*sqrt(qwts2(i))
       enddo
 
-      call prin2('pot=*',pot,1)
-      call prin2('potex=*',potex,1)
+      call prin2('pot=*',pot1_2,1)
+      call prin2('potex=*',potex_2,1)
 
 cc      print *, pot,potex,pot-potex
 
 
 
-      rdiff1_2 = potex-pot
-      rdiff2_2 = potex-pot2
+      rdiff1_2 = potex_2-pot1_2
+      rdiff2_2 = potex_2-pot2_2
 
-      print *, rdiff1,rdiff2,rdiff1-rdiff2
+
+c
+c
+c       since rdiff1, and rdiff1_2 agree to machine precision
+c        without loss of generality we will treat rdiff1 
+c        as the constant differing between the two solutions
+c        for the purposes of comparing the potential in
+c        the volume
+c
+
 
       erra = abs(rdiff1-rdiff1_2)/abs(rdiff1)
       erra2 = abs(rdiff2-rdiff2_2)/abs(rdiff2)
 
+
       call prin2('error bisection=*',erra,1)
       call prin2('error sp-dis=*',erra2,1)
+
+
+      pol_t(1,1)=0
+      pol_t(1,2)=0
+      pol_t(2,1)=0
+      pol_t(2,2)=0
+
+      pol_t2(1,1)=0
+      pol_t2(1,2)=0
+      pol_t2(2,1)=0
+      pol_t2(2,2)=0
+
+      do i=1,n
+        pol_t(1,1) = pol_t(1,1) + soln_px(i)*xs(i)*sqrt(qwts(i))
+        pol_t(2,1) = pol_t(2,1) + soln_px(i)*ys(i)*sqrt(qwts(i))
+        
+        pol_t(1,2) = pol_t(1,2) + soln_py(i)*xs(i)*sqrt(qwts(i))
+        pol_t(2,2) = pol_t(2,2) + soln_py(i)*ys(i)*sqrt(qwts(i))
+      enddo
+
+      do i=1,n2
+        pol_t2(1,1) = pol_t2(1,1) + soln2_px(i)*xs2(i)*sqrt(qwts2(i))
+        pol_t2(2,1) = pol_t2(2,1) + soln2_px(i)*ys2(i)*sqrt(qwts2(i))
+        
+        pol_t2(1,2) = pol_t2(1,2) + soln2_py(i)*xs2(i)*sqrt(qwts2(i))
+        pol_t2(2,2) = pol_t2(2,2) + soln2_py(i)*ys2(i)*sqrt(qwts2(i))
+      enddo
+
+      do i=1,2
+        do j=1,2
+          err_t(i,j)= abs(pol_t(i,j)-pol_t2(i,j))/abs(pol_t(i,j))
+        enddo
+      enddo
+
+      call prin2('error in polarization tensor=*',err_t,4)
+
+
+
+     
+
+
 
 
        stop
