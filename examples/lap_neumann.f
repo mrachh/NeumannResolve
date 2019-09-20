@@ -3,6 +3,8 @@
       parameter (nvmax = 1000)
       real *8, allocatable :: ts(:),wts(:)
       real *8, allocatable :: ts2(:),wts2(:),umat(:),vmat(:)
+      real *8 ts3(100),wts3(100),utmp,vtmp,tsloc(100),wtsloc(100)
+      real *8 qwtstmp(100)
 
       real *8, allocatable :: verts(:,:),xverts(:),yverts(:)
       integer, allocatable :: el(:),er(:),iregl(:),iregr(:),imid(:)
@@ -25,6 +27,9 @@
 
       real *8 src(2),trg(2)
       real *8, allocatable :: xsrc(:),ysrc(:),charges(:)
+      real *8, allocatable :: ztarg(:,:),xt(:),yt(:)
+      real *8, allocatable :: potex(:),pottest(:),pottest2(:)
+      real *8, allocatable :: rvals(:),tvals(:)
 
       real *8 grad(2),gradex(2)
 
@@ -37,7 +42,7 @@
       real *8, allocatable :: rhs2_py(:),soln2_py(:)
 
       real *8, allocatable :: xmatc(:,:,:), xmat(:,:)
-      real *8, allocatable :: xmatc2(:,:,:), xmat2(:,:)
+      real *8, allocatable :: xmatc2(:,:,:), xmat2(:,:),xmat2copy(:,:)
       real *8, allocatable :: xtmp(:,:)
 
       real *8 pol_t(2,2),pol_t2(2,2),err_t(2,2)
@@ -45,7 +50,14 @@
       real *8, allocatable :: targ(:,:),pottarg(:),pottarg2(:)
 
       real *8 errs(1000),pars(1000)
-      integer, allocatable :: ipiv(:),ipiv2(:)
+      integer, allocatable :: ipiv(:),ipiv2(:),ipiv3(:)
+
+      real *8, allocatable :: xmatcnew(:,:),xmatnew(:,:)
+      real *8, allocatable :: xmatnewcopy(:,:)
+      real *8, allocatable :: xmatsub(:,:)
+      real *8, allocatable :: rhsnew(:),solnnew(:),rmutmp(:)
+      real *8, allocatable :: rhstmp(:),rhstmp2(:),rhscoeffs(:)
+      real *8, allocatable :: solncomp(:)
 
       external multaslow
 
@@ -61,7 +73,7 @@ c
 c        2. potential computed using adaptive integration
 c        on a polar grid in the vicinity of the corner at the origin
 c
-c        use 10x10 grid with exponential spacing in r, and compute
+c        use 100x100 grid with exponential spacing in r, and compute
 c        solution using adaptive integration for all three cases
 c        
 c        3. density on the fine mesh
@@ -92,7 +104,7 @@ c
 
 
        k = 16
-       irefinelev = 100
+       irefinelev = 10
        ncorner = k*irefinelev
        allocate(ts(ncorner),wts(ncorner))
        call getcornerdis(k,irefinelev,ts,wts)
@@ -232,11 +244,57 @@ c
         yverts(i) = verts(2,i)
       enddo
 
+
       call pyplot2(11,xverts,yverts,nverts,3,xs,ys,n,
      1    1,'a*')
 
       call pyplot2(12,xverts,yverts,nverts,3,xs2,ys2,n2,
      1    1,'a*')
+
+c
+c
+c
+c       generate targets on an exponential grid
+c
+      nlat = 10
+      ntarg = nlat*nlat
+      tmin = atan2(verts(2,2),verts(1,2))
+      tmax = atan2(verts(2,3),verts(1,3))
+      allocate(ztarg(2,ntarg),potex(ntarg),pottest(ntarg))
+      allocate(pottest2(ntarg),xt(ntarg),yt(ntarg))
+      allocate(rvals(nlat),tvals(nlat))
+
+      print *, tmin, tmax
+
+
+      do i=1,nlat
+        rr = -8*(i-1)/(nlat-1)
+        rvals(i) = (10**rr)*rtmp
+        tvals(i) = tmin + (i+0.0d0)/(nlat+1.0d0)*(tmax-tmin)
+      enddo
+      call prin2('rvals=*',rvals,nlat)
+      call prin2('tvals=*',tvals,nlat)
+
+
+      
+      do irr = 1,nlat
+        do itt = 1,nlat
+          ipt = (irr-1)*nlat + itt
+          ztarg(1,ipt) = rvals(irr)*cos(tvals(itt))
+          ztarg(2,ipt) = rvals(irr)*sin(tvals(itt))
+          xt(ipt) = ztarg(1,ipt)
+          yt(ipt) = ztarg(2,ipt)
+        enddo
+      enddo
+
+      write(33,*) verts(1,1),verts(2,1)      
+      write(33,*) verts(1,2),verts(2,2)      
+      write(33,*) verts(1,3),verts(2,3)      
+      do i=1,ntarg
+        write(33,*) xt(i),yt(i)
+      enddo
+
+
 
 
 c
@@ -373,6 +431,7 @@ cc      if(alpha(icint).lt.0) alpha(icint) = alpha(icint)+pi
       call prinf('n=*',n,1)
       call prinf('n2=*',n2,1)
       allocate(xmat(n,n),xmat2(n2,n2))
+      allocate(xmat2copy(n2,n2))
 
 
 c
@@ -420,6 +479,7 @@ c
       enddo
 
       call prinf('done building matrix*',i,0)
+
 
 
 
@@ -500,8 +560,10 @@ c
       do i=1,n2
         do j=1,n2
           xmat2(j,i) = xmat2(j,i) + sqrt(qwts2(j)*qwts2(i))
+          xmat2copy(j,i) = xmat2(j,i)
         enddo
       enddo
+
 
       do i=1,n
         soln(i) = rhs(i)
@@ -626,6 +688,14 @@ c
       call prin2('error bisection=*',erra,1)
       call prin2('error sp-dis=*',erra2,1)
 
+c
+c
+c
+c        start test 1 - polarization computation
+c
+c
+
+
 
       pol_t(1,1)=0
       pol_t(1,2)=0
@@ -661,17 +731,504 @@ c
 
       call prin2('error in polarization tensor=*',err_t,4)
 
+c
+c
+c
+c        start test 2: accuracy in targets in the 
+c        vicinity of one of the corners.
+c    
+c      attempt number 1: try the far-field quadrature
+c          - fails due to some of the targets being close
+c            to the edge
+c
+c      attempt number 2: use far-field quadrature except 
+c        near the corner, and use adaptive integration
+c        use to corner 1
+c          
+c      
+c
+c
+      do i=1,ntarg
+        call getrhs(ncharges,xsrc,ysrc,charges,xt(i),yt(i),potex(i),
+     1     grad)
+      enddo
+
+      call cpu_time(t1)
+C$      t1 = omp_get_wtime()      
+      call comppottarg_adap(ntarg,xt,yt,n,xs,ys,soln,qwts,
+     1    nedges,nepts,lns,rns,imid,k,irefinelev,pottest)
+      
+
+      call cpu_time(t2)
+C$      t2 = omp_get_wtime()     
+
+      call prin2('time taken in adaptive integration=*',t2-t1,1)
+      
+      erra = 0
+      ra = 0
+
+      do i=1,ntarg
+        pottest(i) = pottest(i)+rdiff1
+        ra = ra + potex(i)**2
+        erra = erra + (pottest(i)-potex(i))**2
+      enddo
+      erra = sqrt(erra/ra)
+      ra = sqrt(ra)
+      call prin2("ra=*",ra,1)
+      call prin2('error in targets in volume-bisection=*',erra,1)
 
 
-     
+
+
+c
+cc      resolve problem at the corner panel of 
+c       vertex 1
+c
+      
+      rpan = rtmp
+      nc2 = k + ncorner2
+      itype = 1
+      call legeexps(itype,k,ts3,utmp,vtmp,wts3)
+
+      xstart = 1.0d0/2
+      xend = rpan
+      do i=1,k
+        tsloc(i) = 0.5d0 + (ts3(i)+1)/4.0d0
+        wtsloc(i) = wts3(i)/4.0d0
+      enddo
+
+      do i=1,ncorner2
+        tsloc(k+i) = ts2(i)/2
+        wtsloc(k+i) = wts2(i)/2
+      enddo
+
+      do i=1,nc2
+        qwtstmp(i) = wtsloc(i)/2
+        qwtstmp(i+nc2) = wtsloc(i)/2
+      enddo
 
 
 
+      icint = 1
+      thet = alpha(1)
+      nn = 2*nc2
+
+      allocate(xmatcnew(nn,nn))
+
+      call getcornermat(thet,nc2,rpan,tsloc,wtsloc,xmatcnew)
+
+      allocate(xmatnew(nn,nn))
+      allocate(xmatnewcopy(nn,nn))
+
+
+      do i=1,nn
+        do j=1,nn
+          xmatnew(i,j) = 0
+        enddo
+      enddo
+c
+cc      set off-diagonal blocks
+c
+c      unknowns 1-nc2 are the unknowns
+c      on edge 1 at vertex 1,
+c      and unknowns nc2+1,nn are the unknowns
+c      on edge 3 at vertex 1
+c
+       call xreplmat(nc2,nc2,nn,0,nc2,xmatcnew,xmatnew,xsgnl(1))
+       call xreplmat(nc2,nc2,nn,nc2,0,xmatcnew,xmatnew,xsgnr(1))
+
+       call xreplmat(ncorner2,ncorner2,nn,k,nc2+k,xmatc2(1,1,1),
+     1           xmatnew,xsgnl(1))
+
+       call xreplmat(ncorner2,ncorner2,nn,nc2+k,k,xmatc2(1,1,1),
+     1           xmatnew,xsgnr(1))
+c
+cc        the matrix that has been set up are the dirichlet 
+c         matrices. Now take the transposes to compute the 
+c         neumann matrices
+c
+      ra = 0
+      do i=1,nn
+        xmatnew(i,i) = 0.5d0
+      enddo
+
+      do i=1,nn
+        do j=1,nn
+          xmatnew(j,i) = xmatnew(j,i) + sqrt(qwtstmp(i)*qwtstmp(j))
+        enddo
+      enddo
+
+
+
+      allocate(ipiv3(nn))
+      call dgetrf(nn,nn,xmatnew,nn,ipiv3,info)
+
+       
+      allocate(rhsnew(nn),solnnew(nn))
+      allocate(rmutmp(2*ncorner2))
+c
+cc     now set up the right hand side for the linear system
+c
+
+      rint1 = 0
+      istart= lns2(1) - 1
+      do i=1,ncorner2
+        rmutmp(i) = soln2(i+istart)
+        rint1 = rint1 + soln2(i+istart)*sqrt(qwts2(istart+i))
+      enddo
+
+      istart = rns2(3) -1
+      do i=1,ncorner2
+        rmutmp(ncorner2+i) = soln2(i+istart)
+        rint1 = rint1 + soln2(i+istart)*sqrt(qwts2(istart+i))
+      enddo
+
+      call prin2('integral of density on patch=*',rint1,1)
+
+
+
+c
+cc       initialize matrix for computing right hand side
+c
+c
+
+      nnn = 2*ncorner2
+      allocate(xmatsub(nnn,nnn))
+      istart = lns2(1) - 1
+      jstart = lns2(1) - 1
+
+      do i=1,ncorner2
+        do j=1,ncorner2
+          xmatsub(i,j) = xmat2copy(i+istart,j+jstart)
+        enddo
+      enddo
+
+      istart = lns2(1) - 1
+      jstart = rns2(3) - 1
+      do i=1,ncorner2
+        do j=1,ncorner2
+          xmatsub(i,j+ncorner2) = xmat2copy(i+istart,j+jstart)
+        enddo
+      enddo
+
+      istart = rns2(3) - 1
+      jstart = lns2(1) - 1
+
+      do i=1,ncorner2
+        do j=1,ncorner2
+          xmatsub(i+ncorner2,j) = xmat2copy(i+istart,j+jstart)
+        enddo
+      enddo
+
+      istart = rns2(3) - 1
+      jstart = rns2(3) - 1
+      do i=1,ncorner2
+        do j=1,ncorner2
+          xmatsub(i+ncorner2,j+ncorner2) = xmat2copy(i+istart,j+jstart)
+        enddo
+      enddo
+
+c
+cc        start iterative solve loop
+c
+      nlev = 1
+
+      allocate(rhstmp(nnn),rhstmp2(ncorner2),rhscoeffs(ncorner2))
+      allocate(solncomp(2*nlev*k+ncorner2*2))
+      nhalf = nlev*k + ncorner2
+
+
+      alpha = 1.0d0
+      beta = 0
+      do ilev = 1,nlev
+         call dgemv('t',nnn,nnn,alpha,xmatsub,nnn,rmutmp,1,beta,
+     1      rhstmp,1)
+cc          call multaslow(nnn,rmutmp,rhstmp,xmatneuloc)
+
+c
+cc       extract out the relevant pieces of rhs
+c
+         do i=1,ncorner2
+           rhstmp2(i) = rhstmp(i)
+           rhscoeffs(i) = 0
+        enddo
+       
+c
+cc       smear this function onto the rest of the grid
+
+cc        call prin2('rhstmp2=*',rhstmp2,ncorner2)
+cc        call prin2('vmat=*',vmat,ncorner2*ncorner2)
+        call dgemv('n',ncorner2,ncorner2,alpha,vmat,ncorner2,rhstmp2,1,
+     1     beta,rhscoeffs,1)
+cc         call multaslow(ncorner,rhstmp2,rhscoeffs,vmat)
+        call prin2('rhscoeffs edge 1=*',rhscoeffs,ncorner2)
+
+        do ipt = 1,nc2
+          x = tsloc(ipt)/2.0d0
+          rhsnew(ipt) = 0
+          do j=1,ncorner2
+            val = 0
+            call lapeval(x,j,val)
+            rhsnew(ipt) = rhsnew(ipt) + rhscoeffs(j)*val
+          enddo
+          rhsnew(ipt) = rhsnew(ipt)*sqrt(wtsloc(ipt))
+        enddo
+
+        do i=1,ncorner2
+          rhstmp2(i) = rhstmp(ncorner2+i)
+          rhscoeffs(i) = 0
+        enddo
+       
+c
+cc       smear this function onto the rest of the grid
+        call dgemv('n',ncorner2,ncorner2,alpha,vmat,ncorner2,rhstmp2,1,
+     1     beta,rhscoeffs,1)
+cc         call multaslow(ncorner,rhstmp2,rhscoeffs,vmat)
+        call prin2('rhscoeffs edge 2=*',rhscoeffs,ncorner2)
+
+        do ipt = 1,nc2
+          ii = nc2 + ipt
+          x = tsloc(ipt)/2.0d0
+          rhsnew(ii) = 0
+          do j=1,ncorner2
+            val = 0
+            call lapeval(x,j,val)
+            rhsnew(ii) = rhsnew(ii) + rhscoeffs(j)*val
+          enddo
+          rhsnew(ii) = rhsnew(ii)*sqrt(wtsloc(ipt))
+        enddo
+        call prin2('rhsnew=*',rhsnew,nn)
+
+        do i=1,nn
+          solnnew(i) = rhsnew(i)
+        enddo
+
+cc        do i=1,nn
+cc          do j=1,nn
+cc            xmatnew(j,i) = xmatnewcopy(j,i) + 
+cc     1         sqrt(qwtstmp(i)*qwtstmp(j))/2**(ilev-1)
+cc          enddo
+cc        enddo
+        
+        info = 0
+        call dgetrs('t',nn,1,xmatnew,nn,ipiv3,solnnew,nn,info)
+
+        rint2 = 0
+        do i=1,nn
+          rint2 = rint2 + solnnew(i)*sqrt(qwtstmp(i))
+        enddo
+
+        call prin2('rint2=*',rint2,1)
+
+cc         call dgmres(ier,nn,multaslow,xmatnew2,rhsnew,eps,numit,
+cc     1       solnnew,niter,errs,ngmrec,work)
+
+        istart = (ilev-1)*k
+        do i=1,k
+          solncomp(istart+i) = solnnew(i)
+          solncomp(nhalf+i+istart) = solnnew(nc2+i)
+        enddo
+
+        if(ilev.eq.nlev) then
+          do i=1,ncorner2
+            solncomp(nlev*k+i) = solnnew(k+i)
+            solncomp(nhalf+nlev*k+i) = solnnew(nc2+k+i)
+          enddo
+        endif
+
+c
+cc        reinitialize rmutmp
+c
+
+        do i=1,ncorner2
+          rmutmp(i) = solnnew(i+k)
+        enddo
+        do i=1,ncorner
+          rmutmp(ncorner2+i) = solnnew(i+k+nc2)
+        enddo
+      enddo
+c
+c
+c
+      erra = 0
+      ra = 0
+      istart = lns(1)-1
+      do i=1,nlev*k
+        ra = ra + soln(istart+i)**2
+        erra = erra + (solncomp(i)-soln(istart+i))**2
+      enddo
+      call prin2('soln=*',soln(lns(1)),nlev*k)
+      call prin2('solncomp=*',solncomp,nlev*k)
+      erra = sqrt(erra/ra)
+
+      call prin2("error in density after resolve=*",erra,1)
 
        stop
        end
 
 c---------------------------------------------
+
+      subroutine comppottarg_adap(ntarg,xt,yt,n,xs,ys,soln,qwts,
+     1  nedges,nepts,lns,rns,imid,k,irefinelev,pot)
+      implicit real *8 (a-h,o-z)
+      integer ntarg,n,nedges
+      real *8 xt(ntarg),yt(ntarg),xs(n),ys(n),soln(n),qwts(n)
+      integer lns(nedges+1),rns(nedges+1),imid(nedges),nepts(nedges)
+      integer k,kmid,irefinelev
+      real *8 pot(ntarg)
+      real *8, allocatable :: soln_tmp(:)
+      real *8, allocatable :: soln_coefs(:)
+      real *8, allocatable :: xcoefs(:)
+      real *8, allocatable :: ycoefs(:)
+      real *8, allocatable :: rpanlen(:)
+      real *8 ts(k),umat(k,k),vmat(k,k),wts(k)
+      real *8 tsquad(100),wquad(100)
+      real *8 stack(2,200),vals(200),par1(4)
+      real *8, allocatable :: tpack(:)
+
+
+      external slp_adap
+
+      done = 1
+      pi = atan(done)*4
+
+      itype = 2
+      call legeexps(itype,k,ts,umat,vmat,wts)
+      allocate(soln_tmp(n),soln_coefs(n),xcoefs(n),ycoefs(n))
+
+      do i=1,n
+        soln_tmp(i) = soln(i)/sqrt(qwts(i))
+      enddo
+
+      npan = n/k
+      allocate(rpanlen(npan))
+
+      ii = 1
+      do iedge=1,nedges
+        npan_edge = nepts(iedge)/k
+        do ipan = 1,npan_edge
+          rpanlen(ii) = 0
+          do j=1,k
+            ipt = lns(iedge) + (ipan-1)*k +j-1
+            rpanlen(ii) = rpanlen(ii) + qwts(ipt)
+            soln_coefs(ipt) = 0
+            xcoefs(ipt) = 0
+            ycoefs(ipt) = 0
+            do l=1,k
+              jpt = lns(iedge) + (ipan-1)*k+l-1
+              soln_coefs(ipt) = soln_coefs(ipt) +
+     1           umat(j,l)*soln_tmp(jpt)
+              xcoefs(ipt) = xcoefs(ipt) + umat(j,l)*xs(jpt)
+              ycoefs(ipt) = ycoefs(ipt) + umat(j,l)*ys(jpt)
+            enddo
+          enddo
+          ii = ii+1
+        enddo
+      enddo
+
+cc      call prin2('rpanlen=*',rpanlen,npan)
+
+      do i=1,n
+        write(35,'(5(2x,e11.5))') xs(i),ys(i),xcoefs(i),ycoefs(i),
+     1     soln_coefs(i)
+      enddo
+
+      a = -1
+      b = 1
+      m = 20
+      eps = 1.0d-13
+      maxdepth = 200
+      nnmax = 10000
+
+      ifwhts = 1
+      call legewhts(m,tsquad,wquad,ifwhts)
+
+      allocate(tpack(3*k))
+
+      call prin2('tsquad=*',tsquad,m)
+      call prin2('wquad=*',wquad,m)
+
+      
+
+      par1(1) = k+0.1d0
+
+      
+
+
+ccC$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(itarg,par1,i,j,ipt)
+ccC$OMP$PRIVATE(tpack,pottmp,ier,stack,vals,maxrec,numint)
+      do itarg=1,ntarg
+        pot(itarg) = 0
+        par1(2) = xt(itarg)
+        par1(3) = yt(itarg)
+
+        do i=1,npan
+          par1(4) = rpanlen(i)/2/4/pi
+          do j=1,k
+            ipt = (i-1)*k+j
+            tpack(j) = xcoefs(ipt)
+            tpack(j+k) = ycoefs(ipt)
+            tpack(j+2*k) = soln_coefs(ipt)
+          enddo
+
+          do j=1,200
+            stack(1,j) = 0
+            stack(2,j) = 0
+            vals(j) = 0
+          enddo
+
+
+          pottmp = 0.0d0
+          ier = 0
+          maxrec = 0
+          numint = 0
+          call adinrec(ier,stack,a,b,slp_adap,par1,tpack,tsquad,wquad,
+     1      m,vals,nnmax,eps,pottmp,maxdepth,maxrec,numint)
+          
+          pot(itarg) = pot(itarg) + pottmp
+        enddo
+      enddo
+ccC$OMP END PARALLEL DO      
+      
+      
+      
+      return
+      end
+c
+c
+c
+c
+c
+      subroutine slp_adap(x,par1,par2,val)
+      implicit real *8 (a-h,o-z)
+      real *8 par1(3),par2(*)
+      real *8 pols(100)
+
+      dd = 0
+      xx = 0
+      yy = 0
+      k = par1(1)
+      xt = par1(2)
+      yt = par1(3)
+      rlen = par1(4)
+      call legepols(x,k-1,pols)
+      
+      do i=1,k
+        xx = xx + par2(i)*pols(i)
+        yy = yy + par2(i+k)*pols(i)
+        dd = dd + par2(i+2*k)*pols(i)
+      enddo
+      
+      r = (xx-xt)**2 + (yy-yt)**2
+      val = -log(r)*dd*par1(4)
+
+      
+
+      return
+      end
+
+
+
 
        subroutine getcornermat(thet,n,rlen,ts,wts,xmat)
        implicit real *8 (a-h,o-z)

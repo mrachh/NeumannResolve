@@ -97,8 +97,7 @@ c
      1      par1,par2,t,w,m,vals,nnmax,eps,
      2      rint,maxdepth,maxrec,numint)
         implicit real *8 (a-h,o-z)
-        save
-        dimension stack(2,1),t(1),w(1),vals(1),par1(1),par2(1)
+        dimension stack(2,200),t(m),w(m),vals(200),par1(*),par2(*)
 c 
 c       start the recursion
 c 
@@ -113,7 +112,7 @@ c
         ier=0
         maxrec=0
         do 3000 i=1,nnmax
-ccc        call prinf('i=*',i,1)
+cc        call prinf('i=*',i,1)
         numint=i
         if(j .gt. maxrec) maxrec=j
 ccc        call prinf('j=*',j,1)
@@ -177,8 +176,7 @@ c
 c 
         subroutine oneint(a,b,fun,par1,par2,t,w,m,rint)
         implicit real *8 (a-h,o-z)
-        save
-        dimension t(1),w(1),par1(1),par2(1)
+        dimension t(m),w(m),par1(*),par2(*)
 c 
 c       integrate the function fun on the interval [a,b]
 c 

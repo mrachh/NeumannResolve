@@ -1,3 +1,4 @@
+c 
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c 
 c        this is the end of the debugging code and the beginning
@@ -115,6 +116,7 @@ c        subroutine legefde2.
 c 
 c   legecva2 - the same as legecfd2, except it is does not evaluate
 c        the derivative of the function
+c
 c   legerts - an improved code for the construction of Gaussian 
 c        quadratures. Its asymptotic CPU time requirements are of
 c        the order $O(n)$; it has been tested for n \leq 100 000.
@@ -122,7 +124,6 @@ c
 c 
         subroutine legeexps(itype,n,x,u,v,whts)
         implicit real *8 (a-h,o-z)
-        save
         dimension x(1),whts(1),u(n,n),v(n,n)
 c 
 c         this subroutine constructs the gaussiaqn nodes
@@ -172,7 +173,7 @@ c
         itype_rts=0
         if(itype .gt. 0) itype_rts=1
 c   
-        call legerts2(itype_rts,n,x,whts)
+        call legerts(itype_rts,n,x,whts)
 c 
 c       construct the matrix of values of the legendre polynomials
 c       at these nodes
@@ -204,240 +205,6 @@ c
  2800 continue
         return
         end
-c
-c
-c
-c
-c
-        subroutine legerts2(itype,n,ts,whts)
-        implicit real *8 (a-h,o-z)
-        dimension ts(1),whts(1)
-c
-c        This subroutine constructs the Gaussian quadrature
-c        or order n. Its claim to fame is the fact that the
-c        cost of the calculation is proportional to n; in
-c        practice, with n=10 000 the calculation is more or
-c        less instantaneous. PLEASE NOTE THAT THIS IS A 
-c        MILDLY OPTIMIZED - and much less readable - VERSION 
-c        OF THE SUBROUTINE LEGERTS (SEE)
-c        
-c
-c                 Input parameters:
-c
-c  itype - the type of calculation desired: 
-c     itype=1 will cause both the roots and the weights to be returned
-c     itype=0 will cause only the roots to be returned
-c  n - the number of nodes to be returned
-c   
-c                 Output parameters:
-c
-c  ts - the n Gaussian nodes on the interval [-1,1]
-c  whts - the n Gaussian weights on the interval [-1,1]
-c 
-c
-c        . . . determine the number of Taylor coefficients 
-c              to be used
-c
-        k=30
-        eps=1.0d-8
-c
-        d=1
-        d2=d+1.0d-24
-        if(d2 .ne. d) then
-            k=54
-            eps=1.0d-13
-        endif
-c 
-c       . . . construct the array of initial approximations
-c             to the roots of the n-th legendre polynomial
-c 
-        i=n/2
-        ifodd=n-2*i
-c
-        DONE=1
-        pi=atan(done)*4
-        h=pi/(2*n)
-        ii=0
-c
-        d_den=pi/(4*n+2)
-        do 1100 i=n/2+1,n
-c
-        ii=ii+1
-        theta=(4*i-done)*d_den
-        ts(ii)=-cos(theta)
-1100  CONTINUE
-c
-c       starting from the center, find roots one after another
-c
-        pol=1
-        der=0
-c
-        x0=0
-        call legepol(x0,n,pol,der)
-        x1=ts(1)
-c       
-        n2=(n+1)/2
-c
-        pol3=pol
-        der3=der
-c
-        do 2000 kk=1,n2
-c
-        if( (kk .eq. 1) .and. (ifodd .eq. 1) ) then
-            ts(kk)=x0
-            whts(kk)=der
-            x0=x1
-            x1=ts(kk+1)
-            pol3=pol
-            der3=der
-            goto 2000
-        endif
-c
-c        conduct newton
-c
-        ifstop=0
-        do 1400 i=1,10
-c
-        if(i .ne. 1) then
-            h2=x1-xold
-c
-            if(abs(h2) .lt. 1.0d-36) goto 1600
-c
-            if(i .eq. 2) 
-     1          call legetayl2(polold,derold,xold,h2,n,k/2,pol,der)
-            if(i .ne. 2) 
-     1          call legetayl2(polold,derold,xold,h2,n,k/5,pol,der)
-c
-            polold=pol
-            derold=der
-            xold=x1
-        endif
-c
-        if(i .eq. 1) then
-            h=x1-x0
-            call legetayl2(pol3,der3,x0,h,n,k,pol,der)
-c
-            polold=pol
-            derold=der
-            xold=x1
-        endif
-c
-        x1=x1-pol/der 
-c
-        if(abs(pol) .lt. eps) ifstop=ifstop+1
-        if(ifstop .eq. 3) goto 1600        
-c
- 1400 continue
- 1600 continue
-c
-        ts(kk)=x1
-        if(itype .gt. 0) whts(kk)=der
-c
-        x0=x1
-        x1=ts(kk+1)
-        pol3=pol
-        der3=der
- 2000 continue
-c
-c        put the obtained roots in the proper order
-c
-        do 2200 i=(n+1)/2,1,-1
-c
-        ts(i+n/2)=ts(i)
- 2200 continue
-c
-        do 2400 i=1,n/2
-c
-        ts(i)=-ts(n-i+1)
- 2400 continue
-c
-        if(itype .le. 0) return
-c
-c        put the obtained roots in the proper order
-c
-        do 2600 i=(n+1)/2,1,-1
-c
-        whts(i+n/2)=whts(i)
- 2600 continue
-c
-        do 2800 i=1,n/2
-c
-        whts(i)=whts(n-i+1)
- 2800 continue
-c
-        do 3600 i=1,n
-c
-        whts(i)=2/(1-ts(i)**2)/whts(i)**2
- 3600 continue
-c
-        return
-        end
-c
-c
-c
-c
-c
-        subroutine legetayl2(pol,der,x,h,n,k,sum,sumder)
-        implicit real *8 (a-h,o-z)
-        save
-        dimension squares(100),prods(100),prodinv(100),rnums(100)
-        data ifcalled/0/
-c
-c       initialize
-c
-        if(ifcalled .eq. 1) goto 2000
-c
-        done=1
-        two=2
-        half=1/two
-        do 1200 i=1,90
-c
-        prods(i)=i*done*(i+1)
-        squares(i)=i**2
-        prodinv(i)=1/prods(i)
-        rnums(i)=i
- 1200 continue
-c
-        ifcalled=1
- 2000 continue
-c
-c        . . . evaluate the derivatives of P_n scaled by h^n/n!,
-c              and sum the taylor series for P_n and its 
-c              derivative
-c
-        dn=n*(n+done)
-        d7=done/(done-x**2)
-        q0=pol
-        q1=der*h
-        q2=(two*x*der-dn*pol)*d7
-        q2=q2*h**2*half
-c
-        hinv=done/h
-        sum=q0+q1+q2
-        sumder=(q1+q2+q2)*hinv
-c
-cccc        if(k .le. 2) return
-c
-        qi=q1
-        qip1=q2
-c
-        ddd=h**2*d7
-        dddd=two*x*hinv
-c
-        do 2200 i=1,k-2
-c
-        d=dddd*squares(i+1)*qip1-(dn-prods(i))*qi
-        d=d*prodinv(i+1)*ddd
-c
-        sum=sum+d
-        sumder=sumder+d*rnums(i+2)*hinv
-c
-        qi=qip1
-        qip1=d
- 2200 continue
-c
-        return
-        end
 c 
 c 
 c 
@@ -445,7 +212,6 @@ c
 c 
         subroutine legewhts_old(n,ts,whts,ifwhts)
         implicit real *8 (a-h,o-z)
-        save
         dimension ts(1),whts(1)
 c 
 c        this subroutine constructs the nodes and the
@@ -520,7 +286,6 @@ c
 c 
         subroutine legewhts(n,ts,whts,ifwhts)
         implicit real *8 (a-h,o-z)
-        save
         dimension ts(1),whts(1),ws2(1000),rats(1000)
 c 
 c        this subroutine constructs the nodes and the
@@ -590,7 +355,6 @@ c
         subroutine legepol_sum(x,n,pol,der,sum)
         implicit real *8 (a-h,o-z)
 c 
-        save
         done=1
         sum=0
 c 
@@ -642,7 +406,6 @@ c
         subroutine legepol(x,n,pol,der)
         implicit real *8 (a-h,o-z)
 c 
-        save
         pkm1=1
         pk=x
 c 
@@ -682,7 +445,6 @@ c
 c 
         subroutine prodend(x,xs,n,i,f)
         implicit real *8 (a-h,o-z)
-        save
         dimension xs(1)
 c 
 c      evaluate the product
@@ -718,7 +480,6 @@ c
 c 
         subroutine legepols(x,n,pols)
         implicit real *8 (a-h,o-z)
-        save
         dimension pols(1)
 c 
         pkm1=1
@@ -760,7 +521,6 @@ c
 c 
       SUBROUTINE legepolders(X,VALs,ders,N)
       IMPLICIT REAL *8 (A-H,O-Z)
-        save
       REAL *8 vals(1),ders(1)
 C 
 C     This subroutine computes the values and the derivatives
@@ -819,13 +579,12 @@ c
 c 
         subroutine legepls2(x,n,pols)
         implicit real *8 (a-h,o-z)
-        save
         dimension pols(1),pjcoefs1(2000),pjcoefs2(300)
         data ifcalled/0/
 c 
 c        if need be - initialize the arrays pjcoefs1, pjcoefs2
-c 
-        if(ifcalled .eq. 1) goto 1100
+c
+cccc        if(ifcalled .eq. 1) goto 1100
 c 
         done=1
         ninit=290
@@ -836,7 +595,8 @@ c
 c 
  1050 continue
 c 
-        ifcalled=1
+cccc        ifcalled=1
+
  1100 continue
   
         pkm1=1
@@ -877,9 +637,7 @@ c
         subroutine legeinmt(n,ainte,adiff,x,whts,endinter,
      1      itype,w)
         implicit real *8 (a-h,o-z)
-        save
         dimension ainte(1),w(1),x(1),whts(1),adiff(1),endinter(1)
-c 
 c 
 c        for the user-specified n, this subroutine constructs
 c        the matrices of spectral indefinite integration and/or
@@ -951,7 +709,6 @@ c
         subroutine legeinm0(n,ainte,adiff,polin,polout,
      1      x,whts,u,v,w,itype,endinter)
         implicit real *8 (a-h,o-z)
-        save
         dimension ainte(n,n),u(n,n),v(n,n),w(n,n),
      1      endinter(1),x(n),whts(n),polin(n),polout(n),
      2      adiff(n,n)
@@ -1058,7 +815,6 @@ c        multiply the three, obtaining the integrating matrix
 c 
         call matmul(adiff,u,w,n)
         call matmul(v,w,adiff,n)
-
 c 
  3000 continue
 c 
@@ -1084,7 +840,6 @@ c
 c 
         subroutine legeinte(polin,n,polout)
         implicit real *8 (a-h,o-z)
-        save
         dimension polin(1),polout(1)
 c 
 c       this subroutine computes the indefinite integral of the
@@ -1128,7 +883,7 @@ c
         sss=-sss
  2200 continue
 c 
-        call prin2('dd=*',dd,1)
+cccc        call prin2('dd=*',dd,1)
         polout(1)=-dd
 c 
         return
@@ -1140,7 +895,6 @@ c
 c 
         subroutine legediff(polin,n,polout)
         implicit real *8 (a-h,o-z)
-        save
         dimension polin(1),polout(1)
 c 
 c       this subroutine differentiates the legendre
@@ -1188,7 +942,6 @@ c
 c 
       SUBROUTINE legeFDER(X,VAL,der,PEXP,N)
       IMPLICIT REAL *8 (A-H,O-Z)
-        save
       REAL *8 PEXP(1)
 C 
 C     This subroutine computes the value and the derivative
@@ -1248,7 +1001,6 @@ c
       SUBROUTINE legeFDE2(X,VAL,der,PEXP,N,
      1    pjcoefs1,pjcoefs2,ninit)
       IMPLICIT REAL *8 (A-H,O-Z)
-        save
       REAL *8 PEXP(1),pjcoefs1(1),pjcoefs2(1)
 c 
 C     This subroutine computes the value and the derivative
@@ -1340,7 +1092,6 @@ c
 c 
       SUBROUTINE legeexev(X,VAL,PEXP,N)
       IMPLICIT REAL *8 (A-H,O-Z)
-        save
       REAL *8 PEXP(1)
 C 
 C     This subroutine computes the value o a Legendre
@@ -1384,7 +1135,6 @@ c
       SUBROUTINE legeexe2(X,VAL,PEXP,N,
      1      pjcoefs1,pjcoefs2,ninit)
       IMPLICIT REAL *8 (A-H,O-Z)
-        save
       REAL *8 PEXP(1),pjcoefs1(1),pjcoefs2(1)
 c 
 C     This subroutine computes the value o a Legendre
@@ -1442,7 +1192,6 @@ c
 c 
         subroutine lematrin(n,m,xs,amatrint,ts,w)
         implicit real *8 (a-h,o-z)
-        save
         dimension amatrint(m,n),xs(1),w(1),ts(1)
 c 
 c 
@@ -1499,7 +1248,6 @@ c
 c 
         subroutine levecin(n,x,ts,u,v,coefs,ifinit)
         implicit real *8 (a-h,o-z)
-        save
         dimension u(n,n),v(n,n),ts(1),coefs(1)
 c 
 c        This subroutine constructs the coefficients of the
@@ -1557,7 +1305,6 @@ c
 c 
         subroutine lematvec(a,x,y,n)
         implicit real *8 (a-h,o-z)
-        save
         dimension a(n,n),x(n),y(n)
 c 
         do 1400 i=1,n
@@ -1576,7 +1323,6 @@ c
 c 
         subroutine matmul(a,b,c,n)
         implicit real *8 (a-h,o-z)
-        save
         dimension a(n,n),b(n,n),c(n,n)
 c 
         do 2000 i=1,n
@@ -1617,7 +1363,6 @@ c
         subroutine legeodev(x,nn,coefs,val,ninit,
      1      coepnm1,coepnp1,coexpnp1)
         implicit real *8 (a-h,o-z)
-        save
         dimension coepnm1(1),coepnp1(1),
      1            coexpnp1(1),coefs(1)
 c 
@@ -1713,7 +1458,6 @@ c
         subroutine legeevev(x,nn,coefs,val,ninit,
      1      coepnm1,coepnp1,coexpnp1)
         implicit real *8 (a-h,o-z)
-        save
         dimension coepnm1(1),coepnp1(1),
      1            coexpnp1(1),coefs(1)
 c 
@@ -1808,7 +1552,6 @@ c
         subroutine legepeven(x,nn,pols,ninit,
      1      coepnm1,coepnp1,coexpnp1)
         implicit real *8 (a-h,o-z)
-        save
         dimension pols(1),coepnm1(1),coepnp1(1),
      1            coexpnp1(1)
 c 
@@ -1901,7 +1644,6 @@ c
         subroutine legepodd(x,nn,pols,ninit,
      1      coepnm1,coepnp1,coexpnp1)
         implicit real *8 (a-h,o-z)
-        save
         dimension pols(1),coepnm1(1),coepnp1(1),
      1            coexpnp1(1)
 c 
@@ -1985,7 +1727,6 @@ c
 c 
         subroutine legefdeq(x,val,der,coefs,n)
         implicit real *8 (a-h,o-z)
-        save
         dimension coefs(1)
 C 
 C     This subroutine computes the value and the derivative
@@ -2061,7 +1802,6 @@ c
 c 
         subroutine legeqs(x,n,pols,ders)
         implicit real *8 (a-h,o-z)
-        save
         dimension pols(1),ders(1)
 c 
 c       This subroutine calculates the values and derivatives of
@@ -2135,7 +1875,6 @@ c
 c 
         subroutine legeq(x,n,pol,der)
         implicit real *8 (a-h,o-z)
-        save
 c 
 c       This subroutine calculates the value and derivative of
 c       a Legendre Q-function at the user-specified point
@@ -2194,7 +1933,6 @@ c
 c 
         subroutine clegeq(x,n,pol,der)
         implicit complex *16 (a-h,o-z)
-        save
         complex *16 ima
         real *8 pi,done,d3
         data ima/(0.0d0,1.0d0)/
@@ -2265,7 +2003,6 @@ c
 c 
       SUBROUTINE legecFDE(X,VAL,der,PEXP,N)
       IMPLICIT REAL *8 (A-H,O-Z)
-        save
       complex *16 PEXP(1),val,der
 C 
 C     This subroutine computes the value and the derivative
@@ -2321,7 +2058,6 @@ c
       SUBROUTINE legecFD2(X,VAL,der,PEXP,N,
      1    pjcoefs1,pjcoefs2,ninit)
       IMPLICIT REAL *8 (A-H,O-Z)
-        save
       REAL *8 pjcoefs1(1),pjcoefs2(1)
       complex *16 PEXP(1),val,der
 c 
@@ -2414,7 +2150,6 @@ c
       SUBROUTINE legecva2(X,VAL,PEXP,N,
      1    pjcoefs1,pjcoefs2,ninit)
       IMPLICIT REAL *8 (A-H,O-Z)
-        save
       REAL *8 pjcoefs1(1),pjcoefs2(1)
       complex *16 PEXP(1),val
 c 
@@ -2679,3 +2414,4 @@ c
 c
         return
         end
+ 
