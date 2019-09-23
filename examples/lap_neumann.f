@@ -54,7 +54,7 @@
 
       real *8, allocatable :: xmatcnew(:,:),xmatnew(:,:)
       real *8, allocatable :: xmatnewcopy(:,:)
-      real *8, allocatable :: xmatsub(:,:)
+      real *8, allocatable :: xmatsub(:,:),xmatsub0(:,:),xmatsub1(:,:)
       real *8, allocatable :: rhsnew(:),solnnew(:),rmutmp(:)
       real *8, allocatable :: rhstmp(:),rhstmp2(:),rhscoeffs(:)
       real *8, allocatable :: solncomp(:)
@@ -104,7 +104,7 @@ c
 
 
        k = 16
-       irefinelev = 10
+       irefinelev = 100
        ncorner = k*irefinelev
        allocate(ts(ncorner),wts(ncorner))
        call getcornerdis(k,irefinelev,ts,wts)
@@ -200,7 +200,7 @@ c             panels
 
        n = 0
        n2 = 0
-       kmid = 16
+       kmid = k
        do i=1,nedges
 
          dxt = verts(1,er(i)) - verts(1,el(i))
@@ -212,7 +212,7 @@ c             panels
 
          pl(i) = rtmp
          pr(i) = rtmp
-         imid(i) = 5
+         imid(i) = 15
          n = n + imid(i)*kmid + 2*ncorner
          n2 = n2 + imid(i)*kmid + 2*ncorner2
        enddo
@@ -264,7 +264,6 @@ c
       allocate(pottest2(ntarg),xt(ntarg),yt(ntarg))
       allocate(rvals(nlat),tvals(nlat))
 
-      print *, tmin, tmax
 
 
       do i=1,nlat
@@ -559,8 +558,8 @@ c
 
       do i=1,n2
         do j=1,n2
-          xmat2(j,i) = xmat2(j,i) + sqrt(qwts2(j)*qwts2(i))
           xmat2copy(j,i) = xmat2(j,i)
+          xmat2(j,i) = xmat2(j,i) + sqrt(qwts2(j)*qwts2(i))
         enddo
       enddo
 
@@ -730,8 +729,6 @@ c
       enddo
 
       call prin2('error in polarization tensor=*',err_t,4)
-
-c
 c
 c
 c        start test 2: accuracy in targets in the 
@@ -774,7 +771,6 @@ C$      t2 = omp_get_wtime()
       enddo
       erra = sqrt(erra/ra)
       ra = sqrt(ra)
-      call prin2("ra=*",ra,1)
       call prin2('error in targets in volume-bisection=*',erra,1)
 
 
@@ -803,17 +799,16 @@ c
       enddo
 
       do i=1,nc2
-        qwtstmp(i) = wtsloc(i)/2
-        qwtstmp(i+nc2) = wtsloc(i)/2
+        qwtstmp(i) = wtsloc(i)*rtmp
+        qwtstmp(i+nc2) = wtsloc(i)*rtmp
       enddo
-
 
 
       icint = 1
       thet = alpha(1)
       nn = 2*nc2
 
-      allocate(xmatcnew(nn,nn))
+      allocate(xmatcnew(nc2,nc2))
 
       call getcornermat(thet,nc2,rpan,tsloc,wtsloc,xmatcnew)
 
@@ -854,14 +849,13 @@ c
 
       do i=1,nn
         do j=1,nn
-          xmatnew(j,i) = xmatnew(j,i) + sqrt(qwtstmp(i)*qwtstmp(j))
+          xmatnewcopy(j,i) = xmatnew(j,i) 
         enddo
       enddo
 
 
 
       allocate(ipiv3(nn))
-      call dgetrf(nn,nn,xmatnew,nn,ipiv3,info)
 
        
       allocate(rhsnew(nn),solnnew(nn))
@@ -870,20 +864,15 @@ c
 cc     now set up the right hand side for the linear system
 c
 
-      rint1 = 0
       istart= lns2(1) - 1
       do i=1,ncorner2
         rmutmp(i) = soln2(i+istart)
-        rint1 = rint1 + soln2(i+istart)*sqrt(qwts2(istart+i))
       enddo
 
       istart = rns2(3) -1
       do i=1,ncorner2
         rmutmp(ncorner2+i) = soln2(i+istart)
-        rint1 = rint1 + soln2(i+istart)*sqrt(qwts2(istart+i))
       enddo
-
-      call prin2('integral of density on patch=*',rint1,1)
 
 
 
@@ -894,12 +883,15 @@ c
 
       nnn = 2*ncorner2
       allocate(xmatsub(nnn,nnn))
+      allocate(xmatsub0(nnn,nnn))
+      allocate(xmatsub1(nnn,nnn))
       istart = lns2(1) - 1
       jstart = lns2(1) - 1
 
       do i=1,ncorner2
         do j=1,ncorner2
-          xmatsub(i,j) = xmat2copy(i+istart,j+jstart)
+          xmatsub0(i,j) = xmat2copy(i+istart,j+jstart)
+          xmatsub1(i,j) = sqrt(wts2(i)*wts2(j))*rtmp
         enddo
       enddo
 
@@ -907,7 +899,8 @@ c
       jstart = rns2(3) - 1
       do i=1,ncorner2
         do j=1,ncorner2
-          xmatsub(i,j+ncorner2) = xmat2copy(i+istart,j+jstart)
+          xmatsub0(i,j+ncorner2) = xmat2copy(i+istart,j+jstart)
+          xmatsub1(i,j+ncorner2) = sqrt(wts2(i)*wts2(j))*rtmp
         enddo
       enddo
 
@@ -916,7 +909,8 @@ c
 
       do i=1,ncorner2
         do j=1,ncorner2
-          xmatsub(i+ncorner2,j) = xmat2copy(i+istart,j+jstart)
+          xmatsub0(i+ncorner2,j) = xmat2copy(i+istart,j+jstart)
+          xmatsub1(i+ncorner2,j) = sqrt(wts2(i)*wts2(j))*rtmp
         enddo
       enddo
 
@@ -924,14 +918,15 @@ c
       jstart = rns2(3) - 1
       do i=1,ncorner2
         do j=1,ncorner2
-          xmatsub(i+ncorner2,j+ncorner2) = xmat2copy(i+istart,j+jstart)
+          xmatsub0(i+ncorner2,j+ncorner2) = xmat2copy(i+istart,j+jstart)
+          xmatsub1(i+ncorner2,j+ncorner2) = sqrt(wts2(i)*wts2(j))*rtmp
         enddo
       enddo
 
 c
 cc        start iterative solve loop
 c
-      nlev = 1
+      nlev = 50
 
       allocate(rhstmp(nnn),rhstmp2(ncorner2),rhscoeffs(ncorner2))
       allocate(solncomp(2*nlev*k+ncorner2*2))
@@ -941,9 +936,19 @@ c
       alpha = 1.0d0
       beta = 0
       do ilev = 1,nlev
+
+c
+c        setup xmatsub
+c
+         do i=1,nnn
+           do j=1,nnn
+             xmatsub(j,i) = xmatsub0(j,i) + 
+     1          xmatsub1(j,i)/2.0d0**(ilev-1) 
+           enddo
+         enddo
+
          call dgemv('t',nnn,nnn,alpha,xmatsub,nnn,rmutmp,1,beta,
      1      rhstmp,1)
-cc          call multaslow(nnn,rmutmp,rhstmp,xmatneuloc)
 
 c
 cc       extract out the relevant pieces of rhs
@@ -956,12 +961,8 @@ c
 c
 cc       smear this function onto the rest of the grid
 
-cc        call prin2('rhstmp2=*',rhstmp2,ncorner2)
-cc        call prin2('vmat=*',vmat,ncorner2*ncorner2)
         call dgemv('n',ncorner2,ncorner2,alpha,vmat,ncorner2,rhstmp2,1,
      1     beta,rhscoeffs,1)
-cc         call multaslow(ncorner,rhstmp2,rhscoeffs,vmat)
-        call prin2('rhscoeffs edge 1=*',rhscoeffs,ncorner2)
 
         do ipt = 1,nc2
           x = tsloc(ipt)/2.0d0
@@ -971,7 +972,8 @@ cc         call multaslow(ncorner,rhstmp2,rhscoeffs,vmat)
             call lapeval(x,j,val)
             rhsnew(ipt) = rhsnew(ipt) + rhscoeffs(j)*val
           enddo
-          rhsnew(ipt) = rhsnew(ipt)*sqrt(wtsloc(ipt))
+          rhsnew(ipt) = rhsnew(ipt)*sqrt(qwtstmp(ipt))/
+     1       sqrt(rtmp)/sqrt(2.0d0)
         enddo
 
         do i=1,ncorner2
@@ -983,8 +985,6 @@ c
 cc       smear this function onto the rest of the grid
         call dgemv('n',ncorner2,ncorner2,alpha,vmat,ncorner2,rhstmp2,1,
      1     beta,rhscoeffs,1)
-cc         call multaslow(ncorner,rhstmp2,rhscoeffs,vmat)
-        call prin2('rhscoeffs edge 2=*',rhscoeffs,ncorner2)
 
         do ipt = 1,nc2
           ii = nc2 + ipt
@@ -995,35 +995,26 @@ cc         call multaslow(ncorner,rhstmp2,rhscoeffs,vmat)
             call lapeval(x,j,val)
             rhsnew(ii) = rhsnew(ii) + rhscoeffs(j)*val
           enddo
-          rhsnew(ii) = rhsnew(ii)*sqrt(wtsloc(ipt))
+          rhsnew(ii) = rhsnew(ii)*sqrt(qwtstmp(ii))/
+     1       sqrt(rtmp)/sqrt(2.0d0)
         enddo
-        call prin2('rhsnew=*',rhsnew,nn)
 
         do i=1,nn
           solnnew(i) = rhsnew(i)
         enddo
 
-cc        do i=1,nn
-cc          do j=1,nn
-cc            xmatnew(j,i) = xmatnewcopy(j,i) + 
-cc     1         sqrt(qwtstmp(i)*qwtstmp(j))/2**(ilev-1)
-cc          enddo
-cc        enddo
+        do i=1,nn
+          do j=1,nn
+            xmatnew(j,i) = xmatnewcopy(j,i) + 
+     1         sqrt(qwtstmp(i)*qwtstmp(j))/2.0d0**(ilev-1)
+          enddo
+        enddo
+        call dgetrf(nn,nn,xmatnew,nn,ipiv3,info)
         
-        info = 0
         call dgetrs('t',nn,1,xmatnew,nn,ipiv3,solnnew,nn,info)
 
-        rint2 = 0
-        do i=1,nn
-          rint2 = rint2 + solnnew(i)*sqrt(qwtstmp(i))
-        enddo
-
-        call prin2('rint2=*',rint2,1)
-
-cc         call dgmres(ier,nn,multaslow,xmatnew2,rhsnew,eps,numit,
-cc     1       solnnew,niter,errs,ngmrec,work)
-
         istart = (ilev-1)*k
+
         do i=1,k
           solncomp(istart+i) = solnnew(i)
           solncomp(nhalf+i+istart) = solnnew(nc2+i)
@@ -1039,11 +1030,10 @@ cc     1       solnnew,niter,errs,ngmrec,work)
 c
 cc        reinitialize rmutmp
 c
-
         do i=1,ncorner2
           rmutmp(i) = solnnew(i+k)
         enddo
-        do i=1,ncorner
+        do i=1,ncorner2
           rmutmp(ncorner2+i) = solnnew(i+k+nc2)
         enddo
       enddo
@@ -1051,17 +1041,45 @@ c
 c
 c
       erra = 0
+
       ra = 0
       istart = lns(1)-1
+
+      
       do i=1,nlev*k
         ra = ra + soln(istart+i)**2
         erra = erra + (solncomp(i)-soln(istart+i))**2
       enddo
-      call prin2('soln=*',soln(lns(1)),nlev*k)
-      call prin2('solncomp=*',solncomp,nlev*k)
       erra = sqrt(erra/ra)
-
+      ra = sqrt(ra)
+      print *, erra,ra
       call prin2("error in density after resolve=*",erra,1)
+
+
+      erra = 0
+      ra = 0
+
+      istart1 = lns(1)-1+ncorner
+      istart2 = lns2(1)-1+ncorner2
+      print *, istart2,istart1,k
+      do i=1,k
+        ii = istart1+i
+        ii2 = istart2+i 
+        ra = ra + soln(ii)**2
+        erra = erra + (soln2(ii2)-soln(ii))**2
+        write(13,*) xs2(istart2+i),xs(istart1+i)
+        write(13,*) soln2(ii2),soln(ii)
+      enddo
+
+      print *, sqrt(erra)
+      print *, sqrt(ra)
+
+      erra = sqrt(erra/ra)
+      call prin2('error in first panel away from the corner=*',erra,1)
+      
+c
+
+
 
        stop
        end
@@ -1145,10 +1163,6 @@ cc      call prin2('rpanlen=*',rpanlen,npan)
 
       allocate(tpack(3*k))
 
-      call prin2('tsquad=*',tsquad,m)
-      call prin2('wquad=*',wquad,m)
-
-      
 
       par1(1) = k+0.1d0
 
