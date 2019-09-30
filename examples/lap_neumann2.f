@@ -5,6 +5,7 @@
       real *8, allocatable :: ts2(:),wts2(:),umat(:),vmat(:)
       real *8 ts3(100),wts3(100),utmp,vtmp,tsloc(100),wtsloc(100)
       real *8 qwtstmp(100)
+      real *8, allocatable :: xsres(:),ysres(:),qres(:),rpanres(:)
 
       real *8, allocatable :: verts(:,:),xverts(:),yverts(:)
       integer, allocatable :: el(:),er(:),iregl(:),iregr(:),imid(:)
@@ -256,7 +257,7 @@ c
 c
 c       generate targets on an exponential grid
 c
-      nlat = 10
+      nlat = 4
       ntarg = nlat*nlat
       tmin = atan2(verts(2,2),verts(1,2))
       tmax = atan2(verts(2,3),verts(1,3))
@@ -267,12 +268,14 @@ c
 
 
       do i=1,nlat
-        rr = -8*(i-1)/(nlat-1)
-        rvals(i) = (10**rr)*rtmp
+        rr = -0.1d0*(i-1)/(nlat-1)
+        rvals(i) = (10**rr)*rtmp*4
         tvals(i) = tmin + (i+0.0d0)/(nlat+1.0d0)*(tmax-tmin)
       enddo
       call prin2('rvals=*',rvals,nlat)
       call prin2('tvals=*',tvals,nlat)
+
+
 
 
       
@@ -926,7 +929,7 @@ c
 c
 cc        start iterative solve loop
 c
-      nlev = 50
+      nlev = 5
 
       allocate(rhstmp(nnn),rhstmp2(ncorner2),rhscoeffs(ncorner2))
       allocate(solncomp(2*nlev*k+ncorner2*2))
@@ -1073,12 +1076,106 @@ c
       erra = sqrt(erra/ra)
       call prin2('error in first panel away from the corner=*',erra,1)
 
+c
+c
+c       compute xsres,ysres,rpanres based on number of resolve 
+c       levels
+c
+      nres = (nlev*k + ncorner2)*2
+
+      npanres = 2*(nlev+1)
+
+      allocate(xsres(nres),ysres(nres),rpanres(npanres),qres(nres))
+
+      dx = verts(1,2) - verts(1,1)
+      dy = verts(2,2) - verts(2,1)
+      ds = sqrt(dx**2 + dy**2)
+
+      dx1 = dx/ds
+      dy1 = dy/ds
+
+      dx = verts(1,3) - verts(1,1)
+      dy = verts(2,3) - verts(2,1)
+      ds = sqrt(dx**2 + dy**2)
+
+      dx2 = dx/ds
+      dy2 = dy/ds
+
+
+      nhalf = nlev*k+ncorner2
+      do i=1,nlev*k
+        xsres(i) = ts(i)*rtmp*dx1
+        ysres(i) = ts(i)*rtmp*dy1
+
+        qres(i) = rtmp*wts(i)
+
+        xsres(nhalf+i) = ts(i)*rtmp*dx2
+        xsres(nhalf+i) = ts(i)*rtmp*dy2
+
+        qres(nhalf+i) = rtmp*wts(i)
+      enddo
+
+      do i=1,ncorner2
+        xsres(k*nlev+i) = ts2(i)*rtmp/2**nlev*dx1
+        ysres(k*nlev+i) = ts2(i)*rtmp/2**nlev*dy1
+
+        qres(k*nlev+i) = rtmp/2**nlev*wts2(i)
+
+        xsres(nhalf+k*nlev+i) = ts2(i)*rtmp/2**nlev*dx2
+        ysres(nhalf+k*nlev+i) = ts2(i)*rtmp/2**nlev*dy2
+        qres(nhalf+k*nlev+i) = rtmp/2**nlev*wts2(i)
+      enddo
+
+      npanhalf = nlev+1
+
+      do i=1,nlev
+        rpanres(i) = rtmp/2**i
+        rpanres(npanhalf+i) = rtmp/2**i
+      enddo
+
+      rpanres(npanhalf) = rtmp/2**nlev
+      rpanres(npanres) = rtmp/2**nlev
+
+c
+c       test whether qres, and rpanres are correct
+c
+      ra = 0
+
+      call prinf('nres=*',nres,1)
+      do i=1,nres
+        ra = ra + qres(i)
+      enddo
+      call prin2('sum of side lengths at corner panels=*',ra,1)
+
+
+      ra = 0
+      do i=1,npanres
+        ra = ra + rpanres(i)
+      enddo
+      
+
+      call prin2('sum of side lengths using panel lengts=*',ra,1)
 
 
       call comppottarg_adap_newquad(ntarg,xt,yt,n2,xs2,ys2,soln2,qwts2,
-     1   nedges,nepts,lns2,rns2,imid,k,nlev,ncorner2,rtmp,solncomp,pot)
+     1 nedges,nepts,lns2,rns2,imid,k,nlev,ncorner2,rtmp,nres,
+     2 xsres,ysres,qres,rpanres,solncomp,pottest2)
+
       
 c
+      erra = 0
+      ra = 0
+      do i=1,ntarg
+        pottest2(i) = pottest2(i)+rdiff2
+
+        write(37,*) pottest2(i),potex(i)
+        ra = ra + potex(i)**2
+        erra = erra + (pottest2(i)-potex(i))**2
+      enddo
+      erra = sqrt(erra/ra)
+      ra = sqrt(ra)
+      call prin2('error in targets in volume-corner quad=*',erra,1)
+
 
 
 
@@ -1089,17 +1186,20 @@ c---------------------------------------------
 
 
       subroutine comppottarg_adap_newquad(ntarg,xt,yt,n,xs,ys,soln,
-     1  qwts,nedges,nepts,lns,rns,imid,k,nlev,ncorner,rtmp,solncomp,
-     2  pot)
+     1  qwts,nedges,nepts,lns,rns,imid,k,nlev,ncorner,rtmp,nres,
+     2  xsres,ysres,qres,rpanres,solncomp,pot)
       implicit real *8 (a-h,o-z)
       integer ntarg,n,nedges,nepts(nedges+1)
       integer lns(nedges+1),rns(nedges+1),imid(nedges),k,nlev,ncorner
       real *8 xt(ntarg),yt(ntarg),xs(n),ys(n),soln(n),qwts(n)
       real *8 xstmp(ncorner),ystmp(ncorner)
-      real *8 solncomp(*),pot(ntarg)
+      real *8 xsres(nres),ysres(nres),qres(nres)
+      real *8 rpanres(*)
+      real *8 solncomp(nres),pot(ntarg)
       real *8, allocatable :: soln_tmp(:),soln_coefs(:)
       real *8, allocatable :: qwts_comp_tmp(:)
       real *8, allocatable :: soln_comp_tmp(:),soln_comp_coefs(:)
+      real *8, allocatable :: xsres_coefs(:),ysres_coefs(:)
       real *8, allocatable :: xcoefs(:),ycoefs(:),rpanlen(:)
       real *8 ts(k),umat(k,k),vmat(k,k),wts(k)
       real *8 ts2(ncorner),umat2(ncorner,ncorner),
@@ -1110,6 +1210,9 @@ c---------------------------------------------
 
       external slp_adap
 
+      done = 1
+      pi = atan(done)*4
+
       
       itype = 2
       call legeexps(itype,k,ts,umat,vmat,wts)
@@ -1117,9 +1220,17 @@ c---------------------------------------------
       itype = 1
       call lapdisc(ts2,wts2,umat2,vmat2,ncorner,itype)
       allocate(soln_tmp(n),soln_coefs(n),xcoefs(n),ycoefs(n))
+      allocate(soln_comp_tmp(nres),soln_comp_coefs(nres))
+
+
+      allocate(xsres_coefs(nres),ysres_coefs(nres))
 
       do i=1,n
         soln_tmp(i) = soln(i)/sqrt(qwts(i))
+      enddo
+
+      do i=1,n
+        soln_comp_tmp(i) = solncomp(i)/sqrt(qres(i))
       enddo
       
       npan = 0
@@ -1131,19 +1242,31 @@ c---------------------------------------------
       
       alpha = 1
       beta = 0
-      call prin2('vmat2=*',vmat2,ncorner*ncorner)
+cc      call prin2('vmat2=*',vmat2,ncorner*ncorner)
+
+c
+c
+c        compute coeffs in appropriate basis for solution
+c        and x,y coordinates computed on original grid
+c
+
+      ipan0 = 1
 
       do iedge=1,nedges
-        print *, "iedge=",iedge
+cc        print *, "iedge=",iedge
 c
 c        left end of edge
 c
-        print *,lns(iedge)
         call dgemv('n',ncorner,ncorner,alpha,vmat2,ncorner,
      1    soln(lns(iedge)),1,beta,soln_coefs(lns(iedge)),1)
+
+        rpanlen(ipan0) = 0
+        do i=1,ncorner
+          rpanlen(ipan0) = rpanlen(ipan0) + qwts(lns(iedge)+i-1)
+        enddo
+
+        ipan0 = ipan0+1
         
-        call prin2('left soln coefs=*',soln_coefs(lns(iedge)),ncorner)
-        stop
 
         do i=1,ncorner
           xstmp(i) = xs(lns(iedge)+i-1)*sqrt(wts2(i))
@@ -1154,8 +1277,6 @@ c
      1    xstmp,1,beta,xcoefs(lns(iedge)),1)
         call dgemv('n',ncorner,ncorner,alpha,vmat2,ncorner,
      1    ystmp,1,beta,ycoefs(lns(iedge)),1)
-        call prin2('left xs coefs=*',xcoefs(lns(iedge)),ncorner)
-        call prin2('left ys coefs=*',ycoefs(lns(iedge)),ncorner)
 
 c
 c         right end of the edge
@@ -1164,6 +1285,13 @@ c
         call dgemv('n',ncorner,ncorner,alpha,vmat2,ncorner,
      1    soln(rns(iedge)),1,beta,soln_coefs(rns(iedge)),1)
 
+        rpanlen(ipan0) = 0
+        do i=1,ncorner
+          rpanlen(ipan0) = rpanlen(ipan0) + qwts(rns(iedge)+i-1)
+        enddo
+
+        ipan0 = ipan0+1
+        
         do i=1,ncorner
           xstmp(i) = xs(rns(iedge)+i-1)*sqrt(wts2(i))
           ystmp(i) = ys(rns(iedge)+i-1)*sqrt(wts2(i))
@@ -1173,33 +1301,243 @@ c
      1    xstmp,1,beta,xcoefs(rns(iedge)),1)
         call dgemv('n',ncorner,ncorner,alpha,vmat2,ncorner,
      1    ystmp,1,beta,ycoefs(rns(iedge)),1)
-        call prin2('right xs coefs=*',xcoefs(rns(iedge)),ncorner)
-        call prin2('right ys coefs=*',ycoefs(rns(iedge)),ncorner)
+cc        call prin2('right xs coefs=*',xcoefs(rns(iedge)),ncorner)
+cc        call prin2('right ys coefs=*',ycoefs(rns(iedge)),ncorner)
 
 c
 c        midldle part of the edge
 c
 
        do ipan=1,imid(iedge)
-        call prinf('ipan=*',ipan,1)
         istart = lns(iedge)+ncorner+(ipan-1)*k
-        call dgemv('n',k,k,alpha,vmat,k,
+        rpanlen(ipan0) = 0
+        do i=1,k
+          rpanlen(ipan0) = rpanlen(ipan0) + qwts(istart+i-1)
+        enddo
+        ipan0 = ipan0 + 1
+        call dgemv('n',k,k,alpha,umat,k,
      1    soln_tmp(istart),1,beta,soln_coefs(istart),1)
-        call dgemv('n',k,k,alpha,vmat,k,
+        call dgemv('n',k,k,alpha,umat,k,
      1    xs(istart),1,beta,xcoefs(istart),1)
-        call dgemv('n',k,k,alpha,vmat,k,
+        call dgemv('n',k,k,alpha,umat,k,
      1    ys(istart),1,beta,ycoefs(istart),1)
-         call prin2('soln coefs=*',soln_coefs(istart),k)
-         call prin2('x coefs=*',xcoefs(istart),k)
-         call prin2('y coefs=*',ycoefs(istart),k)
        enddo
       enddo
+c
+c
+c        end of computing coefficients of solution
+c        and x,y coordinates on original grid
+c
 
 
+
+c
+c         compute coeffs of solution and x,y
+c         coordinates on resolved grid
+c
+
+      nhalf = nlev*k + ncorner
+
+      do i=1,nres
+        soln_comp_coefs(i) = 0
+        xsres_coefs(i) = 0
+        ysres_coefs(i) = 0
+      enddo
+
+      do i=1,nlev
+        istart = (i-1)*k+1
+        print *, i,istart
+        call dgemv('n',k,k,alpha,umat,k,
+     1    soln_comp_tmp(istart),1,beta,soln_comp_coefs(istart),1)
+        call dgemv('n',k,k,alpha,umat,k,
+     1    xsres(istart),1,beta,xsres_coefs(istart),1)
+        call dgemv('n',k,k,alpha,umat,k,
+     1    ysres(istart),1,beta,ysres_coefs(istart),1)
+
+        istart = (i-1)*k+1 + nhalf
+
+        print *, i,istart
+        call dgemv('n',k,k,alpha,umat,k,
+     1    soln_comp_tmp(istart),1,beta,soln_comp_coefs(istart),1)
+        call dgemv('n',k,k,alpha,umat,k,
+     1    xsres(istart),1,beta,xsres_coefs(istart),1)
+        call dgemv('n',k,k,alpha,umat,k,
+     1    ysres(istart),1,beta,ysres_coefs(istart),1)
+      enddo
+      stop
+
+      print *, nhalf
+      call prin2('xsres_coefs=*',xsres_coefs,nres)
+      call prin2('ysres_coefs=*',ysres_coefs,nres)
+
+
+      
+
+      a = -1
+      b = 1
+      m = 20
+      eps = 1.0d-13
+      maxdepth = 200
+      nnmax = 10000
+
+      ifwhts = 1
+      call legewhts(m,tsquad,wquad,ifwhts)
+
+
+      allocate(tpack(3*k))
+      par1(1) = k+0.1d0
+
+      do itarg=1,ntarg
+        pot(itarg) = 0
+        par1(2) = xt(itarg)
+        par1(3) = yt(itarg)
+        ipan0 = 1
+c
+c        evaluate potential adaptively for all panels
+c        except the corner panel at vertex 1
+c
+
+        do iedge=1,nedges
+c
+c          handle corner panels for the edges
+c
+c          attempt 1: compute corner panels using smooth quadrature
+c
+c
+          if(iedge.eq.1) goto 1000
+
+
+          istart = lns(iedge)
+          do i=1,ncorner
+            ipt = istart+i-1
+            rr = (xt(itarg)-xs(ipt))**2 + (yt(itarg)-ys(ipt))**2
+            pot(itarg) =
+     1          pot(itarg)-log(rr)/4/pi*soln(ipt)*sqrt(qwts(ipt)) 
+          enddo
+
+
+ 1000 continue
+
+          if(iedge.eq.3) goto 2000
+
+          istart = rns(iedge)
+          do i=1,ncorner
+            ipt = istart+i-1
+            rr = (xt(itarg)-xs(ipt))**2 + (yt(itarg)-ys(ipt))**2
+            pot(itarg) =
+     1          pot(itarg)-log(rr)/4/pi*soln(ipt)*sqrt(qwts(ipt)) 
+          enddo
+
+ 2000 continue      
+
+
+
+         ipan0 = ipan0 + 2
+
+          do i=ipan0,ipan0+imid(iedge)-1
+            par1(4) = rpanlen(i)/2/4/pi
+            istart = lns(iedge)+ncorner+(i-ipan0)*k
+            do j=1,k
+              ipt = istart+j-1
+              tpack(j) = xcoefs(ipt)
+              tpack(j+k) = ycoefs(ipt)
+              tpack(j+2*k) = soln_coefs(ipt)
+            enddo
+
+            do j=1,200
+              stack(1,j) = 0
+              stack(2,j) = 0
+              vals(j) = 0
+            enddo
+
+
+            pottmp = 0.0d0
+            ier = 0
+            maxrec = 0
+            numint = 0
+            call adinrec(ier,stack,a,b,slp_adap,par1,tpack,tsquad,
+     1         wquad,m,vals,nnmax,eps,pottmp,maxdepth,maxrec,numint)
+          
+            pot(itarg) = pot(itarg) + pottmp
+          enddo
+
+          ipan0 = ipan0 + imid(iedge)
+          
+        enddo
+c
+c
+c        now handle everything corresponding to resolved
+c        panels close to corner 1
+c
+        do i=1,nlev
+          par1(4) = rpanres(i)/2/4/pi
+          do j=1,k
+            ipt = (i-1)*k+1
+            tpack(j) = xsres_coefs(ipt)
+            tpack(j+k) = ysres_coefs(ipt)
+            tpack(j+2*k) = soln_comp_coefs(ipt)
+          enddo
+
+          call prin2('tpack=*',tpack,3*k)
+
+          do j=1,200
+            stack(1,j) = 0
+            stack(2,j) = 0
+            vals(j) = 0
+          enddo
+
+
+          pottmp = 0.0d0
+          ier = 0
+          maxrec = 0
+          numint = 0
+          call adinrec(ier,stack,a,b,slp_adap,par1,tpack,tsquad,
+     1       wquad,m,vals,nnmax,eps,pottmp,maxdepth,maxrec,numint)
+          
+          pot(itarg) = pot(itarg) + pottmp
+
+          par1(4) = rpanres(i+nlev+1)/2/4/pi
+          do j=1,k
+            ipt = (i-1)*k+1+nhalf
+            tpack(j) = xsres_coefs(ipt)
+            tpack(j+k) = ysres_coefs(ipt)
+            tpack(j+2*k) = soln_comp_coefs(ipt)
+          enddo
+
+          do j=1,200
+            stack(1,j) = 0
+            stack(2,j) = 0
+            vals(j) = 0
+          enddo
+
+
+          pottmp = 0.0d0
+          ier = 0
+          maxrec = 0
+          numint = 0
+          call adinrec(ier,stack,a,b,slp_adap,par1,tpack,tsquad,
+     1       wquad,m,vals,nnmax,eps,pottmp,maxdepth,maxrec,numint)
+          
+          pot(itarg) = pot(itarg) + pottmp
+        enddo
+
+        do i=1,ncorner
+          ipt = nlev*k+i
+          rr = (xt(itarg)-xsres(ipt))**2 + (yt(itarg)-ysres(ipt))**2
+          pot(itarg) =
+     1          pot(itarg)-log(rr)/4/pi*solncomp(ipt)*sqrt(qres(ipt)) 
+
+          ipt = nlev*k+i+nhalf
+          rr = (xt(itarg)-xsres(ipt))**2 + (yt(itarg)-ysres(ipt))**2
+          pot(itarg) =
+     1          pot(itarg)-log(rr)/4/pi*solncomp(ipt)*sqrt(qres(ipt)) 
+        enddo
+      enddo
 
       return
       end
-
+ 
+  
 
 
       subroutine comppottarg_adap(ntarg,xt,yt,n,xs,ys,soln,qwts,
