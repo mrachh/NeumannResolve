@@ -1,10 +1,10 @@
       implicit real *8 (a-h,o-z)
-      parameter (nmax = 20000)
+      parameter (nmax = 40000)
       parameter (nvmax = 1000)
       real *8, allocatable :: ts(:),wts(:)
       real *8, allocatable :: ts2(:),wts2(:),umat(:),vmat(:)
-      real *8 ts3(100),wts3(100),utmp,vtmp,tsloc(100),wtsloc(100)
-      real *8 qwtstmp(100)
+      real *8 ts3(300),wts3(300),utmp,vtmp,tsloc(300),wtsloc(300)
+      real *8 qwtstmp(300)
       real *8, allocatable :: xsres(:),ysres(:),qres(:),rpanres(:)
 
       real *8, allocatable :: verts(:,:),xverts(:),yverts(:)
@@ -105,7 +105,7 @@ c
 
 
        k = 16
-       irefinelev = 10
+       irefinelev = 100
        ncorner = k*irefinelev
        allocate(ts(ncorner),wts(ncorner))
        call getcornerdis(k,irefinelev,ts,wts)
@@ -257,7 +257,7 @@ c
 c
 c       generate targets on an exponential grid
 c
-      nlat = 4
+      nlat = 10
       ntarg = nlat*nlat
       tmin = atan2(verts(2,2),verts(1,2))
       tmax = atan2(verts(2,3),verts(1,3))
@@ -268,8 +268,8 @@ c
 
 
       do i=1,nlat
-        rr = -0.1d0*(i-1)/(nlat-1)
-        rvals(i) = (10**rr)*rtmp*4
+        rr = -12.0d0*(i-1)/(nlat-1)
+        rvals(i) = (10**rr)*rtmp
         tvals(i) = tmin + (i+0.0d0)/(nlat+1.0d0)*(tmax-tmin)
       enddo
       call prin2('rvals=*',rvals,nlat)
@@ -435,6 +435,12 @@ cc      if(alpha(icint).lt.0) alpha(icint) = alpha(icint)+pi
       allocate(xmat(n,n),xmat2(n2,n2))
       allocate(xmat2copy(n2,n2))
 
+      do i=1,n
+       do j=1,n
+         xmat(i,j) = 0
+       enddo
+      enddo
+
 
 c
 cc      generate matrix edge by edge
@@ -447,20 +453,20 @@ c
       do iedge=1,nedges
         do jedge=1,nedges
 
-          nss = nepts(jedge)
-          nts = nepts(iedge)
-          allocate(xtmp(nts,nss))
-
-          call getedgemat(iedge,jedge,n,xs,ys,rnx,rny,rkappa,qwts,
-     1      lns,rns,nepts,ncint,icl,icr,icsgnl,icsgnr,alpha,ixmatc,
-     2      xsgnl,xsgnr,ncorner,xmatc,nts,nss,xtmp)
-      
-          its = lns(iedge) -1
-          iss = lns(jedge) -1
-
-          call xreplmat(nts,nss,n,its,iss,xtmp,xmat,rfac)
-
-          deallocate(xtmp)
+cc          nss = nepts(jedge)
+cc          nts = nepts(iedge)
+cc          allocate(xtmp(nts,nss))
+cc
+cc          call getedgemat(iedge,jedge,n,xs,ys,rnx,rny,rkappa,qwts,
+cc     1      lns,rns,nepts,ncint,icl,icr,icsgnl,icsgnr,alpha,ixmatc,
+cc     2      xsgnl,xsgnr,ncorner,xmatc,nts,nss,xtmp)
+cc      
+cc          its = lns(iedge) -1
+cc          iss = lns(jedge) -1
+cc
+cc          call xreplmat(nts,nss,n,its,iss,xtmp,xmat,rfac)
+cc
+cc          deallocate(xtmp)
 
           nss = nepts2(jedge)
           nts = nepts2(iedge)
@@ -584,16 +590,16 @@ c
       info = 0
       allocate(ipiv(n))
 
-      call dgetrf(n,n,xmat,n,ipiv,info)
+cc      call dgetrf(n,n,xmat,n,ipiv,info)
 
       info = 0
-      call dgetrs('t',n,1,xmat,n,ipiv,soln,n,info)
+cc      call dgetrs('t',n,1,xmat,n,ipiv,soln,n,info)
 
       info = 0
-      call dgetrs('t',n,1,xmat,n,ipiv,soln_px,n,info)
+cc      call dgetrs('t',n,1,xmat,n,ipiv,soln_px,n,info)
 
       info = 0
-      call dgetrs('t',n,1,xmat,n,ipiv,soln_py,n,info)
+cc      call dgetrs('t',n,1,xmat,n,ipiv,soln_py,n,info)
 
       info = 0
       allocate(ipiv2(n2))
@@ -801,6 +807,7 @@ c
         wtsloc(k+i) = wts2(i)/2
       enddo
 
+
       do i=1,nc2
         qwtstmp(i) = wtsloc(i)*rtmp
         qwtstmp(i+nc2) = wtsloc(i)*rtmp
@@ -929,11 +936,11 @@ c
 c
 cc        start iterative solve loop
 c
-      nlev = 5
+      nlev = 36
+      nhalf = nlev*k + ncorner2
 
       allocate(rhstmp(nnn),rhstmp2(ncorner2),rhscoeffs(ncorner2))
       allocate(solncomp(2*nlev*k+ncorner2*2))
-      nhalf = nlev*k + ncorner2
 
 
       alpha = 1.0d0
@@ -1040,6 +1047,10 @@ c
           rmutmp(ncorner2+i) = solnnew(i+k+nc2)
         enddo
       enddo
+
+      call prin2('solncomp=*',solncomp(nlev*k+1),ncorner2)
+      call prin2('solncomp other edge=*',solncomp(nlev*k+nhalf+1),
+     1      ncorner2)
 c
 c
 c
@@ -1110,31 +1121,31 @@ c
         qres(i) = rtmp*wts(i)
 
         xsres(nhalf+i) = ts(i)*rtmp*dx2
-        xsres(nhalf+i) = ts(i)*rtmp*dy2
+        ysres(nhalf+i) = ts(i)*rtmp*dy2
 
         qres(nhalf+i) = rtmp*wts(i)
       enddo
 
       do i=1,ncorner2
-        xsres(k*nlev+i) = ts2(i)*rtmp/2**nlev*dx1
-        ysres(k*nlev+i) = ts2(i)*rtmp/2**nlev*dy1
+        xsres(k*nlev+i) = ts2(i)*rtmp/2.0d0**nlev*dx1
+        ysres(k*nlev+i) = ts2(i)*rtmp/2.0d0**nlev*dy1
 
-        qres(k*nlev+i) = rtmp/2**nlev*wts2(i)
+        qres(k*nlev+i) = rtmp/2.0d0**nlev*wts2(i)
 
-        xsres(nhalf+k*nlev+i) = ts2(i)*rtmp/2**nlev*dx2
-        ysres(nhalf+k*nlev+i) = ts2(i)*rtmp/2**nlev*dy2
-        qres(nhalf+k*nlev+i) = rtmp/2**nlev*wts2(i)
+        xsres(nhalf+k*nlev+i) = ts2(i)*rtmp/2.0d0**nlev*dx2
+        ysres(nhalf+k*nlev+i) = ts2(i)*rtmp/2.0d0**nlev*dy2
+        qres(nhalf+k*nlev+i) = rtmp/2.0d0**nlev*wts2(i)
       enddo
 
       npanhalf = nlev+1
 
       do i=1,nlev
-        rpanres(i) = rtmp/2**i
-        rpanres(npanhalf+i) = rtmp/2**i
+        rpanres(i) = rtmp/2.0d0**i
+        rpanres(npanhalf+i) = rtmp/2.0d0**i
       enddo
 
-      rpanres(npanhalf) = rtmp/2**nlev
-      rpanres(npanres) = rtmp/2**nlev
+      rpanres(npanhalf) = rtmp/2.0d0**nlev
+      rpanres(npanres) = rtmp/2.0d0**nlev
 
 c
 c       test whether qres, and rpanres are correct
@@ -1229,7 +1240,7 @@ c---------------------------------------------
         soln_tmp(i) = soln(i)/sqrt(qwts(i))
       enddo
 
-      do i=1,n
+      do i=1,nres
         soln_comp_tmp(i) = solncomp(i)/sqrt(qres(i))
       enddo
       
@@ -1346,7 +1357,6 @@ c
 
       do i=1,nlev
         istart = (i-1)*k+1
-        print *, i,istart
         call dgemv('n',k,k,alpha,umat,k,
      1    soln_comp_tmp(istart),1,beta,soln_comp_coefs(istart),1)
         call dgemv('n',k,k,alpha,umat,k,
@@ -1356,7 +1366,6 @@ c
 
         istart = (i-1)*k+1 + nhalf
 
-        print *, i,istart
         call dgemv('n',k,k,alpha,umat,k,
      1    soln_comp_tmp(istart),1,beta,soln_comp_coefs(istart),1)
         call dgemv('n',k,k,alpha,umat,k,
@@ -1364,12 +1373,11 @@ c
         call dgemv('n',k,k,alpha,umat,k,
      1    ysres(istart),1,beta,ysres_coefs(istart),1)
       enddo
-      stop
 
-      print *, nhalf
-      call prin2('xsres_coefs=*',xsres_coefs,nres)
-      call prin2('ysres_coefs=*',ysres_coefs,nres)
-
+cc      print *, nhalf
+cc      call prin2('xsres_coefs=*',xsres_coefs,nres)
+cc      call prin2('ysres_coefs=*',ysres_coefs,nres)
+cc      call prin2('soln_comp_coefs=*',soln_comp_coefs,nres)
 
       
 
@@ -1464,6 +1472,8 @@ c
           ipan0 = ipan0 + imid(iedge)
           
         enddo
+
+cc        goto 4000
 c
 c
 c        now handle everything corresponding to resolved
@@ -1472,13 +1482,12 @@ c
         do i=1,nlev
           par1(4) = rpanres(i)/2/4/pi
           do j=1,k
-            ipt = (i-1)*k+1
+            ipt = (i-1)*k+j
             tpack(j) = xsres_coefs(ipt)
             tpack(j+k) = ysres_coefs(ipt)
             tpack(j+2*k) = soln_comp_coefs(ipt)
           enddo
 
-          call prin2('tpack=*',tpack,3*k)
 
           do j=1,200
             stack(1,j) = 0
@@ -1498,7 +1507,7 @@ c
 
           par1(4) = rpanres(i+nlev+1)/2/4/pi
           do j=1,k
-            ipt = (i-1)*k+1+nhalf
+            ipt = (i-1)*k+j+nhalf
             tpack(j) = xsres_coefs(ipt)
             tpack(j+k) = ysres_coefs(ipt)
             tpack(j+2*k) = soln_comp_coefs(ipt)
@@ -1532,6 +1541,8 @@ c
           pot(itarg) =
      1          pot(itarg)-log(rr)/4/pi*solncomp(ipt)*sqrt(qres(ipt)) 
         enddo
+ 4000 continue
+        
       enddo
 
       return
