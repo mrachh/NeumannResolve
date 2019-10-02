@@ -122,7 +122,7 @@ c
 
 
        k = 16
-       irefinelev = 100
+       irefinelev = 10
        ncorner = k*irefinelev
        allocate(ts(ncorner),wts(ncorner))
        call getcornerdis(k,irefinelev,ts,wts)
@@ -474,14 +474,14 @@ c
           nts = nepts(iedge)
           allocate(xtmp(nts,nss))
 
-          call getedgemat(iedge,jedge,n,xs,ys,rnx,rny,rkappa,qwts,
-     1      lns,rns,nepts,ncint,icl,icr,icsgnl,icsgnr,alpha,ixmatc,
-     2      xsgnl,xsgnr,ncorner,xmatc,nts,nss,xtmp)
+cc          call getedgemat(iedge,jedge,n,xs,ys,rnx,rny,rkappa,qwts,
+cc     1      lns,rns,nepts,ncint,icl,icr,icsgnl,icsgnr,alpha,ixmatc,
+cc     2      xsgnl,xsgnr,ncorner,xmatc,nts,nss,xtmp)
       
           its = lns(iedge) -1
           iss = lns(jedge) -1
 
-          call xreplmat(nts,nss,n,its,iss,xtmp,xmat,rfac)
+cc          call xreplmat(nts,nss,n,its,iss,xtmp,xmat,rfac)
 
           deallocate(xtmp)
 
@@ -601,16 +601,16 @@ c
       info = 0
       allocate(ipiv(n))
 
-      call dgetrf(n,n,xmat,n,ipiv,info)
+cc      call dgetrf(n,n,xmat,n,ipiv,info)
 
       info = 0
-      call dgetrs('t',n,1,xmat,n,ipiv,soln,n,info)
+cc      call dgetrs('t',n,1,xmat,n,ipiv,soln,n,info)
 
       info = 0
-      call dgetrs('t',n,1,xmat,n,ipiv,soln_px,n,info)
+cc      call dgetrs('t',n,1,xmat,n,ipiv,soln_px,n,info)
 
       info = 0
-      call dgetrs('t',n,1,xmat,n,ipiv,soln_py,n,info)
+cc      call dgetrs('t',n,1,xmat,n,ipiv,soln_py,n,info)
 
       info = 0
       allocate(ipiv2(n2))
@@ -782,13 +782,13 @@ C$      t2 = omp_get_wtime()
       ra = sqrt(ra)
       call prin2('error in targets in volume-bisection=*',erra,1)
 
-      nlev = 40
-      nnn = (nlev*k + ncorner2)*2
+      nlev = 5
+      nres = (nlev*k + ncorner2)*2
 
-      allocate(solncomp(nnn))
+      allocate(solncomp(nres))
       call resolve_dens(k,ncorner2,ts2,wts2,vmat,rtmp,alpha(1),n2,
-     1   xmat2copy,soln2,lns2(1),rns2(3),xsgnl(1),xsgnr(1),
-     2   nlev,nnn,solncomp)
+     1   xmat2copy,xmatc2(1,1,1),soln2,lns2(1),rns2(3),xsgnl(1),
+     2   xsgnr(1),nlev,nres,solncomp)
 
 c
 cc      resolve problem at the corner panel of 
@@ -814,6 +814,8 @@ c
       print *, erra,ra
       call prin2("error in density after resolve=*",erra,1)
 
+      stop
+
 
       erra = 0
       ra = 0
@@ -838,7 +840,6 @@ c
 c       compute xsres,ysres,rpanres based on number of resolve 
 c       levels
 c
-      nres = (nlev*k + ncorner2)*2
 
       npanres = 2*(nlev+1)
 
@@ -943,7 +944,7 @@ c---------------------------------------------
 
       
       subroutine resolve_dens(k,ncorner,ts,wts,vmat,rtmp,thet,n,
-     1   xmat2copy,soln,lns,rns,xsgnl,xsgnr,nlev,nres,solncomp)
+     1   xmat2copy,xmatc2,soln,lns,rns,xsgnl,xsgnr,nlev,nres,solncomp)
 c
 c
 c         this subroutine resolves the density in the vicinity
@@ -961,6 +962,7 @@ c           rtmp - panel length on input at corner
 c           thet - angle at corner
 c           n - number of points in original discretization
 c           xmat2copy - original discretization matrix
+c           xmatc2 - corner discretization matrix
 c           soln - solution on original grid
 c           lns - location in soln array where soln on left panel starts
 c           rns - location in soln array where soln on right panel
@@ -978,19 +980,20 @@ c          solncomp - real *8(nres)
 c               resolved solution
 c
 
-
+      implicit real *8 (a-h,o-z)
       integer k,ncorner,nres,nn,nlev,lns,rns,n
       real *8 ts(ncorner),wts(ncorner),vmat(ncorner,ncorner),rtmp,thet
-      real *8 xmat2copy(n,n)
+      real *8 xmat2copy(n,n),xmatc2(ncorner,ncorner)
       real *8 soln(*),solncomp(nres)
       real *8 tsloc(300),wtsloc(300),qwtstmp(300)
       real *8, allocatable :: ts3(:),wts3(:)
       real *8, allocatable :: xmatcnew(:,:),xmatnew(:,:),
-     1    xmatnewcopy(:,:),xmatc2(:,:)
+     1    xmatnewcopy(:,:)
       real *8, allocatable :: rhsnew(:),rmutmp(:),solnnew(:)
       real *8, allocatable :: rhstmp(:),rhstmp2(:),rhscoeffs(:)
       real *8, allocatable :: xmatsub(:,:),xmatsub0(:,:),xmatsub1(:,:)
       integer, allocatable :: ipiv(:)
+      character *1 tt
 
       
       allocate(ts3(k),wts3(k))
@@ -1020,7 +1023,6 @@ c
 
 
 
-      icint = 1
       nn = 2*nc2
 
       allocate(xmatcnew(nc2,nc2))
@@ -1036,18 +1038,7 @@ c
           xmatnew(i,j) = 0
         enddo
       enddo
-      allocate(xmatc2(ncorner,ncorner))
-      
-      done = 1
-      pi = atan(done)*4
-      thet0 = thet/pi
-      if(thet0.lt.0) thet0 = thet0 + 2
-      call lapcornmat(thet0,xmatc2,ncorner)
-      do i=1,ncorner
-        do j=1,ncorner
-          xmatc2(i,j) = xmatc2(i,j)/2/pi
-        enddo
-      enddo
+
 c
 cc      set off-diagnal blocks
 c
@@ -1103,15 +1094,21 @@ c
 
 
 
+
+
 c
 cc       initialize matrix for computing right hand side
 c
 c
 
+
       nnn = 2*ncorner
       allocate(xmatsub(nnn,nnn))
       allocate(xmatsub0(nnn,nnn))
       allocate(xmatsub1(nnn,nnn))
+
+
+
       istart = lns - 1
       jstart = lns - 1
 
@@ -1150,6 +1147,7 @@ c
         enddo
       enddo
 
+
 c
 cc        start iterative solve loop
 c
@@ -1158,7 +1156,7 @@ c
       allocate(rhstmp(nnn),rhstmp2(ncorner),rhscoeffs(ncorner))
 
       alpha = 1.0d0
-      beta = 0
+      beta = 0.0d0
       do ilev = 1,nlev
 c
 c        setup xmatsub
@@ -1170,8 +1168,13 @@ c
            enddo
          enddo
 
+
          call dgemv('t',nnn,nnn,alpha,xmatsub,nnn,rmutmp,1,beta,
      1      rhstmp,1)
+
+       
+
+
 
 c
 cc       extract out the relevant pieces of rhs
@@ -1184,8 +1187,11 @@ c
 c
 cc       smear this function onto the rest of the grid
 
+
+
         call dgemv('n',ncorner,ncorner,alpha,vmat,ncorner,rhstmp2,1,
      1     beta,rhscoeffs,1)
+         
 
         do ipt = 1,nc2
           x = tsloc(ipt)
