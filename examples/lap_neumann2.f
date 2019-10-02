@@ -784,6 +784,7 @@ C$      t2 = omp_get_wtime()
 
       nlev = 40
       nnn = (nlev*k + ncorner2)*2
+
       allocate(solncomp(nnn))
       call resolve_dens(k,ncorner2,ts2,wts2,vmat,rtmp,alpha(1),n2,
      1   xmat2copy,soln2,lns2(1),rns2(3),xsgnl(1),xsgnr(1),
@@ -942,7 +943,7 @@ c---------------------------------------------
 
       
       subroutine resolve_dens(k,ncorner,ts,wts,vmat,rtmp,thet,n,
-     1   xmat2copy,soln,lns,rns,xsgnl,xsgnr,nlev,nn,solncomp)
+     1   xmat2copy,soln,lns,rns,xsgnl,xsgnr,nlev,nres,solncomp)
 c
 c
 c         this subroutine resolves the density in the vicinity
@@ -969,19 +970,19 @@ c              and targets on right
 c           xsgnr - sign for corner matrix with sources on right, 
 c              and targets on left
 c           nlev - number of levels of re - solved solution
-c           nn - total number of discretization nodes for re-solved grid
+c           nres - total number of discretization nodes for re-solved grid
 c                  = (nlev*k + ncorner)*2
 c           
 c         output argument:
-c          solncomp - real *8(nn)
+c          solncomp - real *8(nres)
 c               resolved solution
 c
 
 
-      integer k,ncorner,nn,nlev,lns,rns,n
+      integer k,ncorner,nres,nn,nlev,lns,rns,n
       real *8 ts(ncorner),wts(ncorner),vmat(ncorner,ncorner),rtmp,thet
       real *8 xmat2copy(n,n)
-      real *8 soln(*),solncomp(nn)
+      real *8 soln(*),solncomp(nres)
       real *8 tsloc(300),wtsloc(300),qwtstmp(300)
       real *8, allocatable :: ts3(:),wts3(:)
       real *8, allocatable :: xmatcnew(:,:),xmatnew(:,:),
@@ -1016,6 +1017,7 @@ c
         qwtstmp(i) = wtsloc(i)*rtmp
         qwtstmp(i+nc2) = wtsloc(i)*rtmp
       enddo
+
 
 
       icint = 1
