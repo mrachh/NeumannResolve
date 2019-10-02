@@ -122,7 +122,7 @@ c
 
 
        k = 16
-       irefinelev = 10
+       irefinelev = 100
        ncorner = k*irefinelev
        allocate(ts(ncorner),wts(ncorner))
        call getcornerdis(k,irefinelev,ts,wts)
@@ -474,14 +474,14 @@ c
           nts = nepts(iedge)
           allocate(xtmp(nts,nss))
 
-cc          call getedgemat(iedge,jedge,n,xs,ys,rnx,rny,rkappa,qwts,
-cc     1      lns,rns,nepts,ncint,icl,icr,icsgnl,icsgnr,alpha,ixmatc,
-cc     2      xsgnl,xsgnr,ncorner,xmatc,nts,nss,xtmp)
+          call getedgemat(iedge,jedge,n,xs,ys,rnx,rny,rkappa,qwts,
+     1      lns,rns,nepts,ncint,icl,icr,icsgnl,icsgnr,alpha,ixmatc,
+     2      xsgnl,xsgnr,ncorner,xmatc,nts,nss,xtmp)
       
           its = lns(iedge) -1
           iss = lns(jedge) -1
 
-cc          call xreplmat(nts,nss,n,its,iss,xtmp,xmat,rfac)
+          call xreplmat(nts,nss,n,its,iss,xtmp,xmat,rfac)
 
           deallocate(xtmp)
 
@@ -601,16 +601,16 @@ c
       info = 0
       allocate(ipiv(n))
 
-cc      call dgetrf(n,n,xmat,n,ipiv,info)
+      call dgetrf(n,n,xmat,n,ipiv,info)
 
       info = 0
-cc      call dgetrs('t',n,1,xmat,n,ipiv,soln,n,info)
+      call dgetrs('t',n,1,xmat,n,ipiv,soln,n,info)
 
       info = 0
-cc      call dgetrs('t',n,1,xmat,n,ipiv,soln_px,n,info)
+      call dgetrs('t',n,1,xmat,n,ipiv,soln_px,n,info)
 
       info = 0
-cc      call dgetrs('t',n,1,xmat,n,ipiv,soln_py,n,info)
+      call dgetrs('t',n,1,xmat,n,ipiv,soln_py,n,info)
 
       info = 0
       allocate(ipiv2(n2))
@@ -782,7 +782,7 @@ C$      t2 = omp_get_wtime()
       ra = sqrt(ra)
       call prin2('error in targets in volume-bisection=*',erra,1)
 
-      nlev = 5
+      nlev = 50
       nres = (nlev*k + ncorner2)*2
 
       allocate(solncomp(nres))
@@ -814,7 +814,6 @@ c
       print *, erra,ra
       call prin2("error in density after resolve=*",erra,1)
 
-      stop
 
 
       erra = 0
@@ -834,6 +833,8 @@ c
 
       erra = sqrt(erra/ra)
       call prin2('error in first panel away from the corner=*',erra,1)
+
+      stop
 
 c
 c
