@@ -1,6 +1,7 @@
       implicit real *8 (a-h,o-z)
       parameter (nmax = 40000)
       parameter (nvmax = 1000)
+      real *8, allocatable :: ts_ref(:),wts_ref(:) 
       real *8, allocatable :: ts(:),wts(:)
       real *8, allocatable :: ts2(:),wts2(:),umat(:),vmat(:)
       real *8 ts3(300),wts3(300),utmp,vtmp,tsloc(300),wtsloc(300)
@@ -12,11 +13,15 @@
 
       real *8, allocatable :: pl(:),pr(:),rnxe(:),rnye(:)
 
+
+      real *8, allocatable :: xs_ref(:),ys_ref(:),rnx_ref(:),
+     1   rny_ref(:),qwts_ref(:),rkappa_ref(:)
       real *8, allocatable :: xs(:),ys(:),rnx(:),rny(:),qwts(:),
      1   rkappa(:)
       real *8, allocatable :: xs2(:),ys2(:),rnx2(:),rny2(:),qwts2(:),
      1   rkappa2(:)
 
+      integer, allocatable :: lns_ref(:),rns_ref(:),nepts_ref(:)
       integer, allocatable :: lns(:),rns(:),nepts(:)
       integer, allocatable :: lns2(:),rns2(:),nepts2(:)
       real *8, allocatable :: rlen(:)
@@ -28,19 +33,31 @@
 
       real *8 src(2),trg(2)
       real *8, allocatable :: xsrc(:),ysrc(:),charges(:)
+      real *8, allocatable :: xsrc_in(:),ysrc_in(:),charges_in(:)
+
+
       real *8, allocatable :: ztarg(:,:),xt(:),yt(:)
       real *8, allocatable :: potex(:),pottest(:),pottest2(:)
       real *8, allocatable :: rvals(:),tvals(:)
 
       real *8 grad(2),gradex(2)
 
+      real *8, allocatable :: rhs_ref(:),soln_ref(:)
       real *8, allocatable :: rhs(:),soln(:)
       real *8, allocatable :: rhs2(:),soln2(:)
 
+      real *8, allocatable :: rhs_ref_px(:),soln_ref_px(:)
       real *8, allocatable :: rhs_px(:),soln_px(:)
       real *8, allocatable :: rhs2_px(:),soln2_px(:)
+
+
+      real *8, allocatable :: rhs_ref_py(:),soln_ref_py(:)
       real *8, allocatable :: rhs_py(:),soln_py(:)
       real *8, allocatable :: rhs2_py(:),soln2_py(:)
+
+      real *8, allocatable :: rhs_ref_scat(:),soln_ref_scat(:)
+      real *8, allocatable :: rhs_scat(:),soln_scat(:)
+      real *8, allocatable :: rhs2_scat(:),soln2_scat(:)
 
       real *8, allocatable :: xmatc(:,:,:), xmat(:,:)
       real *8, allocatable :: xmatc2(:,:,:), xmat2(:,:),xmat2copy(:,:)
@@ -453,20 +470,20 @@ c
       do iedge=1,nedges
         do jedge=1,nedges
 
-cc          nss = nepts(jedge)
-cc          nts = nepts(iedge)
-cc          allocate(xtmp(nts,nss))
-cc
-cc          call getedgemat(iedge,jedge,n,xs,ys,rnx,rny,rkappa,qwts,
-cc     1      lns,rns,nepts,ncint,icl,icr,icsgnl,icsgnr,alpha,ixmatc,
-cc     2      xsgnl,xsgnr,ncorner,xmatc,nts,nss,xtmp)
-cc      
-cc          its = lns(iedge) -1
-cc          iss = lns(jedge) -1
-cc
-cc          call xreplmat(nts,nss,n,its,iss,xtmp,xmat,rfac)
-cc
-cc          deallocate(xtmp)
+          nss = nepts(jedge)
+          nts = nepts(iedge)
+          allocate(xtmp(nts,nss))
+
+          call getedgemat(iedge,jedge,n,xs,ys,rnx,rny,rkappa,qwts,
+     1      lns,rns,nepts,ncint,icl,icr,icsgnl,icsgnr,alpha,ixmatc,
+     2      xsgnl,xsgnr,ncorner,xmatc,nts,nss,xtmp)
+      
+          its = lns(iedge) -1
+          iss = lns(jedge) -1
+
+          call xreplmat(nts,nss,n,its,iss,xtmp,xmat,rfac)
+
+          deallocate(xtmp)
 
           nss = nepts2(jedge)
           nts = nepts2(iedge)
@@ -536,26 +553,20 @@ c
 
           rhs(i) = sqrt(qwts(i))*(grad(1)*rnxe(iedge)+
      1       grad(2)*rnye(iedge))
-          
           rhs_px(i) = sqrt(qwts(i))*rnxe(iedge)
           rhs_py(i) = sqrt(qwts(i))*rnye(iedge)
-
         enddo
 
         
         do ipt = 1,nepts2(iedge)
           i = lns2(iedge) + ipt-1
           xmat2(i,i) = 0.5d0
-
           call getrhs(ncharges,xsrc,ysrc,charges,xs2(i),ys2(i),pot,
      1        grad)
-
           rhs2(i) = sqrt(qwts2(i))*(grad(1)*rnxe(iedge)+
      1       grad(2)*rnye(iedge))
-
           rhs2_px(i) = sqrt(qwts2(i))*rnxe(iedge)
           rhs2_py(i) = sqrt(qwts2(i))*rnye(iedge)
-
         enddo
       enddo
 
@@ -590,16 +601,16 @@ c
       info = 0
       allocate(ipiv(n))
 
-cc      call dgetrf(n,n,xmat,n,ipiv,info)
+      call dgetrf(n,n,xmat,n,ipiv,info)
 
       info = 0
-cc      call dgetrs('t',n,1,xmat,n,ipiv,soln,n,info)
+      call dgetrs('t',n,1,xmat,n,ipiv,soln,n,info)
 
       info = 0
-cc      call dgetrs('t',n,1,xmat,n,ipiv,soln_px,n,info)
+      call dgetrs('t',n,1,xmat,n,ipiv,soln_px,n,info)
 
       info = 0
-cc      call dgetrs('t',n,1,xmat,n,ipiv,soln_py,n,info)
+      call dgetrs('t',n,1,xmat,n,ipiv,soln_py,n,info)
 
       info = 0
       allocate(ipiv2(n2))
@@ -639,11 +650,6 @@ c
         pot2 = pot2 - log(rr)/4/pi*soln2(i)*sqrt(qwts2(i))
       enddo
 
-      call prin2('pot=*',pot1,1)
-      call prin2('potex=*',potex_1,1)
-
-cc      print *, pot,potex,pot-potex
-
       rdiff1 = potex_1-pot1
       rdiff2 = potex_1-pot2
 
@@ -667,12 +673,6 @@ cc      print *, pot,potex,pot-potex
         rr = (trg(1)-xs2(i))**2 + (trg(2)-ys2(i))**2
         pot2_2 = pot2_2 - log(rr)/4/pi*soln2(i)*sqrt(qwts2(i))
       enddo
-
-      call prin2('pot=*',pot1_2,1)
-      call prin2('potex=*',potex_2,1)
-
-cc      print *, pot,potex,pot-potex
-
 
 
       rdiff1_2 = potex_2-pot1_2
@@ -782,272 +782,17 @@ C$      t2 = omp_get_wtime()
       ra = sqrt(ra)
       call prin2('error in targets in volume-bisection=*',erra,1)
 
-
-
+      nlev = 40
+      nnn = (nlev*k + ncorner2)*2
+      allocate(solncomp(nnn))
+      call resolve_dens(k,ncorner2,ts2,wts2,vmat,rtmp,alpha(1),n2,
+     1   xmat2copy,soln2,lns2(1),rns2(3),xsgnl(1),xsgnr(1),
+     2   nlev,nnn,solncomp)
 
 c
 cc      resolve problem at the corner panel of 
 c       vertex 1
 c
-      
-      rpan = rtmp
-      nc2 = k + ncorner2
-      itype = 1
-      call legeexps(itype,k,ts3,utmp,vtmp,wts3)
-
-      xstart = 1.0d0/2
-      xend = rpan
-      do i=1,k
-        tsloc(i) = 0.5d0 + (ts3(i)+1)/4.0d0
-        wtsloc(i) = wts3(i)/4.0d0
-      enddo
-
-      do i=1,ncorner2
-        tsloc(k+i) = ts2(i)/2
-        wtsloc(k+i) = wts2(i)/2
-      enddo
-
-
-      do i=1,nc2
-        qwtstmp(i) = wtsloc(i)*rtmp
-        qwtstmp(i+nc2) = wtsloc(i)*rtmp
-      enddo
-
-
-      icint = 1
-      thet = alpha(1)
-      nn = 2*nc2
-
-      allocate(xmatcnew(nc2,nc2))
-
-      call getcornermat(thet,nc2,rpan,tsloc,wtsloc,xmatcnew)
-
-      allocate(xmatnew(nn,nn))
-      allocate(xmatnewcopy(nn,nn))
-
-
-      do i=1,nn
-        do j=1,nn
-          xmatnew(i,j) = 0
-        enddo
-      enddo
-c
-cc      set off-diagnal blocks
-c
-c      unknowns 1-nc2 are the unknowns
-c      on edge 1 at vertex 1,
-c      and unknowns nc2+1,nn are the unknowns
-c      on edge 3 at vertex 1
-c
-       call xreplmat(nc2,nc2,nn,0,nc2,xmatcnew,xmatnew,xsgnl(1))
-       call xreplmat(nc2,nc2,nn,nc2,0,xmatcnew,xmatnew,xsgnr(1))
-
-       call xreplmat(ncorner2,ncorner2,nn,k,nc2+k,xmatc2(1,1,1),
-     1           xmatnew,xsgnl(1))
-
-       call xreplmat(ncorner2,ncorner2,nn,nc2+k,k,xmatc2(1,1,1),
-     1           xmatnew,xsgnr(1))
-c
-cc        the matrix that has been set up are the dirichlet 
-c         matrices. Now take the transposes to compute the 
-c         neumann matrices
-c
-      ra = 0
-      do i=1,nn
-        xmatnew(i,i) = 0.5d0
-      enddo
-
-      do i=1,nn
-        do j=1,nn
-          xmatnewcopy(j,i) = xmatnew(j,i) 
-        enddo
-      enddo
-
-
-
-      allocate(ipiv3(nn))
-
-       
-      allocate(rhsnew(nn),solnnew(nn))
-      allocate(rmutmp(2*ncorner2))
-c
-cc     now set up the right hand side for the linear system
-c
-
-      istart= lns2(1) - 1
-      do i=1,ncorner2
-        rmutmp(i) = soln2(i+istart)
-      enddo
-
-      istart = rns2(3) -1
-      do i=1,ncorner2
-        rmutmp(ncorner2+i) = soln2(i+istart)
-      enddo
-
-
-
-c
-cc       initialize matrix for computing right hand side
-c
-c
-
-      nnn = 2*ncorner2
-      allocate(xmatsub(nnn,nnn))
-      allocate(xmatsub0(nnn,nnn))
-      allocate(xmatsub1(nnn,nnn))
-      istart = lns2(1) - 1
-      jstart = lns2(1) - 1
-
-      do i=1,ncorner2
-        do j=1,ncorner2
-          xmatsub0(i,j) = xmat2copy(i+istart,j+jstart)
-          xmatsub1(i,j) = sqrt(wts2(i)*wts2(j))*rtmp
-        enddo
-      enddo
-
-      istart = lns2(1) - 1
-      jstart = rns2(3) - 1
-      do i=1,ncorner2
-        do j=1,ncorner2
-          xmatsub0(i,j+ncorner2) = xmat2copy(i+istart,j+jstart)
-          xmatsub1(i,j+ncorner2) = sqrt(wts2(i)*wts2(j))*rtmp
-        enddo
-      enddo
-
-      istart = rns2(3) - 1
-      jstart = lns2(1) - 1
-
-      do i=1,ncorner2
-        do j=1,ncorner2
-          xmatsub0(i+ncorner2,j) = xmat2copy(i+istart,j+jstart)
-          xmatsub1(i+ncorner2,j) = sqrt(wts2(i)*wts2(j))*rtmp
-        enddo
-      enddo
-
-      istart = rns2(3) - 1
-      jstart = rns2(3) - 1
-      do i=1,ncorner2
-        do j=1,ncorner2
-          xmatsub0(i+ncorner2,j+ncorner2) = xmat2copy(i+istart,j+jstart)
-          xmatsub1(i+ncorner2,j+ncorner2) = sqrt(wts2(i)*wts2(j))*rtmp
-        enddo
-      enddo
-
-c
-cc        start iterative solve loop
-c
-      nlev = 36
-      nhalf = nlev*k + ncorner2
-
-      allocate(rhstmp(nnn),rhstmp2(ncorner2),rhscoeffs(ncorner2))
-      allocate(solncomp(2*nlev*k+ncorner2*2))
-
-
-      alpha = 1.0d0
-      beta = 0
-      do ilev = 1,nlev
-
-c
-c        setup xmatsub
-c
-         do i=1,nnn
-           do j=1,nnn
-             xmatsub(j,i) = xmatsub0(j,i) + 
-     1          xmatsub1(j,i)/2.0d0**(ilev-1) 
-           enddo
-         enddo
-
-         call dgemv('t',nnn,nnn,alpha,xmatsub,nnn,rmutmp,1,beta,
-     1      rhstmp,1)
-
-c
-cc       extract out the relevant pieces of rhs
-c
-         do i=1,ncorner2
-           rhstmp2(i) = rhstmp(i)
-           rhscoeffs(i) = 0
-        enddo
-       
-c
-cc       smear this function onto the rest of the grid
-
-        call dgemv('n',ncorner2,ncorner2,alpha,vmat,ncorner2,rhstmp2,1,
-     1     beta,rhscoeffs,1)
-
-        do ipt = 1,nc2
-          x = tsloc(ipt)
-          rhsnew(ipt) = 0
-          do j=1,ncorner2
-            val = 0
-            call lapeval(x,j,val)
-            rhsnew(ipt) = rhsnew(ipt) + rhscoeffs(j)*val
-          enddo
-          rhsnew(ipt) = rhsnew(ipt)*sqrt(qwtstmp(ipt))/
-     1       sqrt(rtmp)
-        enddo
-
-        do i=1,ncorner2
-          rhstmp2(i) = rhstmp(ncorner2+i)
-          rhscoeffs(i) = 0
-        enddo
-       
-c
-cc       smear this function onto the rest of the grid
-        call dgemv('n',ncorner2,ncorner2,alpha,vmat,ncorner2,rhstmp2,1,
-     1     beta,rhscoeffs,1)
-
-        do ipt = 1,nc2
-          ii = nc2 + ipt
-          x = tsloc(ipt)
-          rhsnew(ii) = 0
-          do j=1,ncorner2
-            val = 0
-            call lapeval(x,j,val)
-            rhsnew(ii) = rhsnew(ii) + rhscoeffs(j)*val
-          enddo
-          rhsnew(ii) = rhsnew(ii)*sqrt(qwtstmp(ii))/
-     1       sqrt(rtmp)
-        enddo
-
-        do i=1,nn
-          solnnew(i) = rhsnew(i)
-        enddo
-
-        do i=1,nn
-          do j=1,nn
-            xmatnew(j,i) = xmatnewcopy(j,i) + 
-     1         sqrt(qwtstmp(i)*qwtstmp(j))/2.0d0**(ilev-1)
-          enddo
-        enddo
-        call dgetrf(nn,nn,xmatnew,nn,ipiv3,info)
-        
-        call dgetrs('t',nn,1,xmatnew,nn,ipiv3,solnnew,nn,info)
-
-        istart = (ilev-1)*k
-
-        do i=1,k
-          solncomp(istart+i) = solnnew(i)
-          solncomp(nhalf+i+istart) = solnnew(nc2+i)
-        enddo
-
-        if(ilev.eq.nlev) then
-          do i=1,ncorner2
-            solncomp(nlev*k+i) = solnnew(k+i)
-            solncomp(nhalf+nlev*k+i) = solnnew(nc2+k+i)
-          enddo
-        endif
-
-c
-cc        reinitialize rmutmp
-c
-        do i=1,ncorner2
-          rmutmp(i) = solnnew(i+k)
-        enddo
-        do i=1,ncorner2
-          rmutmp(ncorner2+i) = solnnew(i+k+nc2)
-        enddo
-      enddo
-
       call prin2('solncomp=*',solncomp(nlev*k+1),ncorner2)
       call prin2('solncomp other edge=*',solncomp(nlev*k+nhalf+1),
      1      ncorner2)
@@ -1195,6 +940,336 @@ c
 
 c---------------------------------------------
 
+      
+      subroutine resolve_dens(k,ncorner,ts,wts,vmat,rtmp,thet,n,
+     1   xmat2copy,soln,lns,rns,xsgnl,xsgnr,nlev,nn,solncomp)
+c
+c
+c         this subroutine resolves the density in the vicinity
+c         of a corner whose angle is given by
+c         thet
+c
+c         input arguments:
+c           k - number of discretization nodes on the smooth panel
+c           ncorner - number of discretization nodes on corner panel
+c           ts,wts - real *8 (ncorner)
+c             nodes and discretization weights for corner panel
+c           vmat - vals (scaled by sqrt of weights) to coeffs matrix
+c              for corner panel
+c           rtmp - panel length on input at corner
+c           thet - angle at corner
+c           n - number of points in original discretization
+c           xmat2copy - original discretization matrix
+c           soln - solution on original grid
+c           lns - location in soln array where soln on left panel starts
+c           rns - location in soln array where soln on right panel
+c                 starts
+c           xsgnl - sign for corner matrix with sources on left, 
+c              and targets on right
+c           xsgnr - sign for corner matrix with sources on right, 
+c              and targets on left
+c           nlev - number of levels of re - solved solution
+c           nn - total number of discretization nodes for re-solved grid
+c                  = (nlev*k + ncorner)*2
+c           
+c         output argument:
+c          solncomp - real *8(nn)
+c               resolved solution
+c
+
+
+      integer k,ncorner,nn,nlev,lns,rns,n
+      real *8 ts(ncorner),wts(ncorner),vmat(ncorner,ncorner),rtmp,thet
+      real *8 xmat2copy(n,n)
+      real *8 soln(*),solncomp(nn)
+      real *8 tsloc(300),wtsloc(300),qwtstmp(300)
+      real *8, allocatable :: ts3(:),wts3(:)
+      real *8, allocatable :: xmatcnew(:,:),xmatnew(:,:),
+     1    xmatnewcopy(:,:),xmatc2(:,:)
+      real *8, allocatable :: rhsnew(:),rmutmp(:),solnnew(:)
+      real *8, allocatable :: rhstmp(:),rhstmp2(:),rhscoeffs(:)
+      real *8, allocatable :: xmatsub(:,:),xmatsub0(:,:),xmatsub1(:,:)
+      integer, allocatable :: ipiv(:)
+
+      
+      allocate(ts3(k),wts3(k))
+      
+      rpan = rtmp
+      nc2 = k + ncorner
+      itype = 1
+      call legeexps(itype,k,ts3,utmp,vtmp,wts3)
+
+      xstart = 1.0d0/2
+      xend = rpan
+      do i=1,k
+        tsloc(i) = 0.5d0 + (ts3(i)+1)/4.0d0
+        wtsloc(i) = wts3(i)/4.0d0
+      enddo
+
+      do i=1,ncorner
+        tsloc(k+i) = ts(i)/2
+        wtsloc(k+i) = wts(i)/2
+      enddo
+
+
+      do i=1,nc2
+        qwtstmp(i) = wtsloc(i)*rtmp
+        qwtstmp(i+nc2) = wtsloc(i)*rtmp
+      enddo
+
+
+      icint = 1
+      nn = 2*nc2
+
+      allocate(xmatcnew(nc2,nc2))
+
+      call getcornermat(thet,nc2,rpan,tsloc,wtsloc,xmatcnew)
+
+      allocate(xmatnew(nn,nn))
+      allocate(xmatnewcopy(nn,nn))
+
+
+      do i=1,nn
+        do j=1,nn
+          xmatnew(i,j) = 0
+        enddo
+      enddo
+      allocate(xmatc2(ncorner,ncorner))
+      
+      done = 1
+      pi = atan(done)*4
+      thet0 = thet/pi
+      if(thet0.lt.0) thet0 = thet0 + 2
+      call lapcornmat(thet0,xmatc2,ncorner)
+      do i=1,ncorner
+        do j=1,ncorner
+          xmatc2(i,j) = xmatc2(i,j)/2/pi
+        enddo
+      enddo
+c
+cc      set off-diagnal blocks
+c
+c      unknowns 1-nc2 are the unknowns
+c      on edge 1 at vertex 1,
+c      and unknowns nc2+1,nn are the unknowns
+c      on edge 3 at vertex 1
+c
+       call xreplmat(nc2,nc2,nn,0,nc2,xmatcnew,xmatnew,xsgnl)
+       call xreplmat(nc2,nc2,nn,nc2,0,xmatcnew,xmatnew,xsgnr)
+
+       call xreplmat(ncorner,ncorner,nn,k,nc2+k,xmatc2,
+     1           xmatnew,xsgnl)
+
+       call xreplmat(ncorner,ncorner,nn,nc2+k,k,xmatc2,
+     1           xmatnew,xsgnr)
+c
+cc        the matrix that has been set up are the dirichlet 
+c         matrices. Now take the transposes to compute the 
+c         neumann matrices
+c
+      ra = 0
+      do i=1,nn
+        xmatnew(i,i) = 0.5d0
+      enddo
+
+      do i=1,nn
+        do j=1,nn
+          xmatnewcopy(j,i) = xmatnew(j,i) 
+        enddo
+      enddo
+
+
+
+      allocate(ipiv(nn))
+
+       
+      allocate(rhsnew(nn),solnnew(nn))
+      allocate(rmutmp(2*ncorner))
+c
+cc     now set up the right hand side for the linear system
+c
+
+      istart= lns - 1
+      do i=1,ncorner
+        rmutmp(i) = soln(i+istart)
+      enddo
+
+      istart = rns -1
+      do i=1,ncorner
+        rmutmp(ncorner+i) = soln(i+istart)
+      enddo
+
+
+
+c
+cc       initialize matrix for computing right hand side
+c
+c
+
+      nnn = 2*ncorner
+      allocate(xmatsub(nnn,nnn))
+      allocate(xmatsub0(nnn,nnn))
+      allocate(xmatsub1(nnn,nnn))
+      istart = lns - 1
+      jstart = lns - 1
+
+      do i=1,ncorner
+        do j=1,ncorner
+          xmatsub0(i,j) = xmat2copy(i+istart,j+jstart)
+          xmatsub1(i,j) = sqrt(wts(i)*wts(j))*rtmp
+        enddo
+      enddo
+
+      istart = lns - 1
+      jstart = rns - 1
+      do i=1,ncorner
+        do j=1,ncorner
+          xmatsub0(i,j+ncorner) = xmat2copy(i+istart,j+jstart)
+          xmatsub1(i,j+ncorner) = sqrt(wts(i)*wts(j))*rtmp
+        enddo
+      enddo
+
+      istart = rns - 1
+      jstart = lns - 1
+
+      do i=1,ncorner
+        do j=1,ncorner
+          xmatsub0(i+ncorner,j) = xmat2copy(i+istart,j+jstart)
+          xmatsub1(i+ncorner,j) = sqrt(wts(i)*wts(j))*rtmp
+        enddo
+      enddo
+
+      istart = rns - 1
+      jstart = rns - 1
+      do i=1,ncorner
+        do j=1,ncorner
+          xmatsub0(i+ncorner,j+ncorner) = xmat2copy(i+istart,j+jstart)
+          xmatsub1(i+ncorner,j+ncorner) = sqrt(wts(i)*wts(j))*rtmp
+        enddo
+      enddo
+
+c
+cc        start iterative solve loop
+c
+      nhalf = nlev*k + ncorner
+
+      allocate(rhstmp(nnn),rhstmp2(ncorner),rhscoeffs(ncorner))
+
+      alpha = 1.0d0
+      beta = 0
+      do ilev = 1,nlev
+c
+c        setup xmatsub
+c
+         do i=1,nnn
+           do j=1,nnn
+             xmatsub(j,i) = xmatsub0(j,i) + 
+     1          xmatsub1(j,i)/2.0d0**(ilev-1) 
+           enddo
+         enddo
+
+         call dgemv('t',nnn,nnn,alpha,xmatsub,nnn,rmutmp,1,beta,
+     1      rhstmp,1)
+
+c
+cc       extract out the relevant pieces of rhs
+c
+         do i=1,ncorner
+           rhstmp2(i) = rhstmp(i)
+           rhscoeffs(i) = 0
+        enddo
+       
+c
+cc       smear this function onto the rest of the grid
+
+        call dgemv('n',ncorner,ncorner,alpha,vmat,ncorner,rhstmp2,1,
+     1     beta,rhscoeffs,1)
+
+        do ipt = 1,nc2
+          x = tsloc(ipt)
+          rhsnew(ipt) = 0
+          do j=1,ncorner
+            val = 0
+            call lapeval(x,j,val)
+            rhsnew(ipt) = rhsnew(ipt) + rhscoeffs(j)*val
+          enddo
+          rhsnew(ipt) = rhsnew(ipt)*sqrt(qwtstmp(ipt))/
+     1       sqrt(rtmp)
+        enddo
+
+        do i=1,ncorner
+          rhstmp2(i) = rhstmp(ncorner+i)
+          rhscoeffs(i) = 0
+        enddo
+       
+c
+cc       smear this function onto the rest of the grid
+        call dgemv('n',ncorner,ncorner,alpha,vmat,ncorner,rhstmp2,1,
+     1     beta,rhscoeffs,1)
+
+        do ipt = 1,nc2
+          ii = nc2 + ipt
+          x = tsloc(ipt)
+          rhsnew(ii) = 0
+          do j=1,ncorner
+            val = 0
+            call lapeval(x,j,val)
+            rhsnew(ii) = rhsnew(ii) + rhscoeffs(j)*val
+          enddo
+          rhsnew(ii) = rhsnew(ii)*sqrt(qwtstmp(ii))/
+     1       sqrt(rtmp)
+        enddo
+
+        do i=1,nn
+          solnnew(i) = rhsnew(i)
+        enddo
+
+        do i=1,nn
+          do j=1,nn
+            xmatnew(j,i) = xmatnewcopy(j,i) + 
+     1         sqrt(qwtstmp(i)*qwtstmp(j))/2.0d0**(ilev-1)
+          enddo
+        enddo
+        call dgetrf(nn,nn,xmatnew,nn,ipiv,info)
+        
+        call dgetrs('t',nn,1,xmatnew,nn,ipiv,solnnew,nn,info)
+
+        istart = (ilev-1)*k
+
+        do i=1,k
+          solncomp(istart+i) = solnnew(i)
+          solncomp(nhalf+i+istart) = solnnew(nc2+i)
+        enddo
+
+        if(ilev.eq.nlev) then
+          do i=1,ncorner
+            solncomp(nlev*k+i) = solnnew(k+i)
+            solncomp(nhalf+nlev*k+i) = solnnew(nc2+k+i)
+          enddo
+        endif
+
+c
+cc        reinitialize rmutmp
+c
+        do i=1,ncorner
+          rmutmp(i) = solnnew(i+k)
+        enddo
+        do i=1,ncorner
+          rmutmp(ncorner+i) = solnnew(i+k+nc2)
+        enddo
+      enddo
+
+
+
+
+      return
+      end
+
+c
+c
+c
+c
+c
 
       subroutine comppottarg_adap_newquad(ntarg,xt,yt,n,xs,ys,soln,
      1  qwts,nedges,nepts,lns,rns,imid,k,nlev,ncorner,rtmp,nres,
