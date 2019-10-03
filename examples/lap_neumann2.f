@@ -153,7 +153,7 @@ c
 c         get bisection grid
 c
 
-       nlev = 10
+       nlev = 50
        ncorner = k*nlev
        allocate(ts(ncorner),wts(ncorner))
        call getcornerdis(k,nlev,ts,wts)
@@ -278,6 +278,7 @@ cc      generate discretization nodes
 c
 c
        call prinf('setting up geometry*',i,0)
+
        call getgeom(nverts,verts,nedges,el,er,rnxe,rnye,pl,pr,imid,
      1         kmid,nc_ref,ts_ref,wts_ref,nref,xs_ref,ys_ref,rnx_ref,
      2         rny_ref,rkappa_ref,qwts_ref,lns_ref,rns_ref,nepts_ref,
@@ -446,7 +447,6 @@ c
         alpha(icint) = acos(drp)
 
         alpha(icint) = atan2(dy2,dx2) - atan2(dy1,dx1)
-cc      if(alpha(icint).lt.0) alpha(icint) = alpha(icint)+pi
 
         rpan = 0.3d0
         thet = alpha(icint)
@@ -481,8 +481,13 @@ cc      if(alpha(icint).lt.0) alpha(icint) = alpha(icint)+pi
       do i=1,n
        do j=1,n
          xmat(i,j) = 0
-         xmat_ref(i,j) = 0
        enddo
+      enddo
+
+      do i=1,nref
+        do j=1,nref
+          xmat_ref(j,i) = 0
+        enddo
       enddo
 
 
@@ -501,14 +506,15 @@ c
           nts = nepts_ref(iedge)
           allocate(xtmp(nts,nss))
 
-          call getedgemat(iedge,jedge,n,xs,ys,rnx,rny,rkappa,qwts,
+          call getedgemat(iedge,jedge,nref,xs_ref,ys_ref,rnx_ref,
+     2      rny_ref,rkappa_ref,qwts_ref,
      1      lns_ref,rns_ref,nepts_ref,ncint,icl,icr,icsgnl,icsgnr,
      2      alpha,ixmatc,xsgnl,xsgnr,nc_ref,xmatc_ref,nts,nss,xtmp)
       
           its = lns_ref(iedge) -1
           iss = lns_ref(jedge) -1
 
-          call xreplmat(nts,nss,n,its,iss,xtmp,xmat_ref,rfac)
+          call xreplmat(nts,nss,nref,its,iss,xtmp,xmat_ref,rfac)
 
           deallocate(xtmp)
 
@@ -566,11 +572,6 @@ c
          ysrc(i) = rr*sin(thet)
          charges(i) = hkrand(0)*10
       enddo
-
-cc      call prin2('xsrc=*',xsrc,ncharges)
-cc      call prin2('ysrc=*',ysrc,ncharges)
-
-      print *,nref
 
       allocate(rhs_ref(nref),soln_ref(nref))
       allocate(rhs_ref_px(nref),soln_ref_px(nref))
@@ -633,7 +634,6 @@ c
         enddo
       enddo
 
-
       do i=1,nref
         do j=1,nref
           xmat_ref(j,i) = xmat_ref(j,i) + sqrt(qwts_ref(j)*qwts_ref(i))
@@ -681,6 +681,7 @@ c
 
       info = 0
       call dgetrs('t',nref,1,xmat_ref,nref,ipiv_ref,soln_ref,nref,info)
+
 
       info = 0
       call dgetrs('t',nref,1,xmat_ref,nref,ipiv_ref,soln_ref_px,nref,
@@ -733,6 +734,15 @@ c
       call getrhs(ncharges,xsrc,ysrc,charges,trg(1),trg(2),
      1    potex_1,gradex)
 
+
+      pot_ref = 0
+      do i=1,nref
+        rr = (trg(1)-xs_ref(i))**2 + (trg(2)-ys_ref(i))**2
+        pot_ref = pot_ref - log(rr)/4/pi*soln_ref(i)*sqrt(qwts_ref(i))
+      enddo
+
+
+
       pot1 = 0
       do i=1,n
         rr = (trg(1)-xs(i))**2 + (trg(2)-ys(i))**2
@@ -745,6 +755,7 @@ c
         pot2 = pot2 - log(rr)/4/pi*soln2(i)*sqrt(qwts2(i))
       enddo
 
+      rdiff_ref = potex_1 - pot_ref
       rdiff1 = potex_1-pot1
       rdiff2 = potex_1-pot2
 
@@ -755,13 +766,18 @@ c
       call getrhs(ncharges,xsrc,ysrc,charges,trg(1),trg(2),
      1    potex_2,gradex)
 
+      pot_ref_2 = 0
+      do i=1,nref
+        rr = (trg(1)-xs_ref(i))**2 + (trg(2)-ys_ref(i))**2
+        pot_ref_2 = pot_ref_2 - log(rr)/4/pi*soln_ref(i)*
+     1      sqrt(qwts_ref(i))
+      enddo
+
       pot1_2 = 0
       do i=1,n
         rr = (trg(1)-xs(i))**2 + (trg(2)-ys(i))**2
         pot1_2 = pot1_2 - log(rr)/4/pi*soln(i)*sqrt(qwts(i))
       enddo
-
-      
 
       pot2_2 = 0
       do i=1,n2
@@ -770,6 +786,7 @@ c
       enddo
 
 
+      rdiff_ref_2 = potex_2 - pot_ref_2
       rdiff1_2 = potex_2-pot1_2
       rdiff2_2 = potex_2-pot2_2
 
@@ -784,12 +801,26 @@ c        the volume
 c
 
 
+      
+      erra_ref = abs(rdiff_ref-rdiff_ref_2)/abs(rdiff_ref)
       erra = abs(rdiff1-rdiff1_2)/abs(rdiff1)
       erra2 = abs(rdiff2-rdiff2_2)/abs(rdiff2)
 
 
+      write(*,*) " "
+      write(*,*) " "
+      write(*,*) "=============================="
+      write(*,*) "Interior target analytic solution test"
+      write(*,*) " "
+      write(*,*) " "
+
+      call prin2('error reference grid=*',erra_ref,1)
       call prin2('error bisection=*',erra,1)
       call prin2('error sp-dis=*',erra2,1)
+
+      write(*,*) " "
+      write(*,*) " "
+      
 
 c
 c
@@ -814,7 +845,7 @@ c
       pol_t2(2,1)=0
       pol_t2(2,2)=0
 
-      do i=1,n
+      do i=1,nref
         pol_t_ref(1,1) = pol_t_ref(1,1) + 
      1      soln_ref_px(i)*xs_ref(i)*sqrt(qwts_ref(i))
         pol_t_ref(2,1) = pol_t_ref(2,1) + 
@@ -852,8 +883,18 @@ c
         enddo
       enddo
 
+      write(*,*) "=============================="
+      write(*,*) "Polarization test"
+      write(*,*) " "
+      write(*,*) " "
+
       call prin2('error in polarization tensor=*',err_t,4)
       call prin2('error in polarization tensor=*',err_t2,4)
+
+      write(*,*) " "
+      write(*,*) " "
+      write(*,*) "=============================="
+
 c
 c
 c        start test 2: accuracy in targets in the 
@@ -909,9 +950,9 @@ c
 cc      resolve problem at the corner panel of 
 c       vertex 1
 c
-      call prin2('solncomp=*',solncomp(nlev*k+1),ncorner2)
-      call prin2('solncomp other edge=*',solncomp(nlev*k+nhalf+1),
-     1      ncorner2)
+cc      call prin2('solncomp=*',solncomp(nlev*k+1),ncorner2)
+cc      call prin2('solncomp other edge=*',solncomp(nlev*k+nhalf+1),
+cc     1      ncorner2)
 c
 c
 c
@@ -921,12 +962,11 @@ c
       istart = lns(1)-1
       
       do i=1,nlev*k
-        ra = ra + soln(istart+i)**2
-        erra = erra + (solncomp(i)-soln(istart+i))**2
+        ra = ra + soln_ref(istart+i)**2
+        erra = erra + (solncomp(i)-soln_ref(istart+i))**2
       enddo
       erra = sqrt(erra/ra)
       ra = sqrt(ra)
-      print *, erra,ra
       call prin2("error in density after resolve=*",erra,1)
 
 
@@ -934,22 +974,18 @@ c
       erra = 0
       ra = 0
 
-      istart1 = lns(1)-1+ncorner
+      istart1 = lns_ref(1)-1+nc_ref
       istart2 = lns2(1)-1+ncorner2
       do i=1,k
         ii = istart1+i
         ii2 = istart2+i 
         ra = ra + soln(ii)**2
-        erra = erra + (soln2(ii2)-soln(ii))**2
+        erra = erra + (soln2(ii2)-soln_ref(ii))**2
       enddo
-
-      print *, sqrt(erra)
-      print *, sqrt(ra)
 
       erra = sqrt(erra/ra)
       call prin2('error in first panel away from the corner=*',erra,1)
 
-      stop
 
 c
 c
@@ -978,15 +1014,15 @@ c
 
       nhalf = nlev*k+ncorner2
       do i=1,nlev*k
-        xsres(i) = ts(i)*rtmp*dx1
-        ysres(i) = ts(i)*rtmp*dy1
+        xsres(i) = ts_ref(i)*rtmp*dx1
+        ysres(i) = ts_ref(i)*rtmp*dy1
 
-        qres(i) = rtmp*wts(i)
+        qres(i) = rtmp*wts_ref(i)
 
-        xsres(nhalf+i) = ts(i)*rtmp*dx2
-        ysres(nhalf+i) = ts(i)*rtmp*dy2
+        xsres(nhalf+i) = ts_ref(i)*rtmp*dx2
+        ysres(nhalf+i) = ts_ref(i)*rtmp*dy2
 
-        qres(nhalf+i) = rtmp*wts(i)
+        qres(nhalf+i) = rtmp*wts_ref(i)
       enddo
 
       do i=1,ncorner2
@@ -1009,26 +1045,6 @@ c
 
       rpanres(npanhalf) = rtmp/2.0d0**nlev
       rpanres(npanres) = rtmp/2.0d0**nlev
-
-c
-c       test whether qres, and rpanres are correct
-c
-      ra = 0
-
-      call prinf('nres=*',nres,1)
-      do i=1,nres
-        ra = ra + qres(i)
-      enddo
-      call prin2('sum of side lengths at corner panels=*',ra,1)
-
-
-      ra = 0
-      do i=1,npanres
-        ra = ra + rpanres(i)
-      enddo
-      
-
-      call prin2('sum of side lengths using panel lengts=*',ra,1)
 
 
       call comppottarg_adap_newquad(ntarg,xt,yt,n2,xs2,ys2,soln2,qwts2,
@@ -5374,8 +5390,6 @@ c       vmat: value-to-coefficient interpolation matrix.
 
         eps = 1.0d-16
 
-        call prinf('nfuns=*',nfuns,1)
-        call prinf('nroots=*',nroots,1)
         if (nfuns .ne. nroots) then
         call prinf('bombing in creainterp, incorrect dims*',0,0)
         stop
@@ -5395,7 +5409,6 @@ c       vmat: value-to-coefficient interpolation matrix.
  2000 continue
 c
         call orthom(vmat,nfuns,work,cond)
-        call prin2('cond = *',cond,1)
 c
         return
         end
