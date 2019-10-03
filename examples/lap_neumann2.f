@@ -4,8 +4,6 @@
       real *8, allocatable :: ts_ref(:),wts_ref(:) 
       real *8, allocatable :: ts(:),wts(:)
       real *8, allocatable :: ts2(:),wts2(:),umat(:),vmat(:)
-      real *8 ts3(300),wts3(300),utmp,vtmp,tsloc(300),wtsloc(300)
-      real *8 qwtstmp(300)
       real *8, allocatable :: xsres(:),ysres(:),qres(:),rpanres(:)
 
       real *8, allocatable :: verts(:,:),xverts(:),yverts(:)
@@ -37,7 +35,7 @@
 
 
       real *8, allocatable :: ztarg(:,:),xt(:),yt(:)
-      real *8, allocatable :: potex(:),pottest(:),pottest2(:)
+      real *8, allocatable :: potex(:)
       real *8, allocatable :: rvals(:),tvals(:)
 
       real *8 grad(2),gradex(2)
@@ -59,30 +57,50 @@
       real *8, allocatable :: rhs_scat(:),soln_scat(:)
       real *8, allocatable :: rhs2_scat(:),soln2_scat(:)
 
+      real *8, allocatable :: rhs_ref_rand(:),soln_ref_rand(:)
+      real *8, allocatable :: rhs_rand(:), soln_rand(:)
+      real *8, allocatable :: rhs2_rand(:),soln2_rand(:)
+
+      real *8, allocatable :: xmatc_ref(:,:,:), xmat_ref(:,:)
       real *8, allocatable :: xmatc(:,:,:), xmat(:,:)
       real *8, allocatable :: xmatc2(:,:,:), xmat2(:,:),xmat2copy(:,:)
       real *8, allocatable :: xtmp(:,:)
 
-      real *8 pol_t(2,2),pol_t2(2,2),err_t(2,2)
+      real *8 pol_t(2,2),pol_t2(2,2),pol_t_ref(2,2),
+     1   err_t(2,2),err_t2(2,2)
 
-      real *8, allocatable :: targ(:,:),pottarg(:),pottarg2(:)
+      real *8, allocatable :: targ(:,:)
 
       real *8 errs(1000),pars(1000)
-      integer, allocatable :: ipiv(:),ipiv2(:),ipiv3(:)
+      integer, allocatable :: ipiv(:),ipiv2(:),ipiv_ref(:)
 
-      real *8, allocatable :: xmatcnew(:,:),xmatnew(:,:)
-      real *8, allocatable :: xmatnewcopy(:,:)
-      real *8, allocatable :: xmatsub(:,:),xmatsub0(:,:),xmatsub1(:,:)
-      real *8, allocatable :: rhsnew(:),solnnew(:),rmutmp(:)
-      real *8, allocatable :: rhstmp(:),rhstmp2(:),rhscoeffs(:)
-      real *8, allocatable :: solncomp(:)
+      real *8, allocatable :: solncomp(:),solncomp_px(:)
+      real *8, allocatable :: solncomp_rand(:),solncomp_scat(:)
 
-      external multaslow
+      real *8, allocatable :: pottarg_ref(:),pottarg(:),pottarg2(:)
+      real *8, allocatable :: pottarg_ref_px(:),pottarg_px(:),
+     1     pottarg2_px(:)
+      real *8, allocatable :: pottarg_ref_scat(:),pottarg_scat(:),
+     1     pottarg2_scat(:)
+      real *8, allocatable :: pottarg_ref_rand(:),pottarg_rand(:),
+     1     pottarg2_rand(:)
+
 
 c
 c
-c      Solve three right hand sides,
-c        known solution, x polarization, y polarization
+c      Solve 5 right hand sides,
+c        known solution, x polarization, y polarization, interior
+c        scattering, random polynomials
+c
+c      on 3 grids
+c
+c          reference grid, with 100 levels of refinement at the
+c          corner
+c   
+c          bisection, with nlev levels of refinement
+c
+c          specialized quadrature with nlev levels of refinement
+c
 c
 c      Metrics to compare,
 c
@@ -97,7 +115,7 @@ c
 c        3. density on the fine mesh
 c
 c        compare solutions with different 4 different levels of resolve
-c          10,20,30,40 for (2) and (3), no refinement needed for (1) 
+c          nlev=10,20,30,40 for (2) and (3), no refinement needed for (1) 
 c
 c
 c
@@ -122,12 +140,28 @@ c
 
 
        k = 16
+
+c
+c        get reference grid
+c
        irefinelev = 100
-       ncorner = k*irefinelev
+       nc_ref = k*irefinelev
+       allocate(ts_ref(nc_ref),wts_ref(nc_ref))
+       call getcornerdis(k,irefinelev,ts_ref,wts_ref)
+
+c
+c         get bisection grid
+c
+
+       nlev = 10
+       ncorner = k*nlev
        allocate(ts(ncorner),wts(ncorner))
-       call getcornerdis(k,irefinelev,ts,wts)
+       call getcornerdis(k,nlev,ts,wts)
 
 
+c
+c          get specialized quadrature grid
+c
        itype = 1
        lu = 100000
        allocate(umat(lu),vmat(lu))
@@ -135,18 +169,7 @@ c
        allocate(ts2(ln),wts2(ln))
        call lapdisc(ts2,wts2,umat,vmat,ncorner2,itype)
 
-       do i=1,ncorner2
-         ts2(i) = ts2(i)
-         wts2(i) = wts2(i)
-       enddo
 
-
-c
-cc       generate discretization matrix associated with angle
-c        theta
-c
-cc       call prin2('xmat=*',xmatc,24)
-cc       call prinf('ncorner=*',ncorner,1)
 
 
 c
@@ -217,6 +240,7 @@ c             panels
        rtmp = 0.15d0
 
        n = 0
+       nref = 0
        n2 = 0
        kmid = k
        do i=1,nedges
@@ -231,13 +255,19 @@ c             panels
          pl(i) = rtmp
          pr(i) = rtmp
          imid(i) = 15
+         nref = nref + imid(i)*kmid + 2*nc_ref
          n = n + imid(i)*kmid + 2*ncorner
          n2 = n2 + imid(i)*kmid + 2*ncorner2
        enddo
 
+       allocate(xs_ref(nref),ys_ref(nref),rnx_ref(nref))
+       allocate(rny_ref(nref),rkappa_ref(nref),qwts_ref(nref))
        allocate(xs(n),ys(n),rnx(n),rny(n),rkappa(n),qwts(n))
        allocate(xs2(n2),ys2(n2),rnx2(n2),rny2(n2),
      1    rkappa2(n2),qwts2(n2))
+       
+       allocate(lns_ref(nedges+1),rns_ref(nedges+1))
+       allocate(nepts_ref(nedges+1))
        allocate(lns(nedges+1),rns(nedges+1),nepts(nedges+1))
        allocate(lns2(nedges+1),rns2(nedges+1),nepts2(nedges+1))
        allocate(rlen(nedges+1))
@@ -248,6 +278,10 @@ cc      generate discretization nodes
 c
 c
        call prinf('setting up geometry*',i,0)
+       call getgeom(nverts,verts,nedges,el,er,rnxe,rnye,pl,pr,imid,
+     1         kmid,nc_ref,ts_ref,wts_ref,nref,xs_ref,ys_ref,rnx_ref,
+     2         rny_ref,rkappa_ref,qwts_ref,lns_ref,rns_ref,nepts_ref,
+     3         rlen)
      
        call getgeom(nverts,verts,nedges,el,er,rnxe,rnye,pl,pr,imid,
      1         kmid,ncorner,ts,wts,n,xs,ys,rnx,rny,rkappa,qwts,lns,
@@ -278,8 +312,8 @@ c
       ntarg = nlat*nlat
       tmin = atan2(verts(2,2),verts(1,2))
       tmax = atan2(verts(2,3),verts(1,3))
-      allocate(ztarg(2,ntarg),potex(ntarg),pottest(ntarg))
-      allocate(pottest2(ntarg),xt(ntarg),yt(ntarg))
+      allocate(ztarg(2,ntarg),potex(ntarg),pottarg(ntarg))
+      allocate(pottarg2(ntarg),xt(ntarg),yt(ntarg))
       allocate(rvals(nlat),tvals(nlat))
 
 
@@ -292,9 +326,6 @@ c
       call prin2('rvals=*',rvals,nlat)
       call prin2('tvals=*',tvals,nlat)
 
-
-
-
       
       do irr = 1,nlat
         do itt = 1,nlat
@@ -305,16 +336,6 @@ c
           yt(ipt) = ztarg(2,ipt)
         enddo
       enddo
-
-      write(33,*) verts(1,1),verts(2,1)      
-      write(33,*) verts(1,2),verts(2,2)      
-      write(33,*) verts(1,3),verts(2,3)      
-      do i=1,ntarg
-        write(33,*) xt(i),yt(i)
-      enddo
-
-
-
 
 c
 cc
@@ -355,6 +376,7 @@ c
       icsgnl(3) = 1
       icsgnr(3) = 0
 
+      allocate(xmatc_ref(nc_ref,nc_ref,ncint))
       allocate(xmatc(ncorner,ncorner,ncint))
       allocate(xmatc2(ncorner2,ncorner2,ncint))
       do icint = 1,ncint
@@ -429,6 +451,8 @@ cc      if(alpha(icint).lt.0) alpha(icint) = alpha(icint)+pi
         rpan = 0.3d0
         thet = alpha(icint)
 
+        call getcornermat(thet,nc_ref,rpan,ts_ref,wts_ref,
+     1          xmatc_ref(1,1,icint))
         call getcornermat(thet,ncorner,rpan,ts,wts,xmatc(1,1,icint))
 
 
@@ -447,14 +471,17 @@ cc      if(alpha(icint).lt.0) alpha(icint) = alpha(icint)+pi
 
       call prin2('alpha=*',alpha,ncint)
 
+      call prinf('nref=*',nref,1)
       call prinf('n=*',n,1)
       call prinf('n2=*',n2,1)
+      allocate(xmat_ref(nref,nref))
       allocate(xmat(n,n),xmat2(n2,n2))
       allocate(xmat2copy(n2,n2))
 
       do i=1,n
        do j=1,n
          xmat(i,j) = 0
+         xmat_ref(i,j) = 0
        enddo
       enddo
 
@@ -469,6 +496,21 @@ c
       rfac = 1.0d0
       do iedge=1,nedges
         do jedge=1,nedges
+
+          nss = nepts_ref(jedge)
+          nts = nepts_ref(iedge)
+          allocate(xtmp(nts,nss))
+
+          call getedgemat(iedge,jedge,n,xs,ys,rnx,rny,rkappa,qwts,
+     1      lns_ref,rns_ref,nepts_ref,ncint,icl,icr,icsgnl,icsgnr,
+     2      alpha,ixmatc,xsgnl,xsgnr,nc_ref,xmatc_ref,nts,nss,xtmp)
+      
+          its = lns_ref(iedge) -1
+          iss = lns_ref(jedge) -1
+
+          call xreplmat(nts,nss,n,its,iss,xtmp,xmat_ref,rfac)
+
+          deallocate(xtmp)
 
           nss = nepts(jedge)
           nts = nepts(iedge)
@@ -528,10 +570,16 @@ c
 cc      call prin2('xsrc=*',xsrc,ncharges)
 cc      call prin2('ysrc=*',ysrc,ncharges)
 
+      print *,nref
+
+      allocate(rhs_ref(nref),soln_ref(nref))
+      allocate(rhs_ref_px(nref),soln_ref_px(nref))
+      allocate(rhs_ref_py(nref),soln_ref_py(nref))
 
       allocate(rhs(n),soln(n))
       allocate(rhs_px(n),soln_px(n))
       allocate(rhs_py(n),soln_py(n))
+
       allocate(rhs2(n2),soln2(n2))
       allocate(rhs2_px(n2),soln2_px(n2))
       allocate(rhs2_py(n2),soln2_py(n2))
@@ -545,6 +593,21 @@ c
 
       ra = 0
       do iedge=1,nedges
+
+
+        do ipt = 1,nepts_ref(iedge)
+          i = lns_ref(iedge) + ipt-1
+          xmat_ref(i,i) = 0.5d0
+
+          call getrhs(ncharges,xsrc,ysrc,charges,xs_ref(i),ys_ref(i),
+     1        pot,grad)
+
+          rhs_ref(i) = sqrt(qwts_ref(i))*(grad(1)*rnxe(iedge)+
+     1       grad(2)*rnye(iedge))
+          rhs_ref_px(i) = sqrt(qwts_ref(i))*rnxe(iedge)
+          rhs_ref_py(i) = sqrt(qwts_ref(i))*rnye(iedge)
+        enddo
+
         do ipt = 1,nepts(iedge)
           i = lns(iedge) + ipt-1
           xmat(i,i) = 0.5d0
@@ -570,6 +633,13 @@ c
         enddo
       enddo
 
+
+      do i=1,nref
+        do j=1,nref
+          xmat_ref(j,i) = xmat_ref(j,i) + sqrt(qwts_ref(j)*qwts_ref(i))
+        enddo
+      enddo
+
       do i=1,n
         do j=1,n
           xmat(j,i) = xmat(j,i) + sqrt(qwts(j)*qwts(i))
@@ -581,6 +651,12 @@ c
           xmat2copy(j,i) = xmat2(j,i)
           xmat2(j,i) = xmat2(j,i) + sqrt(qwts2(j)*qwts2(i))
         enddo
+      enddo
+
+      do i=1,nref
+        soln_ref(i) = rhs_ref(i)
+        soln_ref_px(i) = rhs_ref_px(i)
+        soln_ref_py(i) = rhs_ref_py(i)
       enddo
 
 
@@ -596,7 +672,24 @@ c
         soln2_py(i) = rhs2_py(i)
       enddo
 
-       call prinf('end of building matrix*',i,0)
+       call prinf('end of building rhs*',i,0)
+
+      info = 0
+      allocate(ipiv_ref(nref))
+
+      call dgetrf(nref,nref,xmat_ref,nref,ipiv_ref,info)
+
+      info = 0
+      call dgetrs('t',nref,1,xmat_ref,nref,ipiv_ref,soln_ref,nref,info)
+
+      info = 0
+      call dgetrs('t',nref,1,xmat_ref,nref,ipiv_ref,soln_ref_px,nref,
+     1   info)
+
+      info = 0
+      call dgetrs('t',nref,1,xmat_ref,nref,ipiv_ref,soln_ref_py,nref,
+     1   info)
+
 
       info = 0
       allocate(ipiv(n))
@@ -611,6 +704,8 @@ c
 
       info = 0
       call dgetrs('t',n,1,xmat,n,ipiv,soln_py,n,info)
+
+
 
       info = 0
       allocate(ipiv2(n2))
@@ -704,6 +799,10 @@ c
 c
 
 
+      pol_t_ref(1,1) = 0
+      pol_t_ref(1,2) = 0
+      pol_t_ref(2,1) = 0
+      pol_t_ref(2,2) = 0
 
       pol_t(1,1)=0
       pol_t(1,2)=0
@@ -714,6 +813,19 @@ c
       pol_t2(1,2)=0
       pol_t2(2,1)=0
       pol_t2(2,2)=0
+
+      do i=1,n
+        pol_t_ref(1,1) = pol_t_ref(1,1) + 
+     1      soln_ref_px(i)*xs_ref(i)*sqrt(qwts_ref(i))
+        pol_t_ref(2,1) = pol_t_ref(2,1) + 
+     1      soln_ref_px(i)*ys_ref(i)*sqrt(qwts_ref(i))
+        
+        pol_t_ref(1,2) = pol_t_ref(1,2) + 
+     1      soln_ref_py(i)*xs_ref(i)*sqrt(qwts_ref(i))
+        pol_t_ref(2,2) = pol_t_ref(2,2) + 
+     1      soln_ref_py(i)*ys_ref(i)*sqrt(qwts_ref(i))
+      enddo
+
 
       do i=1,n
         pol_t(1,1) = pol_t(1,1) + soln_px(i)*xs(i)*sqrt(qwts(i))
@@ -733,11 +845,15 @@ c
 
       do i=1,2
         do j=1,2
-          err_t(i,j)= abs(pol_t(i,j)-pol_t2(i,j))/abs(pol_t(i,j))
+          err_t(i,j)=abs(pol_t_ref(i,j)-pol_t(i,j))/abs(pol_t_ref(i,j))
+          err_t2(i,j)=abs(pol_t_ref(i,j)-pol_t2(i,j))/
+     1       abs(pol_t_ref(i,j))
+
         enddo
       enddo
 
       call prin2('error in polarization tensor=*',err_t,4)
+      call prin2('error in polarization tensor=*',err_t2,4)
 c
 c
 c        start test 2: accuracy in targets in the 
@@ -762,7 +878,7 @@ c
       call cpu_time(t1)
 C$      t1 = omp_get_wtime()      
       call comppottarg_adap(ntarg,xt,yt,n,xs,ys,soln,qwts,
-     1    nedges,nepts,lns,rns,imid,k,irefinelev,pottest)
+     1    nedges,nepts,lns,rns,imid,k,irefinelev,pottarg)
       
 
       call cpu_time(t2)
@@ -774,15 +890,14 @@ C$      t2 = omp_get_wtime()
       ra = 0
 
       do i=1,ntarg
-        pottest(i) = pottest(i)+rdiff1
+        pottarg(i) = pottarg(i)+rdiff1
         ra = ra + potex(i)**2
-        erra = erra + (pottest(i)-potex(i))**2
+        erra = erra + (pottarg(i)-potex(i))**2
       enddo
       erra = sqrt(erra/ra)
       ra = sqrt(ra)
       call prin2('error in targets in volume-bisection=*',erra,1)
 
-      nlev = 50
       nres = (nlev*k + ncorner2)*2
 
       allocate(solncomp(nres))
@@ -918,18 +1033,18 @@ c
 
       call comppottarg_adap_newquad(ntarg,xt,yt,n2,xs2,ys2,soln2,qwts2,
      1 nedges,nepts,lns2,rns2,imid,k,nlev,ncorner2,rtmp,nres,
-     2 xsres,ysres,qres,rpanres,solncomp,pottest2)
+     2 xsres,ysres,qres,rpanres,solncomp,pottarg2)
 
       
 c
       erra = 0
       ra = 0
       do i=1,ntarg
-        pottest2(i) = pottest2(i)+rdiff2
+        pottarg2(i) = pottarg2(i)+rdiff2
 
-        write(37,*) pottest2(i),potex(i)
+        write(37,*) pottarg2(i),potex(i)
         ra = ra + potex(i)**2
-        erra = erra + (pottest2(i)-potex(i))**2
+        erra = erra + (pottarg2(i)-potex(i))**2
       enddo
       erra = sqrt(erra/ra)
       ra = sqrt(ra)
