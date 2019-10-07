@@ -44,6 +44,7 @@
       real *8, allocatable :: rhs(:),soln(:)
       real *8, allocatable :: rhs2(:),soln2(:)
 
+
       real *8, allocatable :: rhs_ref_px(:),soln_ref_px(:)
       real *8, allocatable :: rhs_px(:),soln_px(:)
       real *8, allocatable :: rhs2_px(:),soln2_px(:)
@@ -70,6 +71,7 @@
      1   err_t(2,2),err_t2(2,2)
       
       real *8 errdens(100),errdens2(100)
+      real *8 errtarg(100),errtarg2(100)
 
       real *8, allocatable :: targ(:,:)
 
@@ -633,9 +635,9 @@ c
       ra = 0
       do iedge=1,nedges
 
-        if(iedge.eq.1) iord = 20
-        if(iedge.eq.2) iord = 23
-        if(iedge.eq.3) iord = 17
+        if(iedge.eq.1) iord = 10
+        if(iedge.eq.2) iord = 17
+        if(iedge.eq.3) iord = 9
 
 
         do ipt = 1,nepts_ref(iedge)
@@ -1070,7 +1072,6 @@ c
       write(*,*) " "
       write(*,*) " "
       write(*,*) "=============================="
-      stop
       
 
 c
@@ -1130,21 +1131,6 @@ C$      t1 = omp_get_wtime()
 C$      t2 = omp_get_wtime()     
 
       call prin2('time taken in adaptive integration=*',t2-t1,1)
-
-      erra = 0
-      ra = 0
-
-      istart1 = lns_ref(1)-1+nc_ref
-      istart2 = lns2(1)-1+ncorner2
-      do i=1,k
-        ii = istart1+i
-        ii2 = istart2+i 
-        ra = ra + soln(ii)**2
-        erra = erra + (soln2(ii2)-soln_ref(ii))**2
-      enddo
-
-      erra = sqrt(erra/ra)
-      call prin2('error in first panel away from the corner=*',erra,1)
 
 
 c
@@ -1208,38 +1194,66 @@ c
 
 
       call comppottarg_adap_newquad(ntarg,xt,yt,n2,xs2,ys2,soln2,qwts2,
-     1 nedges,nepts,lns2,rns2,imid,k,nlev,ncorner2,rtmp,nres,
+     1 nedges,nepts2,lns2,rns2,imid,k,nlev,ncorner2,rtmp,nres,
      2 xsres,ysres,qres,rpanres,solncomp,pottarg2)
 
+      call comppottarg_adap_newquad(ntarg,xt,yt,n2,xs2,ys2,soln2_px,
+     1 qwts2,nedges,nepts2,lns2,rns2,imid,k,nlev,ncorner2,rtmp,nres,
+     2 xsres,ysres,qres,rpanres,solncomp_px,pottarg2_px)
+
+      call comppottarg_adap_newquad(ntarg,xt,yt,n2,xs2,ys2,soln2_scat,
+     1 qwts2,nedges,nepts2,lns2,rns2,imid,k,nlev,ncorner2,rtmp,nres,
+     2 xsres,ysres,qres,rpanres,solncomp_scat,pottarg2_scat)
+
+      call comppottarg_adap_newquad(ntarg,xt,yt,n2,xs2,ys2,soln2_rand,
+     1 qwts2,nedges,nepts2,lns2,rns2,imid,k,nlev,ncorner2,rtmp,nres,
+     2 xsres,ysres,qres,rpanres,solncomp_rand,pottarg2_rand)
+
+      do i=1,ntarg
+        pottarg2(i) = pottarg2(i) + rdiff2
+        pottarg2_px(i) = pottarg2_px(i) + rdiff2
+        pottarg2_rand(i) = pottarg2_rand(i) + rdiff2
+        pottarg2_scat(i) = pottarg2_scat(i) + rdiff2
+
+
+        pottarg_ref(i) = pottarg_ref(i) + rdiff_ref
+        pottarg_ref_px(i) = pottarg_ref_px(i) + rdiff_ref
+        pottarg_ref_rand(i) = pottarg_ref_rand(i) + rdiff_ref
+        pottarg_ref_scat(i) = pottarg_ref_scat(i) + rdiff_ref
+
+        pottarg(i) = pottarg(i) + rdiff1
+        pottarg_px(i) = pottarg_px(i) + rdiff1
+        pottarg_rand(i) = pottarg_rand(i) + rdiff1
+        pottarg_scat(i) = pottarg_scat(i) + rdiff1
+      enddo
+
+      call comperr(ntarg,potex,pottarg2,errtarg2(1))
+      call comperr(ntarg,potex,pottarg,errtarg(1))
       
-c
-      erra = 0
-      ra = 0
-      do i=1,ntarg
-        pottarg2(i) = pottarg2(i)+rdiff2
+      call comperr(ntarg,pottarg_ref_px,pottarg2_px,errtarg2(2))
+      call comperr(ntarg,pottarg_ref_px,pottarg_px,errtarg(2))
 
-        write(37,*) pottarg2(i),potex(i)
-        ra = ra + potex(i)**2
-        erra = erra + (pottarg2(i)-potex(i))**2
-      enddo
-      erra = sqrt(erra/ra)
-      ra = sqrt(ra)
-      call prin2('error in targets in volume-corner quad=*',erra,1)
+      call comperr(ntarg,pottarg_ref_scat,pottarg2_scat,errtarg2(3))
+      call comperr(ntarg,pottarg_ref_scat,pottarg_scat,errtarg(3))
+
+      call comperr(ntarg,pottarg_ref_rand,pottarg2_rand,errtarg2(4))
+      call comperr(ntarg,pottarg_ref_rand,pottarg_rand,errtarg(4))
 
 
-      erra = 0
-      ra = 0
 
-      do i=1,ntarg
-        pottarg(i) = pottarg(i)+rdiff1
-        ra = ra + potex(i)**2
-        erra = erra + (pottarg(i)-potex(i))**2
-      enddo
-      erra = sqrt(erra/ra)
-      ra = sqrt(ra)
-      call prin2('error in targets in volume-bisection=*',erra,1)
+      write(*,*) " "
+      write(*,*) " "
+      write(*,*) "=============================="
+      write(*,*) "Errors in targets at volume for all cases"
+      write(*,*) " "
+      write(*,*) " "
 
-
+      call prin2('errtarg=*',errtarg,4)
+      call prin2('errtarg2=*',errtarg2,4)
+      write(*,*) " "
+      write(*,*) " "
+      write(*,*) "=============================="
+      
 
        stop
        end
@@ -1248,6 +1262,27 @@ c---------------------------------------------
 c
 c
 c
+c
+c
+      subroutine comperr(n,a,b,e)
+      implicit real *8 (a-h,o-z)
+      real *8 a(n),b(n),e
+
+      r = 0
+      e = 0
+      do i=1,n
+        e = e + abs(a(i)-b(i))**2
+        r = r + a(i)**2
+      enddo
+
+      e = sqrt(e/r)
+
+      return
+      end
+c
+c
+c
+c--------------------------------------
 c
       subroutine comperrq(n,a,b,q,e)
       implicit real *8 (a-h,o-z)
@@ -1527,6 +1562,7 @@ cc       smear this function onto the rest of the grid
           rhsnew(ipt) = rhsnew(ipt)*sqrt(qwtstmp(ipt))/
      1       sqrt(rtmp)
         enddo
+
 
         do i=1,ncorner
           rhstmp2(i) = rhstmp(ncorner+i)
