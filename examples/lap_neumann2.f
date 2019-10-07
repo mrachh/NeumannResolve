@@ -609,7 +609,7 @@ c
       allocate(rhs_ref_px(nref),soln_ref_px(nref))
       allocate(rhs_ref_py(nref),soln_ref_py(nref))
       allocate(rhs_ref_scat(nref),soln_ref_scat(nref))
-      allocate(rhs_ref_rand(nef),soln_ref_rand(nref))
+      allocate(rhs_ref_rand(nref),soln_ref_rand(nref))
 
       allocate(rhs(n),soln(n))
       allocate(rhs_px(n),soln_px(n))
@@ -710,6 +710,7 @@ c
           rhs2_py(i) = sqrt(qwts2(i))*rnye(iedge)
         enddo
       enddo
+
 
       do i=1,nref
         do j=1,nref
