@@ -98,6 +98,7 @@ c
      2      rint,maxdepth,maxrec,numint)
         implicit real *8 (a-h,o-z)
         dimension stack(2,200),t(m),w(m),vals(200),par1(*),par2(*)
+        external fun
 c 
 c       start the recursion
 c 
@@ -177,12 +178,14 @@ c
         subroutine oneint(a,b,fun,par1,par2,t,w,m,rint)
         implicit real *8 (a-h,o-z)
         dimension t(m),w(m),par1(*),par2(*)
+        external fun
 c 
 c       integrate the function fun on the interval [a,b]
 c 
         rint=0
         u=(b-a)/2
         v=(b+a)/2
+
         do 1200 i=1,m
         tt=u*t(i)+v
         call fun(tt,par1,par2,val)

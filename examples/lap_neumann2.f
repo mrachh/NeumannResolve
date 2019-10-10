@@ -88,6 +88,10 @@
      1     pottarg2_scat(:)
       real *8, allocatable :: pottarg_ref_rand(:),pottarg_rand(:),
      1     pottarg2_rand(:)
+      character *12, tfname
+      character *15 fname1,fres
+      character *14 fname2
+      character *16 fname3,fname4
 
 
 c
@@ -148,7 +152,7 @@ c
 c
 c        get reference grid
 c
-       irefinelev = 110
+       irefinelev = 100
        nc_ref = k*irefinelev
        allocate(ts_ref(nc_ref),wts_ref(nc_ref))
        call getcornerdis(k,irefinelev,ts_ref,wts_ref)
@@ -157,7 +161,7 @@ c
 c         get bisection grid
 c
 
-       nlev = 50
+       nlev = 40
        ncorner = k*nlev
        allocate(ts(ncorner),wts(ncorner))
        call getcornerdis(k,nlev,ts,wts)
@@ -313,7 +317,7 @@ c
 c
 c       generate targets on an exponential grid
 c
-      nlat = 4
+      nlat = 300
       ntarg = nlat*nlat
       tmin = atan2(verts(2,2),verts(1,2))
       tmax = atan2(verts(2,3),verts(1,3))
@@ -334,6 +338,9 @@ c
       allocate(xt(ntarg),yt(ntarg))
       allocate(rvals(nlat),tvals(nlat))
 
+      print *, tmin,tmax
+      stop
+
 
 
       do i=1,nlat
@@ -344,7 +351,8 @@ c
       call prin2('rvals=*',rvals,nlat)
       call prin2('tvals=*',tvals,nlat)
 
-      
+      write(tfname,'(a,i3.3,a)') "targ_",nlat,".dat"
+      open(unit=33,file=tfname) 
       do irr = 1,nlat
         do itt = 1,nlat
           ipt = (irr-1)*nlat + itt
@@ -352,8 +360,10 @@ c
           ztarg(2,ipt) = rvals(irr)*sin(tvals(itt))
           xt(ipt) = ztarg(1,ipt)
           yt(ipt) = ztarg(2,ipt)
+          write(33,*) ipt, rvals(irr),tvals(itt)
         enddo
       enddo
+      close(33)
 
 c
 cc
@@ -1094,10 +1104,11 @@ c
         call getrhs(ncharges,xsrc,ysrc,charges,xt(i),yt(i),potex(i),
      1     grad)
       enddo
+
       call comppottarg_adap(ntarg,xt,yt,nref,xs_ref,ys_ref,soln_ref,
      1    qwts_ref,nedges,nepts_ref,lns_ref,rns_ref,imid,k,irefinelev,
      2    pottarg_ref)
-      
+
       call comppottarg_adap(ntarg,xt,yt,nref,xs_ref,ys_ref,soln_ref_px,
      1    qwts_ref,nedges,nepts_ref,lns_ref,rns_ref,imid,k,
      2    irefinelev,pottarg_ref_px)
@@ -1239,6 +1250,29 @@ c
       call comperr(ntarg,pottarg_ref_rand,pottarg2_rand,errtarg2(4))
       call comperr(ntarg,pottarg_ref_rand,pottarg_rand,errtarg(4))
 
+      write(fname1,'(a,i3.3,a,i2.2,a)') "ref_",nlat,"_",nlev,".dat"
+      write(fname2,'(a,i3.3,a,i2.2,a)') "px_",nlat,"_",nlev,".dat"
+      write(fname3,'(a,i3.3,a,i2.2,a)') "scat_",nlat,"_",nlev,".dat"
+      write(fname4,'(a,i3.3,a,i2.2,a)') "rand_",nlat,"_",nlev,".dat"
+
+      open(unit=33,file=fname1)
+      Open(unit=34,file=fname2)
+      open(unit=35,file=fname3)
+      open(unit=36,file=fname4)
+ 1467 format(3(2x,e22.16))      
+      do i=1,ntarg
+        write(33,1467) potex(i),pottarg2(i),pottarg(i)
+        write(34,1467) pottarg_ref_px(i),pottarg2_px(i),pottarg_px(i)
+        write(35,1467) pottarg_ref_scat(i),pottarg2_scat(i),
+     1     pottarg_scat(i)
+        write(36,1467) pottarg_ref_rand(i),pottarg2_rand(i),
+     1     pottarg_rand(i)
+      enddo
+      close(33)
+      close(34)
+      close(35)
+      close(36)
+
 
 
       write(*,*) " "
@@ -1253,6 +1287,20 @@ c
       write(*,*) " "
       write(*,*) " "
       write(*,*) "=============================="
+
+      write(fres,'(a,i3.3,a,i2.2,a)') "res_",nlat,"_",nlev,".dat"
+ 1477 format(4(2x,e11.5))
+      open(unit=33,file=fres)
+        write(33,*) "Polarization errors"
+        write(33,1477) err_t
+        write(33,1477) err_t2
+        write(33,*) "Density after resolve errors"
+        write(33,1477) errdens(1:4)
+        write(33,1477) errdens2(1:4)
+        write(33,*) "Error in potential at targets in volume"
+        write(33,1477) errtarg(1:4)
+        write(33,1477) errtarg2(1:4)
+      close(33)
       
 
        stop
@@ -1835,10 +1883,14 @@ cc      call prin2('soln_comp_coefs=*',soln_comp_coefs,nres)
 
 
       allocate(tpack(3*k))
-      par1(1) = k+0.1d0
 
+
+C$OMP PARALLEL DO DEFAULT(SHARED)
+C$OMP$PRIVATE(itarg,par1,ipan0,iedge,istart,i,ipt,rr,j,tpack)
+C$OMP$PRIVATE(stack,vals,pottmp,ier,maxrec,numint)
       do itarg=1,ntarg
         pot(itarg) = 0
+        par1(1) = k+0.1d0
         par1(2) = xt(itarg)
         par1(3) = yt(itarg)
         ipan0 = 1
@@ -1986,6 +2038,7 @@ c
  4000 continue
         
       enddo
+C$OMP END PARALLEL DO      
 
       return
       end
@@ -2057,8 +2110,8 @@ cc      call prin2('rpanlen=*',rpanlen,npan)
      1     soln_coefs(i)
       enddo
 
-      a = -1
-      b = 1
+      a = -1.0d0
+      b = 1.0d0
       m = 20
       eps = 1.0d-13
       maxdepth = 200
@@ -2070,15 +2123,14 @@ cc      call prin2('rpanlen=*',rpanlen,npan)
       allocate(tpack(3*k))
 
 
-      par1(1) = k+0.1d0
-
       
 
 
-ccC$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(itarg,par1,i,j,ipt)
-ccC$OMP$PRIVATE(tpack,pottmp,ier,stack,vals,maxrec,numint)
+C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(itarg,par1,i,j,ipt)
+C$OMP$PRIVATE(tpack,pottmp,ier,stack,vals,maxrec,numint,a,b)
       do itarg=1,ntarg
         pot(itarg) = 0
+        par1(1) = k+0.1d0
         par1(2) = xt(itarg)
         par1(3) = yt(itarg)
 
@@ -2098,6 +2150,8 @@ ccC$OMP$PRIVATE(tpack,pottmp,ier,stack,vals,maxrec,numint)
           enddo
 
 
+          a = -1.0d0
+          b = 1.0d0
           pottmp = 0.0d0
           ier = 0
           maxrec = 0
@@ -2108,7 +2162,7 @@ ccC$OMP$PRIVATE(tpack,pottmp,ier,stack,vals,maxrec,numint)
           pot(itarg) = pot(itarg) + pottmp
         enddo
       enddo
-ccC$OMP END PARALLEL DO      
+C$OMP END PARALLEL DO      
       
       
       
@@ -2121,7 +2175,8 @@ c
 c
       subroutine slp_adap(x,par1,par2,val)
       implicit real *8 (a-h,o-z)
-      real *8 par1(3),par2(*)
+      integer k
+      real *8 par1(4),par2(*)
       real *8 pols(100)
 
       dd = 0
@@ -2132,7 +2187,7 @@ c
       yt = par1(3)
       rlen = par1(4)
       call legepols(x,k-1,pols)
-      
+     
       do i=1,k
         xx = xx + par2(i)*pols(i)
         yy = yy + par2(i+k)*pols(i)
@@ -2140,9 +2195,8 @@ c
       enddo
       
       r = (xx-xt)**2 + (yy-yt)**2
-      val = -log(r)*dd*par1(4)
+      val = -log(r)*dd*rlen
 
-      
 
       return
       end
