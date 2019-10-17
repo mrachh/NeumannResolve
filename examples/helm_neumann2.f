@@ -498,7 +498,8 @@ c
         thet = alpha(icint)/pi
         if(thet<0) thet = thet+2
 
-        call helmcornmat(thet,zk,rtmp,xmatc2(1,1,icint),ncorner2)
+        call helmcornmat2(alpha,zk,rtmp,ncorner2,ts2,wts2,umat,
+     1     xmatc2(1,1,icint))
         do ipt=1,ncorner2
           do jpt=1,ncorner2
             xmatc2(ipt,jpt,icint) = xmatc2(ipt,jpt,icint)
@@ -1403,6 +1404,95 @@ c
           sigma(i) = sigma(i) + coefs(j)*pol
         enddo
       enddo
+
+      return
+      end
+c
+c
+c
+c
+c
+
+      subroutine helmcornmat2(thet,zk,rtmp,n,ts,wts,umat,xmat)
+      implicit real *8 (a-h,o-z)
+      real *8 thet,rtmp,ts(n),wts(n),umat(n,n)
+      real *8, allocatable :: ztarg(:,:)
+      real *8, allocatable :: tquad(:),wquad(:)
+      real *8 par2(5)
+      complex *16 zk,xmat(n,n)
+      complex *16, allocatable :: xmatcoefs(:,:)
+      real *8 stack(2,200)
+      complex *16, allocatable :: vals(:,:),value2(:),value3(:)
+      complex *16 valtmp(:)
+      external fhelm_vec_spdis
+
+      allocate(xmatcoefs(n,n),ztarg(2,n))
+
+      do i=1,n
+        ztarg(1,i) = rtmp*cos(thet)
+        ztarg(2,i) = rtmp*sin(thet)
+      enddo
+
+      par2(1) = real(zk)
+      par2(2) = imag(zk)
+      par2(3) = rtmp/2.0d0
+      par2(4) = n
+
+      m = 20
+      allocate(tquad(m),wquad(m))
+        
+      ifwhts = 1
+      call legewhts(m,t,w,ifwhts)
+
+      allocate(vals(n,200),value2(n),value3(n),valtmp(n))
+        
+      
+      a = -1
+      b = 1
+      eps = 1.0d-15
+      maxdepth = 200
+
+c
+c
+c       adaptively compute integral against helmholtz
+c       kernel at all targets on opposing panel
+c       for a fixed basis function and store in 
+c       xmatcoefs
+c
+c       xmatcoefs(j,i) is the integral at target j for polynomial
+c       i
+c
+      do i=1,n
+        par2(5) = i+0.0d0
+        ier = 0
+        call cadinrecm(ier,stack,a,b,fhelm_vec_spdis,n,ztarg,par2,
+     1    tquad,wquad,m,vals,eps,xmatcoefs(1,i),maxrec,numint,
+     2    value2,value3,valtmp)
+      enddo
+c
+c
+c        convert to point values
+c     
+      do i=1,n
+        do j=1,n
+          xmat(i,j) = 0
+          do k=1,n
+            xmat(i,j) = xmat(i,j) + xmatcoefs(i,k)*umat(k,j)
+          enddo
+        enddo
+      enddo
+
+      return
+      end
+        
+c
+c
+c
+c      
+c
+      subroutine fhelm_vec_spdis(x,n,par1,par2,vals)
+      implicit real *8 (a-h,o-z)
+
 
       return
       end
