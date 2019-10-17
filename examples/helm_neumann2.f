@@ -95,7 +95,7 @@
      1     pottarg2_scat(:)
       complex *16, allocatable :: pottarg_ref_rand(:),pottarg_rand(:),
      1     pottarg2_rand(:)
-      complex *16 zk,imainv4,h0,h1
+      complex *16 zk,imainv4,h0,h1,z
       integer ifexpon
       data imainv4/(0.0d0,0.25d0)/
       character *12, tfname
@@ -163,6 +163,7 @@ c
 
 
        k = 16
+       zk = 1.1d0
 
 c
 c        get reference grid
@@ -176,7 +177,7 @@ c
 c         get bisection grid
 c
 
-       nlev = 10
+       nlev = 40
        ncorner = k*nlev
        allocate(ts(ncorner),wts(ncorner))
        call getcornerdis(k,nlev,ts,wts)
@@ -553,7 +554,7 @@ c
           call getedgemat(iedge,jedge,nref,xs_ref,ys_ref,rnx_ref,
      2      rny_ref,rkappa_ref,qwts_ref,
      1      lns_ref,rns_ref,nepts_ref,ncint,icl,icr,icsgnl,icsgnr,
-     2      alpha,ixmatc,xsgnl,xsgnr,nc_ref,xmatc_ref,nts,nss,xtmp)
+     2      alpha,ixmatc,xsgnl,xsgnr,nc_ref,xmatc_ref,nts,nss,zk,xtmp)
       
           its = lns_ref(iedge) -1
           iss = lns_ref(jedge) -1
@@ -568,7 +569,7 @@ c
 
           call getedgemat(iedge,jedge,n,xs,ys,rnx,rny,rkappa,qwts,
      1      lns,rns,nepts,ncint,icl,icr,icsgnl,icsgnr,alpha,ixmatc,
-     2      xsgnl,xsgnr,ncorner,xmatc,nts,nss,xtmp)
+     2      xsgnl,xsgnr,ncorner,xmatc,nts,nss,zk,xtmp)
       
           its = lns(iedge) -1
           iss = lns(jedge) -1
@@ -583,7 +584,7 @@ c
 
           call getedgemat(iedge,jedge,n2,xs2,ys2,rnx2,rny2,rkappa2,
      1      qwts2,lns2,rns2,nepts2,ncint,icl,icr,icsgnl,icsgnr,
-     2      alpha,ixmatc,xsgnl,xsgnr,ncorner2,xmatc2,nts,nss,xtmp)
+     2      alpha,ixmatc,xsgnl,xsgnr,ncorner2,xmatc2,nts,nss,zk,xtmp)
       
           its = lns2(iedge) -1
           iss = lns2(jedge) -1
@@ -719,7 +720,7 @@ c
         
         do ipt = 1,nepts2(iedge)
           i = lns2(iedge) + ipt-1
-          xmat2(i,i) = 0.5d0
+          xmat2(i,i) = -0.5d0
           call getrhs(zk,ncharges,xsrc,ysrc,charges,xs2(i),ys2(i),pot,
      1        grad)
           rhs2(i) = sqrt(qwts2(i))*(grad(1)*rnxe(iedge)+
@@ -868,7 +869,7 @@ c
 
 
       pot_ref = 0
-      ifexpon = 0
+      ifexpon = 1
       do i=1,nref
         rr = sqrt((trg(1)-xs_ref(i))**2 + (trg(2)-ys_ref(i))**2)
         z = zk*rr
@@ -2374,7 +2375,7 @@ c
          rr = sqrt(ts(i)**2 + ts(j)**2 - 2*ts(i)*ts(j)*cost)*rlen
          z = zk*rr
          call hank103(z,h0,h1,ifexpon)
-         xmat(i,j) =  imainv4*h1*zk*ts(i)*rlen/rr*sint*
+         xmat(i,j) =  -imainv4*h1*zk*ts(i)*rlen/rr*sint*
      1      sqrt(wts(i)*wts(j))*rlen
 
        enddo
