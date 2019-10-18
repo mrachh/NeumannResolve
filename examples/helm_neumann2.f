@@ -32,6 +32,7 @@
       real *8 src(2),trg(2)
       real *8, allocatable :: xsrc(:),ysrc(:),charges(:)
       real *8, allocatable :: xsrc_in(:),ysrc_in(:),charges_in(:)
+      real *8, allocatable :: svdcoefs(:)
 
 
       real *8, allocatable :: ztarg(:,:),xt(:),yt(:)
@@ -164,7 +165,15 @@ c
 
        k = 16
        zk = 1.1d0
-
+c
+c        read svd coefs
+c
+       read(32,*) lkeep
+       allocate(svdcoefs(lkeep))
+       do i=1,lkeep
+         read(32,*) svdcoefs(i)
+       enddo
+       close(32)
 c
 c        get reference grid
 c
@@ -295,6 +304,7 @@ c             panels
        allocate(lns(nedges+1),rns(nedges+1),nepts(nedges+1))
        allocate(lns2(nedges+1),rns2(nedges+1),nepts2(nedges+1))
        allocate(rlen(nedges+1))
+
 
 
 c
@@ -499,7 +509,7 @@ c
         if(thet<0) thet = thet+2
 
         call helmcornmat2(alpha,zk,rtmp,ncorner2,ts2,wts2,umat,
-     1     xmatc2(1,1,icint))
+     1     svdcoefs,xmatc2(1,1,icint))
         do ipt=1,ncorner2
           do jpt=1,ncorner2
             xmatc2(ipt,jpt,icint) = xmatc2(ipt,jpt,icint)
@@ -1413,38 +1423,39 @@ c
 c
 c
 
-      subroutine helmcornmat2(thet,zk,rtmp,n,ts,wts,umat,xmat)
+      subroutine helmcornmat2(thet,zk,rtmp,n,ts,wts,umat,svdcoefs,xmat)
       implicit real *8 (a-h,o-z)
       real *8 thet,rtmp,ts(n),wts(n),umat(n,n)
-      real *8, allocatable :: ztarg(:,:)
+      real *8 par1(5)
       real *8, allocatable :: tquad(:),wquad(:)
-      real *8 par2(5)
       complex *16 zk,xmat(n,n)
       complex *16, allocatable :: xmatcoefs(:,:)
-      real *8 stack(2,200)
+      real *8 stack(2,200),svdcoefs(*)
       complex *16, allocatable :: vals(:,:),value2(:),value3(:)
-      complex *16 valtmp(:)
+      complex *16, allocatable :: valtmp(:)
       external fhelm_vec_spdis
 
-      allocate(xmatcoefs(n,n),ztarg(2,n))
+      allocate(xmatcoefs(n,n))
 
-      do i=1,n
-        ztarg(1,i) = rtmp*cos(thet)
-        ztarg(2,i) = rtmp*sin(thet)
-      enddo
+      call prin2('zk=*',zk,2)
+      call prin2('thet=*',thet,1)
+      call prin2('rtmp=*',rtmp,1)
+      call prinf('n=*',n,1)
+      call prin2('ts=*',ts,n)
+      call prin2('wts=*',wts,n)
 
-      par2(1) = real(zk)
-      par2(2) = imag(zk)
-      par2(3) = rtmp/2.0d0
-      par2(4) = n
+
+      par1(1) = real(zk)
+      par1(2) = imag(zk)
+      par1(3) = rtmp/2.0d0
 
       m = 20
       allocate(tquad(m),wquad(m))
         
       ifwhts = 1
-      call legewhts(m,t,w,ifwhts)
+      call legewhts(m,tquad,wquad,ifwhts)
 
-      allocate(vals(n,200),value2(n),value3(n),valtmp(n))
+      allocate(vals(n,400),value2(2*n),value3(2*n),valtmp(2*n))
         
       
       a = -1
@@ -1459,16 +1470,19 @@ c       kernel at all targets on opposing panel
 c       for a fixed basis function and store in 
 c       xmatcoefs
 c
-c       xmatcoefs(j,i) is the integral at target j for polynomial
-c       i
+c       xmatcoefs(j,i) is the integral at target i for polynomial
+c       j
 c
       do i=1,n
-        par2(5) = i+0.0d0
+        par1(4) = rtmp*cos(thet)*ts(i)
+        par1(5) = rtmp*sin(thet)*ts(i)
         ier = 0
-        call cadinrecm(ier,stack,a,b,fhelm_vec_spdis,n,ztarg,par2,
+        call prinf('i=*',i,1)
+        call cadinrecm(ier,stack,a,b,fhelm_vec_spdis,n,par1,svdcoefs,
      1    tquad,wquad,m,vals,eps,xmatcoefs(1,i),maxrec,numint,
      2    value2,value3,valtmp)
       enddo
+      stop
 c
 c
 c        convert to point values
@@ -1477,8 +1491,9 @@ c
         do j=1,n
           xmat(i,j) = 0
           do k=1,n
-            xmat(i,j) = xmat(i,j) + xmatcoefs(i,k)*umat(k,j)
+            xmat(i,j) = xmat(i,j) + xmatcoefs(k,i)*umat(k,j)
           enddo
+          xmat(i,j) = xmat(i,j)*sqrt(wts(i)*rtmp)
         enddo
       enddo
 
@@ -1490,8 +1505,35 @@ c
 c
 c      
 c
-      subroutine fhelm_vec_spdis(x,n,par1,par2,vals)
+      subroutine fhelm_vec_spdis(x,n,par1,svdcoefs,vals)
       implicit real *8 (a-h,o-z)
+      real *8 x,pol,par1(5),xt(2),svdcoefs(*)
+      integer ifexpon
+      complex *16 vals(n),h0,h1,z,zk,ima,imainv4,fker
+      data ima/(0.0d0,1.0d0)/
+      data imainv4/(0.0d0,0.25d0)/
+      
+
+      zk = par1(1) + ima*par1(2)
+      rtmp2 = par1(3)
+
+      xt(1) = par1(4)
+      xt(2) = par1(5)
+
+
+      ifexpon = 1     
+      rrr = sqrt((xt(1)-(x+1)*rtmp2)**2 + xt(2)**2)
+      z = rrr*zk
+      call hank103(z,h0,h1,ifexpon)
+      rrn = -xt(2)
+
+      fker = imainv4*h1*rrn/rrr*zk
+      xx = (x+1)/2.0d0
+      do i=1,n
+        ier = 0
+        call lapnestev2(ier,svdcoefs,xx,i,pol)
+        vals(i) = pol*fker*rtmp2
+      enddo
 
 
       return
@@ -5649,6 +5691,50 @@ c
         end
 c
 c
+c
+c
+c
+        subroutine lapnestev2(ier,coefs,x,i,val)
+        implicit real *8 (a-h,o-z)
+        dimension coefs(*)
+
+c
+c       This subroutine is a copy of nestev2 for evaluating functions
+c       generated via allsvcmb. It has no stand-alone purpose.
+c
+
+c
+c       decode the beginning of the array coefs
+c
+        k=coefs(6)
+        nn=coefs(5)
+        iab=coefs(1)
+        n=coefs(7)
+        icoefs=coefs(8)
+c
+c       . . . find the subinterval in which the point x lives
+c
+        ier=0
+        call findinte(ier,x,coefs(iab),nn,intnum)
+        if(ier .ne. 0) return
+c
+c       the point x lives in the interval number intnum.
+c       evaluate the expansion at this point
+c
+        iii=iab+intnum*2-1
+        u=2/(coefs(iii)-coefs(iii-1))
+        v=1-coefs(iii)*u
+c
+        t=u*x+v
+c
+        jj=(intnum-1)*k+1
+c
+c
+        iijj=(i-1)*nn*k+jj +icoefs -1
+        call legeexev(t,val,coefs(iijj),k-1)
+c
+        return
+        end
 c
 c
 c

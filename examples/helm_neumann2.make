@@ -5,7 +5,7 @@ FC = gfortran
 FFLAGS = -O2 -c -w 
 FLINK = gfortran -w -o $(EXEC)
 FEND = -L/usr/local/opt/openblas/lib -lopenblas
-FEND = -lopenblas
+#FEND = -lopenblas
 
 SRC = ../src
 
@@ -24,6 +24,7 @@ SOURCES =  helm_neumann2.f \
   $(SRC)/hank103.f \
   $(SRC)/dlaran.f \
   $(SRC)/adapgaus_new.f \
+  $(SRC)/cadapgaum.f \
   $(SRC)/orthom.f \
   $(SRC)/pnpoly.f \
 
