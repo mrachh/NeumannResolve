@@ -97,6 +97,7 @@
       complex *16, allocatable :: pottarg_ref_rand(:),pottarg_rand(:),
      1     pottarg2_rand(:)
       complex *16 zk,imainv4,h0,h1,z
+      complex *16 pot_ref,pot1,pot2,potex_1
       integer ifexpon
       data imainv4/(0.0d0,0.25d0)/
       character *12, tfname
@@ -508,7 +509,7 @@ c
         thet = alpha(icint)/pi
         if(thet<0) thet = thet+2
 
-        call helmcornmat2(alpha,zk,rtmp,ncorner2,ts2,wts2,umat,
+        call helmcornmat2(alpha(icint),zk,rtmp,ncorner2,ts2,wts2,umat,
      1     svdcoefs,xmatc2(1,1,icint))
         do ipt=1,ncorner2
           do jpt=1,ncorner2
@@ -731,7 +732,7 @@ c
         
         do ipt = 1,nepts2(iedge)
           i = lns2(iedge) + ipt-1
-          xmat2(i,i) = -0.5d0
+          xmat2(i,i) = 0.5d0
           call getrhs(zk,ncharges,xsrc,ysrc,charges,xs2(i),ys2(i),pot,
      1        grad)
           rhs2(i) = sqrt(qwts2(i))*(grad(1)*rnxe(iedge)+
@@ -905,6 +906,8 @@ c
         call hank103(z,h0,h1,ifexpon)
         pot2 = pot2 + imainv4*h0*soln2(i)*sqrt(qwts2(i))
       enddo
+
+      print *, pot2, potex_1
 
 
       
@@ -1445,9 +1448,6 @@ c
       call prin2('wts=*',wts,n)
 
 
-      par1(1) = real(zk)
-      par1(2) = imag(zk)
-      par1(3) = rtmp/2.0d0
 
       m = 20
       allocate(tquad(m),wquad(m))
@@ -1458,10 +1458,11 @@ c
       allocate(vals(n,400),value2(2*n),value3(2*n),valtmp(2*n))
         
       
-      a = -1
+      a = 0.0d0
       b = 1
-      eps = 1.0d-15
+      eps = 1.0d-14
       maxdepth = 200
+      nnmax = 100000
 
 c
 c
@@ -1473,16 +1474,23 @@ c
 c       xmatcoefs(j,i) is the integral at target i for polynomial
 c       j
 c
+
+C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(par1,stack,vals)
+C$OMP$PRIVATE(maxrec,numint,value2,value3,valtmp)
+C$OMP$SCHEDULE(DYNAMIC)
       do i=1,n
+        par1(1) = real(zk)
+        par1(2) = imag(zk)
+        par1(3) = rtmp
         par1(4) = rtmp*cos(thet)*ts(i)
         par1(5) = rtmp*sin(thet)*ts(i)
         ier = 0
         call prinf('i=*',i,1)
         call cadinrecm(ier,stack,a,b,fhelm_vec_spdis,n,par1,svdcoefs,
-     1    tquad,wquad,m,vals,eps,xmatcoefs(1,i),maxrec,numint,
-     2    value2,value3,valtmp)
+     1    tquad,wquad,m,vals,nnmax,eps,xmatcoefs(1,i),maxdepth,
+     2    maxrec,numint,value2,value3,valtmp)
       enddo
-      stop
+C$OMP END PARALLEL DO      
 c
 c
 c        convert to point values
@@ -1491,7 +1499,8 @@ c
         do j=1,n
           xmat(i,j) = 0
           do k=1,n
-            xmat(i,j) = xmat(i,j) + xmatcoefs(k,i)*umat(k,j)
+            xmat(i,j) = xmat(i,j) +
+     1         xmatcoefs(k,i)*umat(j,k)
           enddo
           xmat(i,j) = xmat(i,j)*sqrt(wts(i)*rtmp)
         enddo
@@ -1515,24 +1524,23 @@ c
       
 
       zk = par1(1) + ima*par1(2)
-      rtmp2 = par1(3)
+      rtmp = par1(3)
 
       xt(1) = par1(4)
       xt(2) = par1(5)
 
 
       ifexpon = 1     
-      rrr = sqrt((xt(1)-(x+1)*rtmp2)**2 + xt(2)**2)
+      rrr = sqrt((xt(1)-x*rtmp)**2 + xt(2)**2)
       z = rrr*zk
       call hank103(z,h0,h1,ifexpon)
       rrn = -xt(2)
 
       fker = imainv4*h1*rrn/rrr*zk
-      xx = (x+1)/2.0d0
       do i=1,n
         ier = 0
-        call lapnestev2(ier,svdcoefs,xx,i,pol)
-        vals(i) = pol*fker*rtmp2
+        call lapnestev2(ier,svdcoefs,x,i,pol)
+        vals(i) = pol*fker*sqrt(rtmp)
       enddo
 
 
@@ -1575,7 +1583,6 @@ c
 
       do i=istart+1,nc
         tt = ts(i)*2.0d0**(nlev)-1.0d0
-        print *, ts(i)
         write(76,*) tt
         call legepols(tt,k-1,pols)
         sigma(i) = 0
