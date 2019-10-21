@@ -178,7 +178,7 @@ c
 c
 c        get reference grid
 c
-       irefinelev = 100
+       irefinelev = 10
        nc_ref = k*irefinelev
        allocate(ts_ref(nc_ref),wts_ref(nc_ref))
        call getcornerdis(k,irefinelev,ts_ref,wts_ref)
@@ -509,8 +509,11 @@ c
         thet = alpha(icint)/pi
         if(thet<0) thet = thet+2
 
-        call helmcornmat2(alpha(icint),zk,rtmp,ncorner2,ts2,wts2,umat,
-     1     svdcoefs,xmatc2(1,1,icint))
+cc        call helmcornmat2(alpha(icint),zk,rtmp,ncorner2,ts2,wts2,umat,
+cc     1     svdcoefs,xmatc2(1,1,icint))
+
+        call helmcornmat(thet,zk,rtmp,xmatc2(1,1,icint),ncorner2)
+
         do ipt=1,ncorner2
           do jpt=1,ncorner2
             xmatc2(ipt,jpt,icint) = xmatc2(ipt,jpt,icint)
@@ -16971,7 +16974,7 @@ ccc        bottom = x0**2+rq(i)**2-2*rq(i)*x0*cos(pi*ang)
           
          z = zk*bottom
          call hank103(z,h0,h1,ifexpon)
-         work(i) = imainv4*h1*zk*top/bottom*wq(i)*rpan
+         work(i) = -imainv4*h1*zk*top/bottom*wq(i)*rpan
 
 cc        work(i) = top/bottom*wq(i)
  1000 continue
