@@ -1,11 +1,17 @@
 
-EXEC = int2
+EXEC = int3
 
 FC = gfortran
-FFLAGS = -O2 -c -w --openmp 
-FLINK = gfortran -w -o $(EXEC) --openmp 
+FFLAGS = -O2 -c -w 
+FLINK = gfortran -w -o $(EXEC) 
 FEND = -L/usr/local/opt/openblas/lib -lopenblas 
-#FEND = -lopenblas
+FEND = -lopenblas
+
+ifeq ($(OMP),ON)
+FFLAGS = -O2 -c -w --openmp
+FLINK = gfortran -w -o $(EXEC) --openmp
+
+endif
 
 SRC = ../src
 
@@ -25,6 +31,7 @@ SOURCES =  helm_neumann2.f \
   $(SRC)/dlaran.f \
   $(SRC)/adapgaus_new.f \
   $(SRC)/cadapgaum.f \
+  $(SRC)/cadapgau.f \
   $(SRC)/orthom.f \
   $(SRC)/pnpoly.f \
 
