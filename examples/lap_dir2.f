@@ -164,20 +164,10 @@ c
 c
 c        get reference grid
 c
-       irefinelev = 100
+       irefinelev = 50
        nc_ref = k*irefinelev
        allocate(ts_ref(nc_ref),wts_ref(nc_ref))
        call getcornerdis(k,irefinelev,ts_ref,wts_ref)
-
-c
-c         get bisection grid
-c
-
-       nlev = 10
-       ncorner = k*nlev
-       allocate(ts(ncorner),wts(ncorner))
-       call getcornerdis(k,nlev,ts,wts)
-
 
 c
 c          get specialized quadrature grid
@@ -282,13 +272,11 @@ c             panels
 
        allocate(xs_ref(nref),ys_ref(nref),rnx_ref(nref))
        allocate(rny_ref(nref),rkappa_ref(nref),qwts_ref(nref))
-       allocate(xs(n),ys(n),rnx(n),rny(n),rkappa(n),qwts(n))
        allocate(xs2(n2),ys2(n2),rnx2(n2),rny2(n2),
      1    rkappa2(n2),qwts2(n2))
        
        allocate(lns_ref(nedges+1),rns_ref(nedges+1))
        allocate(nepts_ref(nedges+1))
-       allocate(lns(nedges+1),rns(nedges+1),nepts(nedges+1))
        allocate(lns2(nedges+1),rns2(nedges+1),nepts2(nedges+1))
        allocate(rlen(nedges+1))
 
@@ -305,10 +293,6 @@ c
      3         rlen)
      
        call getgeom(nverts,verts,nedges,el,er,rnxe,rnye,pl,pr,imid,
-     1         kmid,ncorner,ts,wts,n,xs,ys,rnx,rny,rkappa,qwts,lns,
-     2         rns,nepts,rlen)
-
-       call getgeom(nverts,verts,nedges,el,er,rnxe,rnye,pl,pr,imid,
      1         kmid,ncorner2,ts2,wts2,n2,xs2,ys2,rnx2,rny2,rkappa2,
      2         qwts2,lns2,rns2,nepts2,rlen)
 
@@ -317,9 +301,6 @@ c
         yverts(i) = verts(2,i)
       enddo
 
-
-      call pyplot2(11,xverts,yverts,nverts,3,xs,ys,n,
-     1    1,'a*')
 
       call pyplot2(12,xverts,yverts,nverts,3,xs2,ys2,n2,
      1    1,'a*')
@@ -333,18 +314,18 @@ c
       ntarg = nlat*nlat
       tmin = atan2(verts(2,2),verts(1,2))
       tmax = atan2(verts(2,3),verts(1,3))
-      allocate(ztarg(2,ntarg),potex(ntarg),pottarg(ntarg))
+      allocate(ztarg(2,ntarg),potex(ntarg))
       allocate(pottarg2(ntarg),pottarg_ref(ntarg))
-      allocate(pottarg_px(ntarg),pottarg_ref_px(ntarg))
+      allocate(pottarg_ref_px(ntarg))
       allocate(pottarg2_px(ntarg))
 
       
 
-      allocate(pottarg_scat(ntarg),pottarg_ref_scat(ntarg))
+      allocate(pottarg_ref_scat(ntarg))
       allocate(pottarg2_scat(ntarg))
       
 
-      allocate(pottarg_rand(ntarg),pottarg_ref_rand(ntarg))
+      allocate(pottarg_ref_rand(ntarg))
       allocate(pottarg2_rand(ntarg))
       
       allocate(xt(ntarg),yt(ntarg))
@@ -488,8 +469,6 @@ c
 
         call getcornermat(thet,nc_ref,rpan,ts_ref,wts_ref,
      1          xmatc_ref(1,1,icint))
-        call getcornermat(thet,ncorner,rpan,ts,wts,xmatc(1,1,icint))
-
 
         thet = alpha(icint)/pi
         if(thet<0) thet = thet+2
@@ -510,14 +489,8 @@ c
       call prinf('n=*',n,1)
       call prinf('n2=*',n2,1)
       allocate(xmat_ref(nref,nref))
-      allocate(xmat(n,n),xmat2(n2,n2))
-      allocate(xmat2copy(n2,n2))
+      allocate(xmat2(n2,n2))
 
-      do i=1,n
-       do j=1,n
-         xmat(i,j) = 0
-       enddo
-      enddo
 
       do i=1,nref
         do j=1,nref
@@ -550,21 +523,6 @@ c
           iss = lns_ref(jedge) -1
 
           call xreplmat(nts,nss,nref,its,iss,xtmp,xmat_ref,rfac)
-
-          deallocate(xtmp)
-
-          nss = nepts(jedge)
-          nts = nepts(iedge)
-          allocate(xtmp(nts,nss))
-
-          call getedgemat(iedge,jedge,n,xs,ys,rnx,rny,rkappa,qwts,
-     1      lns,rns,nepts,ncint,icl,icr,icsgnl,icsgnr,alpha,ixmatc,
-     2      xsgnl,xsgnr,ncorner,xmatc,nts,nss,xtmp)
-      
-          its = lns(iedge) -1
-          iss = lns(jedge) -1
-
-          call xreplmat(nts,nss,n,its,iss,xtmp,xmat,rfac)
 
           deallocate(xtmp)
 
@@ -631,12 +589,6 @@ c
       allocate(rhs_ref_scat(nref),soln_ref_scat(nref))
       allocate(rhs_ref_rand(nref),soln_ref_rand(nref))
 
-      allocate(rhs(n),soln(n))
-      allocate(rhs_px(n),soln_px(n))
-      allocate(rhs_py(n),soln_py(n))
-      allocate(rhs_scat(n),soln_scat(n))
-      allocate(rhs_rand(n),soln_rand(n))
-
       allocate(rhs2(n2),soln2(n2))
       allocate(rhs2_px(n2),soln2_px(n2))
       allocate(rhs2_py(n2),soln2_py(n2))
@@ -662,15 +614,13 @@ c
           i = lns_ref(iedge) + ipt-1
           xmat_ref(i,i) = -0.5d0
 
-          call getrhs(ncharges,xsrc_in,ysrc_in,charges,xs_ref(i),
-     1       ys_ref(i),pot,grad)
-          rhs_ref(i) = sqrt(qwts_ref(i))*(grad(1)*rnxe(iedge)+
-     1       grad(2)*rnye(iedge))
-
           call getrhs(ncharges,xsrc_ext,ysrc_ext,charges,xs_ref(i),
      1       ys_ref(i),pot,grad)
-          rhs_ref_scat(i) = sqrt(qwts_ref(i))*(grad(1)*rnxe(iedge)+
-     1       grad(2)*rnye(iedge))
+          rhs_ref(i) = sqrt(qwts_ref(i))*pot
+
+          call getrhs(ncharges,xsrc_in,ysrc_in,charges,xs_ref(i),
+     1       ys_ref(i),pot,grad)
+          rhs_ref_scat(i) = sqrt(qwts_ref(i))*pot
 
           dx = verts(1,er(iedge))-verts(1,el(iedge))
           t = (xs_ref(i) - verts(1,el(iedge)))/dx
@@ -679,47 +629,21 @@ c
           rhs_ref_rand(i) = pot*sqrt(qwts_ref(i))
 
 
-          rhs_ref_px(i) = sqrt(qwts_ref(i))*rnxe(iedge)
-          rhs_ref_py(i) = sqrt(qwts_ref(i))*rnye(iedge)
+          rhs_ref_px(i) = sqrt(qwts_ref(i))*xs_ref(i)
+          rhs_ref_py(i) = sqrt(qwts_ref(i))*ys_ref(i)
         enddo
 
-        do ipt = 1,nepts(iedge)
-          i = lns(iedge) + ipt-1
-          xmat(i,i) = -0.5d0
-
-          call getrhs(ncharges,xsrc_in,ysrc_in,charges,xs(i),
-     1       ys(i),pot,grad)
-          rhs(i) = sqrt(qwts(i))*(grad(1)*rnxe(iedge)+
-     1       grad(2)*rnye(iedge))
-
-          call getrhs(ncharges,xsrc_ext,ysrc_ext,charges,xs(i),
-     1       ys(i),pot,grad)
-          rhs_scat(i) = sqrt(qwts(i))*(grad(1)*rnxe(iedge)+
-     1       grad(2)*rnye(iedge))
-
-          dx = verts(1,er(iedge))-verts(1,el(iedge))
-          t = (xs(i) - verts(1,el(iedge)))/dx
-          tt = 2*t - 1
-          call legepol(tt,iord,pot,der)
-          rhs_rand(i) = pot*sqrt(qwts(i))
-
-          rhs_px(i) = sqrt(qwts(i))*rnxe(iedge)
-          rhs_py(i) = sqrt(qwts(i))*rnye(iedge)
-        enddo
-
-        
         do ipt = 1,nepts2(iedge)
           i = lns2(iedge) + ipt-1
           xmat2(i,i) = -0.5d0
-          call getrhs(ncharges,xsrc_in,ysrc_in,charges,xs2(i),
-     1       ys2(i),pot,grad)
-          rhs2(i) = sqrt(qwts2(i))*(grad(1)*rnxe(iedge)+
-     1       grad(2)*rnye(iedge))
-
           call getrhs(ncharges,xsrc_ext,ysrc_ext,charges,xs2(i),
      1       ys2(i),pot,grad)
-          rhs2_scat(i) = sqrt(qwts2(i))*(grad(1)*rnxe(iedge)+
-     1       grad(2)*rnye(iedge))
+          rhs2(i) = sqrt(qwts2(i))*pot
+          
+
+          call getrhs(ncharges,xsrc_in,ysrc_in,charges,xs2(i),
+     1       ys2(i),pot,grad)
+          rhs2_scat(i) = sqrt(qwts2(i))*pot
 
           dx = verts(1,er(iedge))-verts(1,el(iedge))
           t = (xs2(i) - verts(1,el(iedge)))/dx
@@ -727,8 +651,8 @@ c
           call legepol(tt,iord,pot,der)
           rhs2_rand(i) = pot*sqrt(qwts2(i))
 
-          rhs2_px(i) = sqrt(qwts2(i))*rnxe(iedge)
-          rhs2_py(i) = sqrt(qwts2(i))*rnye(iedge)
+          rhs2_px(i) = sqrt(qwts2(i))*xs2(i)
+          rhs2_py(i) = sqrt(qwts2(i))*ys2(i)
         enddo
       enddo
 
@@ -741,14 +665,6 @@ c
       enddo
 
 
-      do i=1,n
-        soln(i) = rhs(i)
-        soln_px(i) = rhs_px(i)
-        soln_py(i) = rhs_py(i)
-        soln_scat(i) = rhs_scat(i)
-        soln_rand(i) = rhs_rand(i)
-      enddo
-
       do i=1,n2
         soln2(i) = rhs2(i)
         soln2_px(i) = rhs2_px(i)
@@ -757,11 +673,6 @@ c
         soln2_rand(i) = rhs2_rand(i)
       enddo
 
-      do i=1,n2
-        do j=1,n2
-          xmat2copy(j,i) = xmat2(j,i)
-        enddo
-      enddo
 
        call prinf('end of building rhs*',i,0)
 
@@ -771,45 +682,23 @@ c
       call dgetrf(nref,nref,xmat_ref,nref,ipiv_ref,info)
 
       info = 0
-      call dgetrs('t',nref,1,xmat_ref,nref,ipiv_ref,soln_ref,nref,info)
+      call dgetrs('n',nref,1,xmat_ref,nref,ipiv_ref,soln_ref,nref,info)
 
       info = 0
-      call dgetrs('t',nref,1,xmat_ref,nref,ipiv_ref,soln_ref_px,nref,
+      call dgetrs('n',nref,1,xmat_ref,nref,ipiv_ref,soln_ref_px,nref,
      1   info)
 
       info = 0
-      call dgetrs('t',nref,1,xmat_ref,nref,ipiv_ref,soln_ref_py,nref,
+      call dgetrs('n',nref,1,xmat_ref,nref,ipiv_ref,soln_ref_py,nref,
      1   info)
 
       info = 0
-      call dgetrs('t',nref,1,xmat_ref,nref,ipiv_ref,soln_ref_scat,nref,
+      call dgetrs('n',nref,1,xmat_ref,nref,ipiv_ref,soln_ref_scat,nref,
      1   info)
 
       info = 0
-      call dgetrs('t',nref,1,xmat_ref,nref,ipiv_ref,soln_ref_rand,nref,
+      call dgetrs('n',nref,1,xmat_ref,nref,ipiv_ref,soln_ref_rand,nref,
      1   info)
-
-
-      info = 0
-      allocate(ipiv(n))
-
-      call dgetrf(n,n,xmat,n,ipiv,info)
-
-      info = 0
-      call dgetrs('t',n,1,xmat,n,ipiv,soln,n,info)
-
-      info = 0
-      call dgetrs('t',n,1,xmat,n,ipiv,soln_px,n,info)
-
-      info = 0
-      call dgetrs('t',n,1,xmat,n,ipiv,soln_py,n,info)
-
-      info = 0
-      call dgetrs('t',n,1,xmat,n,ipiv,soln_scat,n,info)
-
-      info = 0
-      call dgetrs('t',n,1,xmat,n,ipiv,soln_rand,n,info)
-
 
 
       info = 0
@@ -818,19 +707,19 @@ c
       call dgetrf(n2,n2,xmat2,n2,ipiv2,info)
 
       info = 0
-      call dgetrs('t',n2,1,xmat2,n2,ipiv2,soln2,n2,info)
+      call dgetrs('n',n2,1,xmat2,n2,ipiv2,soln2,n2,info)
 
       info = 0
-      call dgetrs('t',n2,1,xmat2,n2,ipiv2,soln2_px,n2,info)
+      call dgetrs('n',n2,1,xmat2,n2,ipiv2,soln2_px,n2,info)
 
       info = 0
-      call dgetrs('t',n2,1,xmat2,n2,ipiv2,soln2_py,n2,info)
+      call dgetrs('n',n2,1,xmat2,n2,ipiv2,soln2_py,n2,info)
 
       info = 0
-      call dgetrs('t',n2,1,xmat2,n2,ipiv2,soln2_scat,n2,info)
+      call dgetrs('n',n2,1,xmat2,n2,ipiv2,soln2_scat,n2,info)
 
       info = 0
-      call dgetrs('t',n2,1,xmat2,n2,ipiv2,soln2_rand,n2,info)
+      call dgetrs('n',n2,1,xmat2,n2,ipiv2,soln2_rand,n2,info)
 
 
 
@@ -838,36 +727,30 @@ c
 cc      test solution 
 c
 
-      trg(1) = 10.7d0
+      trg(1) = 0.7d0
       trg(2) = -0.01d0
 
-      call getrhs(ncharges,xsrc_in,ysrc_in,charges,trg(1),trg(2),
+      call getrhs(ncharges,xsrc_ext,ysrc_ext,charges,trg(1),trg(2),
      1    potex_1,gradex)
 
 
       pot_ref = 0
       do i=1,nref
         rr = (trg(1)-xs_ref(i))**2 + (trg(2)-ys_ref(i))**2
-        pot_ref = pot_ref - log(rr)/4/pi*soln_ref(i)*sqrt(qwts_ref(i))
+        rrn = (trg(1)-xs_ref(i))*rnx(i) + (trg(2)-ys_ref(i))*rny(i)
+        pot_ref = pot_ref - rrn/2/pi/rr*soln_ref(i)*sqrt(qwts_ref(i))
       enddo
 
-
-
-      pot1 = 0
-      do i=1,n
-        rr = (trg(1)-xs(i))**2 + (trg(2)-ys(i))**2
-        pot1 = pot1 - log(rr)/4/pi*soln(i)*sqrt(qwts(i))
-      enddo
 
       pot2 = 0
       do i=1,n2
         rr = (trg(1)-xs2(i))**2 + (trg(2)-ys2(i))**2
-        pot2 = pot2 - log(rr)/4/pi*soln2(i)*sqrt(qwts2(i))
+        rrn = (trg(1)-xs2(i))*rnx(i) + (trg(2)-ys2(i))*rny(i)
+        pot2 = pot2 - rrn/2/pi/rr*soln2(i)*sqrt(qwts2(i))
       enddo
 
       
       erra_ref = abs(pot_ref-potex_1)/abs(potex_1)
-      erra = abs(pot1-potex_1)/abs(potex_1)
       erra2 = abs(pot2-potex_1)/abs(potex_1)
 
       print *, pot2,potex_1
@@ -876,12 +759,11 @@ c
       write(*,*) " "
       write(*,*) " "
       write(*,*) "=============================="
-      write(*,*) "Exterior target analytic solution test"
+      write(*,*) "Interior target analytic solution test"
       write(*,*) " "
       write(*,*) " "
 
       call prin2('error reference grid=*',erra_ref,1)
-      call prin2('error bisection=*',erra,1)
       call prin2('error sp-dis=*',erra2,1)
 
 
@@ -903,11 +785,6 @@ c
       pol_t_ref(2,1) = 0
       pol_t_ref(2,2) = 0
 
-      pol_t(1,1)=0
-      pol_t(1,2)=0
-      pol_t(2,1)=0
-      pol_t(2,2)=0
-
       pol_t2(1,1)=0
       pol_t2(1,2)=0
       pol_t2(2,1)=0
@@ -925,14 +802,6 @@ c
      1      soln_ref_py(i)*ys_ref(i)*sqrt(qwts_ref(i))
       enddo
 
-
-      do i=1,n
-        pol_t(1,1) = pol_t(1,1) + soln_px(i)*xs(i)*sqrt(qwts(i))
-        pol_t(2,1) = pol_t(2,1) + soln_px(i)*ys(i)*sqrt(qwts(i))
-        
-        pol_t(1,2) = pol_t(1,2) + soln_py(i)*xs(i)*sqrt(qwts(i))
-        pol_t(2,2) = pol_t(2,2) + soln_py(i)*ys(i)*sqrt(qwts(i))
-      enddo
 
       do i=1,n2
         pol_t2(1,1) = pol_t2(1,1) + soln2_px(i)*xs2(i)*sqrt(qwts2(i))
@@ -964,25 +833,6 @@ c
       write(*,*) "=============================="
 
       
-      nres = (nlev*k + ncorner2)*2
-
-      allocate(solncomp(nres),solncomp_px(nres),solncomp_scat(nres))
-      allocate(solncomp_rand(nres))
-      call resolve_dens(k,ncorner2,ts2,wts2,vmat,rtmp,alpha(1),n2,
-     1   xmat2copy,xmatc2(1,1,1),soln2,lns2(1),rns2(3),xsgnl(1),
-     2   xsgnr(1),nlev,nres,solncomp)
-
-      call resolve_dens(k,ncorner2,ts2,wts2,vmat,rtmp,alpha(1),n2,
-     1   xmat2copy,xmatc2(1,1,1),soln2_px,lns2(1),rns2(3),xsgnl(1),
-     2   xsgnr(1),nlev,nres,solncomp_px)
-
-      call resolve_dens(k,ncorner2,ts2,wts2,vmat,rtmp,alpha(1),n2,
-     1   xmat2copy,xmatc2(1,1,1),soln2_scat,lns2(1),rns2(3),xsgnl(1),
-     2   xsgnr(1),nlev,nres,solncomp_scat)
-
-      call resolve_dens(k,ncorner2,ts2,wts2,vmat,rtmp,alpha(1),n2,
-     1   xmat2copy,xmatc2(1,1,1),soln2_rand,lns2(1),rns2(3),xsgnl(1),
-     2   xsgnr(1),nlev,nres,solncomp_rand)
 c
 c
 cc      resolve problem at the corner panel of 
@@ -995,26 +845,129 @@ c
 c
 c
 
-      allocate(sigma_ref(nc_ref),sigma_px(nc_ref))
-      allocate(sigma_scat(nc_ref),sigma_rand(nc_ref))
-
       allocate(sigma2_ref(nc_ref),sigma2_px(nc_ref))
       allocate(sigma2_scat(nc_ref),sigma2_rand(nc_ref))
 
 
       istart0 = lns_ref(1)
-      istart = lns(1)
-      call interp_gauss(nlev,k,soln(istart),nc_ref,ts_ref,
-     1       qwts(istart),sigma_ref)
+      istart = lns2(1)
+      nlev = irefinelev
+      call interp_spdis_dir(nlev,k,soln2(istart),nc_ref,ts_ref,
+     1       sigma2_ref)
 
-      call interp_gauss(nlev,k,soln_px(istart),nc_ref,ts_ref,
-     1       qwts(istart),sigma_px)
+      call interp_spdis_dir(nlev,k,soln2_px(istart),nc_ref,ts_ref,
+     1       sigma2_px)
 
-      call interp_gauss(nlev,k,soln_rand(istart),nc_ref,ts_ref,
-     1       qwts(istart),sigma_rand)
+      call interp_spdis_dir(nlev,k,soln2_rand(istart),nc_ref,ts_ref,
+     1       sigma2_rand)
 
-      call interp_gauss(nlev,k,soln_scat(istart),nc_ref,ts_ref,
-     1       qwts(istart),sigma_scat)
+      call interp_spdis_dir(nlev,k,soln2_scat(istart),nc_ref,ts_ref,
+     1       sigma2_scat)
+
+
+      write(*,*) " "
+      write(*,*) " "
+      write(*,*) "=============================="
+      write(*,*) "Errors in densities after resolve for all cases"
+      write(*,*) " "
+      write(*,*) " "
+
+      
+      nnnn1 = nlev*k
+      nnnn2 = (nlev-1)*k
+
+      call comperrq(nnnn1,soln_ref_scat(istart0),solncomp_scat,
+     1   qwts_ref(istart0),errdens2(3))
+      call comperrq(nnnn2,soln_ref_scat(istart0),soln_scat(istart),
+     1   qwts_ref(istart0),errdens(3))
+
+      call comperrq(nnnn1,soln_ref_rand(istart0),solncomp_rand,
+     1   qwts_ref(istart0),errdens2(4))
+      
+      call comperrq(nnnn2,soln_ref_rand(istart0),soln_rand(istart),
+     1   qwts_ref(istart0),errdens(4))
+
+      write(sfname1,'(a,i3.3,a,i2.2,a)') "dir_sigma_ref_",nlat,"_",
+     1     nlev,".dat"
+      write(sfname2,'(a,i3.3,a,i2.2,a)') "dir_sigma_px_",nlat,"_",nlev,
+     1     ".dat"
+      write(sfname3,'(a,i3.3,a,i2.2,a)') "dir_sigma_scat_",nlat,"_",
+     1    nlev,".dat"
+      write(sfname4,'(a,i3.3,a,i2.2,a)') "dir_sigma_rand_",nlat,"_",
+     1    nlev,".dat"
+
+      open(unit=33,file=sfname1)
+      Open(unit=34,file=sfname2)
+      open(unit=35,file=sfname3)
+      open(unit=36,file=sfname4)
+
+
+ 1457 format(3(2x,e22.16))      
+      do i=1,nc_ref
+        ii = istart0+i-1
+        write(33,1457) ts_ref(i), soln_ref(ii)/sqrt(qwts_ref(ii)),
+     1     sigma2_ref(i)
+
+        write(34,1457) ts_ref(i), soln_ref_px(ii)/sqrt(qwts_ref(ii)),
+     1     sigma2_px(i)
+
+        write(35,1457) ts_ref(i), soln_ref_scat(ii)/sqrt(qwts_ref(ii)),
+     1     sigma2_scat(i)
+
+        write(36,1457) ts_ref(i), soln_ref_rand(ii)/sqrt(qwts_ref(ii)),
+     1     sigma2_rand(i)
+      enddo
+
+      close(33)
+      close(34)
+      close(35)
+      close(36)
+
+      call prin2('errdens=*',errdens,4)
+      call prin2('errdens2=*',errdens2,4)
+      write(*,*) " "
+      write(*,*) " "
+      write(*,*) "=============================="
+      
+c
+c
+c        start test 2: accuracy in targets in the 
+c        vicinity of one of the corners.
+c    
+c      attempt number 1: try the far-field quadrature
+c          - fails due to some of the targets being close
+c            to the edge
+c
+c      attempt number 2: use far-field quadrature except 
+c        near the corner, and use adaptive integration
+c        use to corner 1
+c          
+c      
+c
+c
+      do i=1,ntarg
+        call getrhs(ncharges,xsrc_ext,ysrc_ext,charges,xt(i),yt(i),
+     1     potex(i),grad)
+      enddo
+
+      call comppottarg_adap(ntarg,xt,yt,nref,xs_ref,ys_ref,soln_ref,
+     1    qwts_ref,nedges,nepts_ref,lns_ref,rns_ref,imid,k,irefinelev,
+     2    pottarg_ref)
+
+      call comppottarg_adap(ntarg,xt,yt,nref,xs_ref,ys_ref,soln_ref_px,
+     1    qwts_ref,nedges,nepts_ref,lns_ref,rns_ref,imid,k,
+     2    irefinelev,pottarg_ref_px)
+      
+      call comppottarg_adap(ntarg,xt,yt,nref,xs_ref,ys_ref,
+     1    soln_ref_scat,qwts_ref,nedges,nepts_ref,lns_ref,
+     2    rns_ref,imid,k,irefinelev,pottarg_ref_scat)
+      
+      call comppottarg_adap(ntarg,xt,yt,nref,xs_ref,ys_ref,
+     1    soln_ref_rand,qwts_ref,nedges,nepts_ref,lns_ref,
+     2    rns_ref,imid,k,irefinelev,pottarg_ref_rand)
+      
+      call prin2('done generating reference potentials*',i,0)
+
 
 c
 c
@@ -1068,155 +1021,6 @@ c
       npanhalf = nlev+1
 
 
-      call interp_spdis(nlev,k,ncorner2,nres,solncomp,
-     1   qres,nc_ref,ts_ref,sigma2_ref)
-
-      call interp_spdis(nlev,k,ncorner2,nres,solncomp_px,
-     1   qres,nc_ref,ts_ref,sigma2_px)
-
-      call interp_spdis(nlev,k,ncorner2,nres,solncomp_rand,qres,
-     1   nc_ref,ts_ref,sigma2_rand)
-
-      call interp_spdis(nlev,k,ncorner2,nres,solncomp_scat,
-     1  qres,nc_ref,ts_ref,sigma2_scat)
-
-
-
-      write(*,*) " "
-      write(*,*) " "
-      write(*,*) "=============================="
-      write(*,*) "Errors in densities after resolve for all cases"
-      write(*,*) " "
-      write(*,*) " "
-
-      
-      nnnn1 = nlev*k
-      nnnn2 = (nlev-1)*k
-      call comperrq(nnnn1,soln_ref(istart0),solncomp,qwts_ref(istart0),
-     1   errdens2(1))
-      call comperrq(nnnn2,soln_ref(istart0),soln(istart),
-     1   qwts_ref(istart0),errdens(1))
-
-      call comperrq(nnnn1,soln_ref_px(istart0),solncomp_px,
-     1   qwts_ref(istart0),errdens2(2))
-      call comperrq(nnnn2,soln_ref_px(istart0),soln_px(istart),
-     1   qwts_ref(istart0),errdens(2))
-
-
-      call comperrq(nnnn1,soln_ref_scat(istart0),solncomp_scat,
-     1   qwts_ref(istart0),errdens2(3))
-      call comperrq(nnnn2,soln_ref_scat(istart0),soln_scat(istart),
-     1   qwts_ref(istart0),errdens(3))
-
-      call comperrq(nnnn1,soln_ref_rand(istart0),solncomp_rand,
-     1   qwts_ref(istart0),errdens2(4))
-      
-      call comperrq(nnnn2,soln_ref_rand(istart0),soln_rand(istart),
-     1   qwts_ref(istart0),errdens(4))
-
-      write(sfname1,'(a,i3.3,a,i2.2,a)') "ext_sigma_ref_",nlat,"_",
-     1     nlev,".dat"
-      write(sfname2,'(a,i3.3,a,i2.2,a)') "ext_sigma_px_",nlat,"_",nlev,
-     1     ".dat"
-      write(sfname3,'(a,i3.3,a,i2.2,a)') "ext_sigma_scat_",nlat,"_",
-     1    nlev,".dat"
-      write(sfname4,'(a,i3.3,a,i2.2,a)') "ext_sigma_rand_",nlat,"_",
-     1    nlev,".dat"
-
-      open(unit=33,file=sfname1)
-      Open(unit=34,file=sfname2)
-      open(unit=35,file=sfname3)
-      open(unit=36,file=sfname4)
-
-
- 1457 format(4(2x,e22.16))      
-      do i=1,nc_ref
-        ii = istart0+i-1
-        write(33,1457) ts_ref(i), soln_ref(ii)/sqrt(qwts_ref(ii)),
-     1     sigma_ref(i),sigma2_ref(i)
-
-        write(34,1457) ts_ref(i), soln_ref_px(ii)/sqrt(qwts_ref(ii)),
-     1     sigma_px(i),sigma2_px(i)
-
-        write(35,1457) ts_ref(i), soln_ref_scat(ii)/sqrt(qwts_ref(ii)),
-     1     sigma_scat(i),sigma2_scat(i)
-
-        write(36,1457) ts_ref(i), soln_ref_rand(ii)/sqrt(qwts_ref(ii)),
-     1     sigma_rand(i),sigma2_rand(i)
-
-      enddo
-
-      close(33)
-      close(34)
-      close(35)
-      close(36)
-
-      call prin2('errdens=*',errdens,4)
-      call prin2('errdens2=*',errdens2,4)
-      write(*,*) " "
-      write(*,*) " "
-      write(*,*) "=============================="
-      
-c
-c
-c        start test 2: accuracy in targets in the 
-c        vicinity of one of the corners.
-c    
-c      attempt number 1: try the far-field quadrature
-c          - fails due to some of the targets being close
-c            to the edge
-c
-c      attempt number 2: use far-field quadrature except 
-c        near the corner, and use adaptive integration
-c        use to corner 1
-c          
-c      
-c
-c
-      do i=1,ntarg
-        call getrhs(ncharges,xsrc_in,ysrc_in,charges,xt(i),yt(i),
-     1     potex(i),grad)
-      enddo
-
-      call comppottarg_adap(ntarg,xt,yt,nref,xs_ref,ys_ref,soln_ref,
-     1    qwts_ref,nedges,nepts_ref,lns_ref,rns_ref,imid,k,irefinelev,
-     2    pottarg_ref)
-
-      call comppottarg_adap(ntarg,xt,yt,nref,xs_ref,ys_ref,soln_ref_px,
-     1    qwts_ref,nedges,nepts_ref,lns_ref,rns_ref,imid,k,
-     2    irefinelev,pottarg_ref_px)
-      
-      call comppottarg_adap(ntarg,xt,yt,nref,xs_ref,ys_ref,
-     1    soln_ref_scat,qwts_ref,nedges,nepts_ref,lns_ref,
-     2    rns_ref,imid,k,irefinelev,pottarg_ref_scat)
-      
-      call comppottarg_adap(ntarg,xt,yt,nref,xs_ref,ys_ref,
-     1    soln_ref_rand,qwts_ref,nedges,nepts_ref,lns_ref,
-     2    rns_ref,imid,k,irefinelev,pottarg_ref_rand)
-      
-      call prin2('done generating reference potentials*',i,0)
-
-
-      call cpu_time(t1)
-C$      t1 = omp_get_wtime()      
-      call comppottarg_adap(ntarg,xt,yt,n,xs,ys,soln,qwts,
-     1    nedges,nepts,lns,rns,imid,k,nlev,pottarg)
-      
-      call comppottarg_adap(ntarg,xt,yt,n,xs,ys,soln_px,qwts,
-     1    nedges,nepts,lns,rns,imid,k,nlev,pottarg_px)
-      
-      call comppottarg_adap(ntarg,xt,yt,n,xs,ys,soln_scat,qwts,
-     1    nedges,nepts,lns,rns,imid,k,nlev,pottarg_scat)
-      
-      call comppottarg_adap(ntarg,xt,yt,n,xs,ys,soln_rand,qwts,
-     1    nedges,nepts,lns,rns,imid,k,nlev,pottarg_rand)
-
-      call cpu_time(t2)
-C$      t2 = omp_get_wtime()     
-
-      call prin2('time taken in adaptive integration=*',t2-t1,1)
-
-
       do i=1,nlev
         rpanres(i) = rtmp/2.0d0**i
         rpanres(npanhalf+i) = rtmp/2.0d0**i
@@ -1254,43 +1058,33 @@ C$      t2 = omp_get_wtime()
         pottarg_ref_rand(i) = pottarg_ref_rand(i) 
         pottarg_ref_scat(i) = pottarg_ref_scat(i) 
 
-        pottarg(i) = pottarg(i) 
-        pottarg_px(i) = pottarg_px(i) 
-        pottarg_rand(i) = pottarg_rand(i)
-        pottarg_scat(i) = pottarg_scat(i) 
       enddo
 
       call comperr(ntarg,potex,pottarg2,errtarg2(1))
-      call comperr(ntarg,potex,pottarg,errtarg(1))
       
       call comperr(ntarg,pottarg_ref_px,pottarg2_px,errtarg2(2))
-      call comperr(ntarg,pottarg_ref_px,pottarg_px,errtarg(2))
 
       call comperr(ntarg,pottarg_ref_scat,pottarg2_scat,errtarg2(3))
-      call comperr(ntarg,pottarg_ref_scat,pottarg_scat,errtarg(3))
 
       call comperr(ntarg,pottarg_ref_rand,pottarg2_rand,errtarg2(4))
-      call comperr(ntarg,pottarg_ref_rand,pottarg_rand,errtarg(4))
 
-      write(fname1,'(a,i3.3,a,i2.2,a)') "ext_ref_",nlat,"_",nlev,".dat"
-      write(fname2,'(a,i3.3,a,i2.2,a)') "ext_px_",nlat,"_",nlev,".dat"
+      write(fname1,'(a,i3.3,a,i2.2,a)') "dir_ref_",nlat,"_",nlev,".dat"
+      write(fname2,'(a,i3.3,a,i2.2,a)') "dir_px_",nlat,"_",nlev,".dat"
       write(fname3,'(a,i3.3,a,i2.2,a)') 
-     1       "ext_scat_",nlat,"_",nlev,".dat"
+     1       "dir_scat_",nlat,"_",nlev,".dat"
       write(fname4,'(a,i3.3,a,i2.2,a)') 
-     1       "ext_rand_",nlat,"_",nlev,".dat"
+     1       "dir_rand_",nlat,"_",nlev,".dat"
 
       open(unit=33,file=fname1)
       Open(unit=34,file=fname2)
       open(unit=35,file=fname3)
       open(unit=36,file=fname4)
- 1467 format(3(2x,e22.16))      
+ 1467 format(2(2x,e22.16))      
       do i=1,ntarg
-        write(33,1467) potex(i),pottarg2(i),pottarg(i)
-        write(34,1467) pottarg_ref_px(i),pottarg2_px(i),pottarg_px(i)
-        write(35,1467) pottarg_ref_scat(i),pottarg2_scat(i),
-     1     pottarg_scat(i)
-        write(36,1467) pottarg_ref_rand(i),pottarg2_rand(i),
-     1     pottarg_rand(i)
+        write(33,1467) potex(i),pottarg2(i)
+        write(34,1467) pottarg_ref_px(i),pottarg2_px(i)
+        write(35,1467) pottarg_ref_scat(i),pottarg2_scat(i)
+        write(36,1467) pottarg_ref_rand(i),pottarg2_rand(i)
       enddo
       close(33)
       close(34)
@@ -1306,7 +1100,6 @@ C$      t2 = omp_get_wtime()
       write(*,*) " "
       write(*,*) " "
 
-      call prin2('errtarg=*',errtarg,4)
       call prin2('errtarg2=*',errtarg2,4)
       write(*,*) " "
       write(*,*) " "
@@ -1384,34 +1177,28 @@ c
 c
 c
 c
-      subroutine interp_gauss(nlev,k,soln,nc,ts,wts,sigma)
+      subroutine interp_spdis_dir(nlev,k,nc0,soln,nc,ts,sigma)
       implicit real *8 (a-h,o-z)
       real *8 soln(*),sigma(*),ts(*),wts(*)
+      real *8, allocatable :: ts0(:),wts0(:)
       real *8, allocatable :: coefs(:),umat(:,:),vmat(:,:),vals(:)
-      real *8 ts0(k),wts0(k),pols(k)
+      real *8 pols(k)
       
       
-      nn = (nlev-1)*k
-      do i=1,nn
-        sigma(i) = soln(i)/sqrt(wts(i))
-      enddo
+      itype = 2
+      allocate(umat(nc0,nc0),vmat(nc0,nc0),coefs(nc0))
+      allocate(ts0(nc0),wts0(nc0))
 
       itype = 2
-      allocate(umat(k,k),vmat(k,k),coefs(k),vals(k))
-
-      istart = (nlev-1)*k
-      do i=1,k
-        vals(i) = soln(istart+i)/sqrt(wts(istart+i))
-      enddo
-      call legeexps(itype,k,ts0,umat,vmat,wts0)
+      call lapdisc(ts0,wts0,umat,vmat,nc0,itype)
 
       alpha = 1.0d0
       beta = 0
-      call dgemv('n',k,k,alpha,umat,k,vals,1,beta,coefs,1)
+      call dgemv('n',k,k,alpha,vmat,nc0,soln,1,beta,coefs,1)
       
 
       do i=istart+1,nc
-        tt = ts(i)*2.0d0**(nlev)-1.0d0
+        tt = ts(i)
         call legepols(tt,k-1,pols)
         sigma(i) = 0
         do j=1,k
