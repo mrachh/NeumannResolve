@@ -164,7 +164,7 @@ c
 c
 c        get reference grid
 c
-       irefinelev = 50
+       irefinelev = 100
        nc_ref = k*irefinelev
        allocate(ts_ref(nc_ref),wts_ref(nc_ref))
        call getcornerdis(k,irefinelev,ts_ref,wts_ref)
@@ -701,6 +701,7 @@ c
      1   info)
 
 
+
       info = 0
       allocate(ipiv2(n2))
 
@@ -737,16 +738,17 @@ c
       pot_ref = 0
       do i=1,nref
         rr = (trg(1)-xs_ref(i))**2 + (trg(2)-ys_ref(i))**2
-        rrn = (trg(1)-xs_ref(i))*rnx(i) + (trg(2)-ys_ref(i))*rny(i)
-        pot_ref = pot_ref - rrn/2/pi/rr*soln_ref(i)*sqrt(qwts_ref(i))
+        rrn = (trg(1)-xs_ref(i))*rnx_ref(i) + 
+     1     (trg(2)-ys_ref(i))*rny_ref(i)
+        pot_ref = pot_ref + rrn/2/pi/rr*soln_ref(i)*sqrt(qwts_ref(i))
       enddo
 
 
       pot2 = 0
       do i=1,n2
         rr = (trg(1)-xs2(i))**2 + (trg(2)-ys2(i))**2
-        rrn = (trg(1)-xs2(i))*rnx(i) + (trg(2)-ys2(i))*rny(i)
-        pot2 = pot2 - rrn/2/pi/rr*soln2(i)*sqrt(qwts2(i))
+        rrn = (trg(1)-xs2(i))*rnx2(i) + (trg(2)-ys2(i))*rny2(i)
+        pot2 = pot2 + rrn/2/pi/rr*soln2(i)*sqrt(qwts2(i))
       enddo
 
       
@@ -825,12 +827,12 @@ c
       write(*,*) " "
       write(*,*) " "
 
-      call prin2('error in polarization tensor=*',err_t,4)
       call prin2('error in polarization tensor=*',err_t2,4)
 
       write(*,*) " "
       write(*,*) " "
       write(*,*) "=============================="
+
 
       
 c
@@ -852,17 +854,17 @@ c
       istart0 = lns_ref(1)
       istart = lns2(1)
       nlev = irefinelev
-      call interp_spdis_dir(nlev,k,soln2(istart),nc_ref,ts_ref,
-     1       sigma2_ref)
+      call interp_spdis_dir(nlev,k,ncorner2,soln2(istart),nc_ref,
+     1   ts_ref,sigma2_ref)
 
-      call interp_spdis_dir(nlev,k,soln2_px(istart),nc_ref,ts_ref,
-     1       sigma2_px)
+      call interp_spdis_dir(nlev,k,ncorner2,soln2_px(istart),nc_ref,
+     1   ts_ref,sigma2_px)
 
-      call interp_spdis_dir(nlev,k,soln2_rand(istart),nc_ref,ts_ref,
-     1       sigma2_rand)
+      call interp_spdis_dir(nlev,k,ncorner2,soln2_rand(istart),nc_ref,
+     1   ts_ref,sigma2_rand)
 
-      call interp_spdis_dir(nlev,k,soln2_scat(istart),nc_ref,ts_ref,
-     1       sigma2_scat)
+      call interp_spdis_dir(nlev,k,ncorner2,soln2_scat(istart),nc_ref,
+     1   ts_ref,sigma2_scat)
 
 
       write(*,*) " "
@@ -874,18 +876,22 @@ c
 
       
       nnnn1 = nlev*k
-      nnnn2 = (nlev-1)*k
+      do i=1,nnnn1
+        sigma2_ref(i) = sigma2_ref(i)*sqrt(wts_ref(i))
+        sigma2_px(i) = sigma2_px(i)*sqrt(wts_ref(i))
+        sigma2_scat(i) = sigma2_scat(i)*sqrt(wts_ref(i))
+        sigma2_rand(i) = sigma2_rand(i)*sqrt(wts_ref(i))
 
-      call comperrq(nnnn1,soln_ref_scat(istart0),solncomp_scat,
-     1   qwts_ref(istart0),errdens2(3))
-      call comperrq(nnnn2,soln_ref_scat(istart0),soln_scat(istart),
-     1   qwts_ref(istart0),errdens(3))
-
-      call comperrq(nnnn1,soln_ref_rand(istart0),solncomp_rand,
-     1   qwts_ref(istart0),errdens2(4))
+      enddo
+      call comperr(nnnn1,soln_ref(istart0),sigma2_ref,
+     1    errdens2(1))
+      call comperr(nnnn1,soln_ref_px(istart0),sigma2_px,
+     1    errdens2(2))
+      call comperr(nnnn1,soln_ref_scat(istart0),sigma2_scat,
+     1      errdens2(3))
+      call comperr(nnnn1,soln_ref_rand(istart0),sigma2_rand,
+     1   errdens2(4))
       
-      call comperrq(nnnn2,soln_ref_rand(istart0),soln_rand(istart),
-     1   qwts_ref(istart0),errdens(4))
 
       write(sfname1,'(a,i3.3,a,i2.2,a)') "dir_sigma_ref_",nlat,"_",
      1     nlev,".dat"
@@ -906,16 +912,16 @@ c
       do i=1,nc_ref
         ii = istart0+i-1
         write(33,1457) ts_ref(i), soln_ref(ii)/sqrt(qwts_ref(ii)),
-     1     sigma2_ref(i)
+     1     sigma2_ref(i)/sqrt(qwts_ref(ii))
 
         write(34,1457) ts_ref(i), soln_ref_px(ii)/sqrt(qwts_ref(ii)),
-     1     sigma2_px(i)
+     1     sigma2_px(i)/sqrt(qwts_ref(ii))
 
         write(35,1457) ts_ref(i), soln_ref_scat(ii)/sqrt(qwts_ref(ii)),
-     1     sigma2_scat(i)
+     1     sigma2_scat(i)/sqrt(qwts_ref(ii))
 
         write(36,1457) ts_ref(i), soln_ref_rand(ii)/sqrt(qwts_ref(ii)),
-     1     sigma2_rand(i)
+     1     sigma2_rand(i)/sqrt(qwts_ref(ii))
       enddo
 
       close(33)
@@ -923,11 +929,12 @@ c
       close(35)
       close(36)
 
-      call prin2('errdens=*',errdens,4)
       call prin2('errdens2=*',errdens2,4)
       write(*,*) " "
       write(*,*) " "
       write(*,*) "=============================="
+
+      stop
       
 c
 c
@@ -1179,10 +1186,10 @@ c
 c
       subroutine interp_spdis_dir(nlev,k,nc0,soln,nc,ts,sigma)
       implicit real *8 (a-h,o-z)
-      real *8 soln(*),sigma(*),ts(*),wts(*)
+      real *8 soln(*),sigma(*),ts(*)
       real *8, allocatable :: ts0(:),wts0(:)
       real *8, allocatable :: coefs(:),umat(:,:),vmat(:,:),vals(:)
-      real *8 pols(k)
+      real *8 pols
       
       
       itype = 2
@@ -1194,15 +1201,17 @@ c
 
       alpha = 1.0d0
       beta = 0
-      call dgemv('n',k,k,alpha,vmat,nc0,soln,1,beta,coefs,1)
+      call dgemv('n',nc0,nc0,alpha,vmat,nc0,soln,1,beta,coefs,1)
+
+      call prin2('coefs=*',coefs,nc0)
       
 
-      do i=istart+1,nc
+      do i=1,nc
         tt = ts(i)
-        call legepols(tt,k-1,pols)
         sigma(i) = 0
-        do j=1,k
-          sigma(i) = sigma(i) + coefs(j)*pols(j)
+        do j=1,nc0
+          call lapeval(tt,j,pol)
+          sigma(i) = sigma(i) + coefs(j)*pol
         enddo
       enddo
 

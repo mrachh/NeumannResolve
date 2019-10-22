@@ -1092,27 +1092,27 @@ c
       
       nnnn1 = nlev*k
       nnnn2 = (nlev-1)*k
-      call comperrq(nnnn1,soln_ref(istart0),solncomp,qwts_ref(istart0),
+      call comperr(nnnn1,soln_ref(istart0),solncomp,
      1   errdens2(1))
-      call comperrq(nnnn2,soln_ref(istart0),soln(istart),
-     1   qwts_ref(istart0),errdens(1))
+      call comperr(nnnn2,soln_ref(istart0),soln(istart),
+     1   errdens(1))
 
-      call comperrq(nnnn1,soln_ref_px(istart0),solncomp_px,
-     1   qwts_ref(istart0),errdens2(2))
-      call comperrq(nnnn2,soln_ref_px(istart0),soln_px(istart),
-     1   qwts_ref(istart0),errdens(2))
+      call comperr(nnnn1,soln_ref_px(istart0),solncomp_px,
+     1   errdens2(2))
+      call comperr(nnnn2,soln_ref_px(istart0),soln_px(istart),
+     1   errdens(2))
 
 
-      call comperrq(nnnn1,soln_ref_scat(istart0),solncomp_scat,
-     1   qwts_ref(istart0),errdens2(3))
-      call comperrq(nnnn2,soln_ref_scat(istart0),soln_scat(istart),
-     1   qwts_ref(istart0),errdens(3))
+      call comperr(nnnn1,soln_ref_scat(istart0),solncomp_scat,
+     1   errdens2(3))
+      call comperr(nnnn2,soln_ref_scat(istart0),soln_scat(istart),
+     1   errdens(3))
 
-      call comperrq(nnnn1,soln_ref_rand(istart0),solncomp_rand,
-     1   qwts_ref(istart0),errdens2(4))
+      call comperr(nnnn1,soln_ref_rand(istart0),solncomp_rand,
+     1   errdens2(4))
       
-      call comperrq(nnnn2,soln_ref_rand(istart0),soln_rand(istart),
-     1   qwts_ref(istart0),errdens(4))
+      call comperr(nnnn2,soln_ref_rand(istart0),soln_rand(istart),
+     1   errdens(4))
 
       write(sfname1,'(a,i3.3,a,i2.2,a)') "ext_sigma_ref_",nlat,"_",
      1     nlev,".dat"
