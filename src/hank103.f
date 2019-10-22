@@ -1,246 +1,287 @@
-c 
+
+c
+c
+c
+c
+c
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-c 
-c 
+c
+c
 c        this is the end of the debugging code and the beginning of the
 c        hankel function code proper.
-c 
-c 
+c
+c
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-c 
-c 
-c 
-c 
-c 
-        subroutine hanks103(z,hanks,n,ifexpon)
+c
+c
+c
+c
+c
+        subroutine hanks104(z,hanks,n,ifexpon)
         implicit real *8 (a-h,o-z)
-        save
-        complex *16 z,hanks(1),cd,cdd
-c 
+        complex *16 z,hanks(*)
+c
 c       This subroutine evaluates the first n+1 Hankel functions of the
-c       argument z. The user also has the option of evaluating the
-c       functions H_m(z) scaled by the (complex) coefficient e^{-i \cdot z}.
+c       argument z. The user also has the option of evaluating the 
+c       functions H_m(z) scaled by the (complex) coefficient e^{-i \cdot z}. 
 c       This option is provided via the parameter ifexpon (see below)
-c 
-c 
+c
+c
 c                      input parameters:
-c 
+c
 c  z - the complex number for which the hankel functions
 c        H_0, H_1 are to be evaluated
 c  n - the highest order of any Hankel function to be evaluated
 c  ifexpon - the integer parameter telling the subroutine whether
 c        to calculate the actual values of the hankel functions,
 c        or the values of Hankel functions scaled by e^{-i \cdot z}.
-c        Permitted values: 0 and 1.
+c        Permitted values: 0 and 1. 
 c    ifexpon = 1 will cause the subroutine to evaluate the Hankel functions
 c        honestly
 c    ifexpon = 0 will cause the subroutine to scale the Hankel functions
 c        by e^{-i \cdot z}.
-c 
+c
 c                      output parameters:
-c 
+c
 c  hanks - the first n+1 Hankel functions of the (complex) argument z.
 c        Please note that hanks(1) is the Hankel function of order 0,
 c        hanks(2) is the Hankel function of order 1, ..., hanks(n+1)
 c        is the Hankel function of order n
-c 
+c
 c       . . . evaluate the functions h0,h1
-c 
+c
         call hank103(z,hanks(1),hanks(2),ifexpon)
-c 
-c 
+c
+c
 c       conduct recursion
-c 
+c
+        do 1200 i1=2,n
+c
+        i=i1-1
+c
+        hanks(i1+1)=(2*i)/z*hanks(i1)-hanks(i1-1)
+ 1200 continue
+c
+        return
+        end
+c
+c
+c
+c
+c
+        subroutine hanks103(z,hanks,n,ifexpon)
+        implicit real *8 (a-h,o-z)
+        complex *16 z,hanks(*),cd,cdd
+c
+c       This subroutine evaluates the first n+1 Hankel functions of the
+c       argument z. The user also has the option of evaluating the 
+c       functions H_m(z) scaled by the (complex) coefficient e^{-i \cdot z}. 
+c       This option is provided via the parameter ifexpon (see below)
+c
+c
+c                      input parameters:
+c
+c  z - the complex number for which the hankel functions
+c        H_0, H_1 are to be evaluated
+c  n - the highest order of any Hankel function to be evaluated
+c  ifexpon - the integer parameter telling the subroutine whether
+c        to calculate the actual values of the hankel functions,
+c        or the values of Hankel functions scaled by e^{-i \cdot z}.
+c        Permitted values: 0 and 1. 
+c    ifexpon = 1 will cause the subroutine to evaluate the Hankel functions
+c        honestly
+c    ifexpon = 0 will cause the subroutine to scale the Hankel functions
+c        by e^{-i \cdot z}.
+c
+c                      output parameters:
+c
+c  hanks - the first n+1 Hankel functions of the (complex) argument z.
+c        Please note that hanks(1) is the Hankel function of order 0,
+c        hanks(2) is the Hankel function of order 1, ..., hanks(n+1)
+c        is the Hankel function of order n
+c
+c       . . . evaluate the functions h0,h1
+c
+        call hank103(z,hanks(1),hanks(2),ifexpon)
+c
+c
+c       conduct recursion
+c
         cd=2/z
         cdd=cd
         do 1200 i1=2,n
-c 
+c
         i=i1-1
-c 
+c
 cccc        hanks(i1+1)=(2*i)/z*hanks(i1)-hanks(i1-1)
         hanks(i1+1)=cdd*hanks(i1)-hanks(i1-1)
-c 
+c
         cdd=cdd+cd
  1200 continue
-c 
+c
         return
         end
-c 
-c 
-c 
-c 
-c 
+c
+c
+c
+c
+c
         subroutine hank103(z,h0,h1,ifexpon)
         implicit real *8 (a-h,o-z)
-        save
         complex *16 z,h0,h1,h0u,h0r,h1u,h1r,
-     1      fj0,fj1,y0,y1,com,zu,zr,ima,ser2,ser3,z2,
+     1      fj0,fj1,y0,y1,zu,zr,ima,ser2,ser3,z2,
      2      cclog,cd
-        real *8 rea(2)
-        equivalence (rea(1),com)
         data ima/(0.0d0,1.0d0)/,pi/0.31415926535897932D+01/
-c 
+c
 c        this subroutine evaluates the hankel functions H_0^1, H_1^1
 c        for an arbitrary user-specified complex number z. The user
-c        also has the option of evaluating the functions h0, h1
-c        scaled by the (complex) coefficient e^{-i \cdot z}. This
+c        also has the option of evaluating the functions h0, h1 
+c        scaled by the (complex) coefficient e^{-i \cdot z}. This 
 c        subroutine is a modification of the subroutine hank102
 c        (see), different from the latter by having the parameter
-c        ifexpon. Please note that the subroutine hank102 is in
+c        ifexpon. Please note that the subroutine hank102 is in 
 c        turn a slightly accelerated version of the old hank101
-c        (see). The principal claim to fame of all three is that
-c        they are valid on the whole  complex plane, and are
-c        reasonably accurate (14-digit relative accuracy) and
+c        (see). The principal claim to fame of all three is that 
+c        they are valid on the whole  complex plane, and are 
+c        reasonably accurate (14-digit relative accuracy) and 
 c        reasonably fast. Also, please note that all three have not
-c        been carefully tested in the third quadrant (both x and y
-c        negative); some sort of numerical trouble is possible
-c        (though has not been observed) for LARGE z in the third
+c        been carefully tested in the third quadrant (both x and y 
+c        negative); some sort of numerical trouble is possible 
+c        (though has not been observed) for LARGE z in the third 
 c        quadrant.
-c 
+c
 c                      input parameters:
-c 
+c
 c  z - the complex number for which the hankel functions
 c        H_0, H_1 are to be evaluated
 c  ifexpon - the integer parameter telling the subroutine whether
 c        to calculate the actual values of the hankel functions,
 c        or the values of Hankel functions scaled by e^{-i \cdot z}.
-c        Permitted values: 0 and 1.
+c        Permitted values: 0 and 1. 
 c    ifexpon = 1 will cause the subroutine to evaluate the Hankel functions
 c        honestly
 c    ifexpon = 0 will cause the subroutine to scale the Hankel functions
 c        by e^{-i \cdot z}.
-c 
+c
 c                      output parameters:
-c 
+c
 c  h0, h1 - the said Hankel functions
-c 
-c 
+c        
+c       
 c        . . . if z in the upper half-plane - act accordingly
-c 
-        com=z
-        if(rea(2) .lt. 0) goto 1400
+c
+        if(imag(z) .lt. 0) goto 1400
         call hank103u(z,ier,h0,h1,ifexpon)
         return
  1400 continue
-c 
+c
 c       if z is in the right lower quadrant - act accordingly
-c 
-        if(rea(1) .lt. 0) goto 2000
+c
+        if(real(z) .lt. 0) goto 2000
         call hank103r(z,ier,h0,h1,ifexpon)
         return
  2000 continue
-c 
-c       z is in the left lower quadrant. compute
+c
+c       z is in the left lower quadrant. compute 
 c       h0, h1 at the points zu, zr obtained from z by reflection
 c       in the x and y axis, respectively
-c 
+c
         zu=dconjg(z)
         zr=-zu
-c 
+c
         call hank103u(zu,ier,h0u,h1u,ifexpon)
         call hank103r(zr,ier,h0r,h1r,ifexpon)
-  
-        if(ifexpon .eq. 1) goto 3000
-  
-        com=zu
-        subt=abs(rea(2))
-  
+
+        if(ifexpon .eq. 1) goto 3000    
+
+        subt=abs(imag(zu))
+
         cd=exp(ima*zu-subt)
         h0u=h0u*cd
         h1u=h1u*cd
-  
+
         cd=exp(ima*zr-subt)
         h0r=h0r*cd
         h1r=h1r*cd
  3000 continue
-c 
+c
 c       compute the functions j0, j1, y0, y1
 c       at the point zr
-c 
+c
         half=1
         half=half/2
         y0=(h0u+h0r)*half/ima
         fj0=-(h0u-h0r)*half
-c 
+c
         y1=-(h1u-h1r)*half/ima
         fj1=(h1u+h1r)*half
-c 
+c
 c        finally, compute h0, h1
-c 
+c
 c       . . . calculate ser2, ser3
-c 
+c
          z2=-dconjg(z)
          cclog=cdlog(z2)
          ser2=y0-fj0*2/pi*cclog
          ser3=y1-fj1*2/pi*cclog
-c 
+c
 c       reflect all of these in the imaginary axis
-c 
+c
         fj0=dconjg(fj0)
         fj1=-dconjg(fj1)
-c 
+c
         ser2=dconjg(ser2)
         ser3=-dconjg(ser3)
-c 
+c
 c       reconstitute y0, y1
-c 
+c
         cclog=cdlog(z)
         y0=ser2+fj0*2/pi*cclog
         y1=ser3+fj1*2/pi*cclog
-c 
+c
         h0=fj0+ima*y0
         h1=fj1+ima*y1
-  
+
         if(ifexpon .eq. 1) return
-  
+
         cd=exp(-ima*z+subt)
         h0=h0*cd
         h1=h1*cd
-  
+
         return
         end
-c 
-c 
-c 
-c 
-c 
+c
+c
+c
+c
+c
         subroutine hank103u(z,ier,h0,h1,ifexpon)
         implicit real *8 (a-h,o-z)
-        save
-        complex *16 z,com,ima,cd,h0,h1,ccex,zzz9
-        dimension rea(2)
-        real *8 c0p1(34),c0p1b(36),buf01(2)
-        equivalence (c0p1(34),buf01(1)),
-     1      (c0p1b(1),buf01(2)),(rea(1),com)
-        real *8 c1p1(34),c1p1b(36),buf11(2)
-        equivalence (c1p1(34),buf11(1)),
-     1      (c1p1b(1),buf11(2))
-        real *8 c0p2(34),c0p2b(28),buf02(2)
-        equivalence (c0p2(34),buf02(1)),
-     1      (c0p2b(1),buf02(2))
-        real *8 c1p2(34),c1p2b(28),buf12(2)
-        equivalence (c1p2(34),buf12(1)),
-     1      (c1p2b(1),buf12(2))
+        complex *16 z,ima,cd,h0,h1,ccex,zzz9
+        real *8 c0p1(70)
+        real *8 c1p1(70)
+        real *8 c0p2(62)
+        real *8 c1p2(62)
         data ima/(0.0d0,1.0d0)/
-c 
+c
 c        this subroutine evaluates the hankel functions H_0^1, H_1^1
 c        for a user-specified complex number z in the upper half-plane.
-c        it is reasonably accurate (14-digit relative accuracy)
+c        it is reasonably accurate (14-digit relative accuracy) 
 c        and reasonably fast.
-c 
-c 
+c        
+c
 c                      input parameters:
-c 
+c
 c  z - the complex number for which the hankel functions
 c        H_0, H_1 are to be evaluated
-c 
+c
 c                      output parameters:
-c 
-c  ier - error return code.
+c
+c  ier - error return code. 
 c         ier=0 means successful conclusion
 c         ier=4 means that z is not in the upper half-plane
 c  h0, h1 - the said Hankel functions
-c 
+c        
         data c0p1/
      1     -.6619836118357782D-12,  -.6619836118612709D-12,
      2     -.7307514264754200D-21,  0.3928160926261892D-10,
@@ -258,8 +299,7 @@ c
      4     0.3767341857978150D-12,  -.1439178509436339D-01,
      5     -.1342403524448708D-01,  0.1342403524340215D-01,
      6     0.8733016209933828D-02,  0.1400653553627576D-11,
-     7     0.2987361261932706D-01,  0.2987361261607835D-01/
-        data c0p1b/
+     7     0.2987361261932706D-01,  0.2987361261607835D-01,
      8     -.3388096836339433D-11,  -.1690673895793793D+00,
      9     0.2838366762606121D+00,  -.2838366762542546D+00,
      a     0.7045107746587499D+00,  -.5363893133864181D-11,
@@ -278,9 +318,8 @@ c
      3     0.2799719727019427D-04,  0.2799719726970900D-04,
      4     -.3371218242141487D-16,  -.3682310515545645D-05,
      5     -.1191412910090512D-06,  0.1191412910113518D-06/
-c 
+c
         data c1p1/
-  
      1     0.4428361927253983D-12,  -.4428361927153559D-12,
      2     -.2575693161635231D-10,  -.2878656317479645D-21,
      3     0.3658696304107867D-09,  0.3658696304188925D-09,
@@ -297,9 +336,7 @@ c
      4     -.6254962367291260D-02,  0.1484073406594994D-12,
      5     0.1952900562500057D-01,  0.1952900562457318D-01,
      6     -.5517611343746895D-12,  -.8528074392467523D-01,
-     7     -.1495138141086974D+00,  0.1495138141099772D+00/
-c 
-        data c1p1b/
+     7     -.1495138141086974D+00,  0.1495138141099772D+00,
      8     0.4394907314508377D+00,  -.1334677126491326D-11,
      9     -.1113740586940341D+01,  -.1113740586937837D+01,
      a     0.2113005088866033D-11,  0.1170212831401968D+01,
@@ -318,7 +355,7 @@ c
      3     -.2708696587599713D-04,  0.2708696587618830D-04,
      4     0.3533092798326666D-05,  -.1328028586935163D-16,
      5     -.1134616446885126D-06,  -.1134616446876064D-06/
-c 
+c
         data c0p2/
      1     0.5641895835516786D+00,  -.5641895835516010D+00,
      2     -.3902447089770041D-09,  -.3334441074447365D-11,
@@ -336,8 +373,7 @@ c
      4     0.1345583522428299D+03,  0.2002017907999571D+00,
      5     -.3086364384881525D+03,  -.3094609382885628D+03,
      6     -.1505974589617013D+01,  0.1250150715797207D+04,
-     7     0.2205210257679573D+04,  -.2200328091885836D+04/
-        data c0p2b/
+     7     0.2205210257679573D+04,  -.2200328091885836D+04,
      8     -.6724941072552172D+04,  -.7018887749450317D+01,
      9     0.8873498980910335D+04,  0.8891369384353965D+04,
      a     0.2008805099643591D+02,  -.2030681426035686D+05,
@@ -352,7 +388,7 @@ c
      9     -.5615581955514127D+03,  0.5601021281020627D+03,
      a     0.1463856702925587D+03,  0.1990076422327786D+00,
      1     -.9334741618922085D+01,  -.9361368967669095D+01/
-c 
+c
         data c1p2/
      1     -.5641895835446003D+00,  -.5641895835437973D+00,
      2     0.3473016376419171D-10,  -.3710264617214559D-09,
@@ -370,8 +406,7 @@ c
      4     -.2192611071606340D+01,  0.1445470231392735D+03,
      5     0.3361116314072906D+03,  -.3270584743216529D+03,
      6     -.1339254798224146D+04,  -.1657618537130453D+02,
-     7     0.2327097844591252D+04,  0.2380960024514808D+04/
-        data c1p2b/
+     7     0.2327097844591252D+04,  0.2380960024514808D+04,
      8     0.7760611776965994D+02,  -.7162513471480693D+04,
      9     -.9520608696419367D+04,  0.9322604506839242D+04,
      a     0.2144033447577134D+05,  0.2230232555182369D+03,
@@ -386,122 +421,119 @@ c
      9     -.5562781548969544D+03,  -.5726891190727206D+03,
      a     -.2246192560136119D+01,  0.1465347141877978D+03,
      1     0.9456733342595993D+01,  -.9155767836700837D+01/
-c 
+c
 c        if the user-specified z is in the lower half-plane
 c        - bomb out
-c 
+c
         ier=0
         com=z
-        if(rea(2) .ge. 0) goto 1200
+        if(imag(z) .ge. 0) goto 1200
         ier=4
         return
  1200 continue
-c 
+c
         done=1
         thresh1=1**2
         thresh2=3.7**2
         thresh3=20**2
-c 
-c       check if if the user-specified z is in one of the
-c       intermediate regimes
-c 
+c
+c       check if if the user-specified z is in one of the 
+c       intermediate regimes 
+c
         d=z*dconjg(z)
         if( (d .lt. thresh1) .or. (d .gt. thresh3) ) goto 3000
-c 
+c
 c        the user-specified z is in one of the intermediate regimes.
 c        act accordingly
-c 
-c 
+c
+c
         if(d .gt. thresh2) goto 2000
-c 
-c       z is in the first intermediate regime: its absolute value is
+c
+c       z is in the first intermediate regime: its absolute value is 
 c       between 1 and 3.7. act accordingly
-c 
+c
 c       . . . evaluate the expansion
-c 
+c
         cd=done/cdsqrt(z)
-c 
+c
         ccex=cd
         if(ifexpon .eq. 1) ccex=ccex*cdexp(ima*z)
-c 
+c
         zzz9=z**9
         m=35
         call hank103p(c0p1,m,cd,h0)
         h0=h0*ccex * zzz9
-c 
+c
         call hank103p(c1p1,m,cd,h1)
         h1=h1*ccex * zzz9
         return
  2000 continue
-c 
+c
 c       z is in the second intermediate regime: its absolute value is
 c       between 3.7 and 20. act accordingly.
-c 
+c
         cd=done/cdsqrt(z)
-c 
+c
         ccex=cd
         if(ifexpon .eq. 1) ccex=ccex*cdexp(ima*z)
-  
+
         m=31
         call hank103p(c0p2,m,cd,h0)
         h0=h0*ccex
-c 
+c
         m=31
         call hank103p(c1p2,m,cd,h1)
         h1=h1*ccex
         return
  3000 continue
-c 
+c
 c        z is either in the local regime or the asymptotic one.
 c        if it is in the local regime - act accordingly.
-c 
+c
         if(d .gt. 50.d0) goto 4000
         call hank103l(z,h0,h1,ifexpon)
         return
-c 
+c
 c        z is in the asymptotic regime. act accordingly.
-c 
+c
  4000 continue
         call hank103a(z,h0,h1,ifexpon)
         return
         end
-c 
-c 
-c 
-c 
+c
+c
+c
+c
         subroutine hank103p(p,m,z,f)
         implicit real *8 (a-h,o-z)
-        save
         complex *16 p(1),z,f
-c 
+c
 c       evaluate a polynomial at a point
-c 
+c
         f=p(m)
         do 1200 i=m-1,1,-1
         f=f*z+p(i)
  1200 continue
         return
         end
-  
-  
-  
-  
-c 
-c 
-c 
-c 
-c 
+
+
+
+
+c
+c
+c
+c
+c
         subroutine hank103a(z,h0,h1,ifexpon)
         implicit real *8 (a-h,o-z)
-        save
-        dimension p(18),q(18),p1(18),q1(18),rea(2)
+        dimension p(18),q(18),p1(18),q1(18)
         complex *16 z,zinv,pp,qq,ima,h0,h1,pp1,qq1,
-     1      com,cccexp,cdd,cdumb,zinv22
-        equivalence (rea(1),com)
+     1      cccexp,cdd,cdumb,zinv22
         data ima/(0.0d0,1.0d0)/,pi/0.31415926535897932D+01/,
      1      done/1.0d0/,cdumb/
      2      (0.70710678118654757D+00,-.70710678118654746D+00)/
-c 
+c
          data p/
      1     0.1000000000000000D+01,  -.7031250000000000D-01,
      2     0.1121520996093750D+00,  -.5725014209747314D+00,
@@ -512,7 +544,7 @@ c
      7     0.4854014686852901D+15,  -.7286857349377657D+17,
      8     0.1279721941975975D+20,  -.2599382102726235D+22,
      9     0.6046711487532401D+24,  -.1597065525294211D+27/
-c 
+c
          data q/
      1     -.1250000000000000D+00,  0.7324218750000000D-01,
      2     -.2271080017089844D+00,  0.1727727502584457D+01,
@@ -523,7 +555,7 @@ c
      7     -.5827244631566907D+16,  0.9476288099260110D+18,
      8     -.1792162323051699D+21,  0.3900121292034000D+23,
      9     -.9677028801069847D+25,  0.2715581773544907D+28/
-  
+
          data p1/
      1     0.1000000000000000D+01,  0.1171875000000000D+00,
      2     -.1441955566406250D+00,  0.6765925884246826D+00,
@@ -534,7 +566,7 @@ c
      7     -.5060568503314726D+15,  0.7572616461117957D+17,
      8     -.1326257285320556D+20,  0.2687496750276277D+22,
      9     -.6238670582374700D+24,  0.1644739123064188D+27/
-c 
+c
          data q1/
      1     0.3750000000000000D+00,  -.1025390625000000D+00,
      2     0.2775764465332031D+00,  -.1993531733751297D+01,
@@ -545,77 +577,77 @@ c
      7     0.6065091351222699D+16,  -.9833883876590680D+18,
      8     0.1855045211579829D+21,  -.4027994121281017D+23,
      9     0.9974783533410457D+25,  -.2794294288720121D+28/
-c 
+c
 c        evaluate the asymptotic expansion for h0,h1 at
-c        the user-supplied point z, provided it is not
+c        the user-supplied point z, provided it is not 
 c        in the fourth quadrant
-c 
+c
         m=10
         zinv=done/z
-c 
+c
         pp=p(m)
         pp1=p1(m)
         zinv22=zinv**2
-c 
+c
         qq=q(m)
         qq1=q1(m)
-c 
+c
         do 1600 i=m-1,1,-1
-  
+
         pp=pp* zinv22+p(i)
-        pp1=pp1* zinv22+p1(i)
-  
+        pp1=pp1* zinv22+p1(i) 
+
         qq=qq* zinv22+q(i)
-        qq1=qq1* zinv22+q1(i)
+        qq1=qq1* zinv22+q1(i) 
  1600 continue
-c 
+c
         qq=qq*zinv
         qq1=qq1*zinv
-c 
+c
         cccexp=1
-        if(ifexpon .eq. 1) cccexp=cdexp(ima*z)
-c 
+        if(ifexpon .eq. 1) cccexp=cdexp(ima*z) 
+c
         cdd=cdsqrt(2/pi*zinv)
-c 
+c     
         h0=pp+ima*qq
         h0=cdd*cdumb*cccexp * h0
-c 
+c
         h1=pp1+ima*qq1
         h1=-cdd*cccexp*cdumb* h1*ima
-c 
+c
         return
         end
-c 
-c 
-c 
-c 
-c 
+c
+c
+c
+c
+c
         subroutine hank103l(z,h0,h1,ifexpon)
         implicit real *8 (a-h,o-z)
         dimension cj0(16),cj1(16),ser2(16),ser2der(16)
         complex *16 z,fj0,fj1,y0,y1,h0,h1,z2,cd,ima,cdddlog
-c 
+c
         data gamma/0.5772156649015328606d+00/
         data ima/(0.0d0,1.0d0)/,pi/0.31415926535897932D+01/,
      1      two/2.0d0/
-c 
+c
 c        this subroutine evaluates the hankel functions H_0^1, H_1^1
 c        for a user-specified complex number z in the local regime,
-c        i. e. for cdabs(z) < 1 in the upper half-plane,
-c        and for cdabs(z) < 4 in the lower half-plane,
-c        it is reasonably accurate (14-digit relative accuracy) and
+c        i. e. for cdabs(z) < 1 in the upper half-plane, 
+c        and for cdabs(z) < 4 in the lower half-plane, 
+c        it is reasonably accurate (14-digit relative accuracy) and 
 c        reasonably fast.
-c 
+c
 c                      input parameters:
-c 
+c
 c  z - the complex number for which the hankel functions
 c        H_0, H_1 are to be evaluated
-c 
+c
 c                      output parameters:
-c 
+c
 c  h0, h1 - the said Hankel functions
-c 
-        data cj0/
+c        
+        data cj0/            
      1     0.1000000000000000D+01,  -.2500000000000000D+00,
      2     0.1562500000000000D-01,  -.4340277777777778D-03,
      3     0.6781684027777778D-05,  -.6781684027777778D-07,
@@ -651,9 +683,9 @@ c
      6     0.9941241959127275D-20,  -.1934767032549593D-22,
      7     0.3177446263369152D-25,  -.4462657240925946D-28,
      8     0.5421613028002404D-31,  -.5753886457968550D-34/
-c 
+c
 c        evaluate j0, j1
-c 
+c
         m=16
         fj0=0
         fj1=0
@@ -661,7 +693,7 @@ c
         y1=0
         z2=z**2
         cd=1
-c 
+c        
         do 1800 i=1,m
         fj0=fj0+cj0(i)*cd
         fj1=fj1+cj1(i)*cd
@@ -670,68 +702,59 @@ c
         y0=y0+ser2(i)*cd
  1800 continue
         fj1=-fj1*z
-c 
+c
         cdddlog=cdlog(z/two)+gamma
         y0=cdddlog*fj0+y0
         y0=two/pi*y0
-c 
+c
         y1=y1*z
-c 
+c
         y1=-cdddlog*fj1+fj0/z+y1
         y1=-y1*two/pi
-c 
+c
         h0=fj0+ima*y0
         h1=fj1+ima*y1
-c 
+c
         if(ifexpon .eq. 1) return
-c 
+c
         cd=exp(-ima*z)
         h0=h0*cd
         h1=h1*cd
-c 
+c
         return
         end
-c 
-c 
-c 
-c 
-c 
+c
+c
+c
+c
+c
         subroutine hank103r(z,ier,h0,h1,ifexpon)
         implicit real *8 (a-h,o-z)
-        complex *16 z,com,ima,cd,h0,h1,cccexp,cdd,zz18
-        dimension rea(2)
-        real *8 c0p1(34),c0p1b(36),buf01(2)
-        equivalence (c0p1(34),buf01(1)),
-     1      (c0p1b(1),buf01(2)),(rea(1),com)
-        real *8 c1p1(34),c1p1b(36),buf11(2)
-        equivalence (c1p1(34),buf11(1)),
-     1      (c1p1b(1),buf11(2))
-        real *8 c0p2(34),c0p2b(20),buf02(2)
-        equivalence (c0p2(34),buf02(1)),
-     1      (c0p2b(1),buf02(2))
-        real *8 c1p2(34),c1p2b(28),buf12(2)
-        equivalence (c1p2(34),buf12(1)),
-     1      (c1p2b(1),buf12(2))
+        complex *16 z,ima,cd,h0,h1,cccexp,cdd,zz18
+        real *8 c0p1(70)
+        real *8 c1p1(70)
+        real *8 c0p2(54)
+        real *8 c1p2(62)
         data ima/(0.0d0,1.0d0)/
-c 
+c
 c        this subroutine evaluates the hankel functions H_0^1, H_1^1
-c        for a user-specified complex number z in the right lower
-c        quadrant. it is reasonably accurate (14-digit relative
+c        for a user-specified complex number z in the right lower 
+c        quadrant. it is reasonably accurate (14-digit relative 
 c        accuracy) and reasonably fast.
-c 
-c 
+c        
+c
 c                      input parameters:
-c 
+c
 c  z - the complex number for which the hankel functions
 c        H_0, H_1 are to be evaluated
-c 
+c
 c                      output parameters:
-c 
-c  ier - error return code.
+c
+c  ier - error return code. 
 c         ier=0 means successful conclusion
 c         ier=4 means that z is not in the right lower quadrant
 c  h0, h1 - the said Hankel functions
-c 
+c        
         data c0p1/
      1     -.4268441995428495D-23,  0.4374027848105921D-23,
      2     0.9876152216238049D-23,  -.1065264808278614D-20,
@@ -749,8 +772,7 @@ c
      4     -.1053381327609720D-04,  0.2042555121261223D-04,
      5     -.4812568848956982D-04,  -.1961519090873697D-03,
      6     0.1291714391689374D-02,  0.9234422384950050D-03,
-     7     -.1113890671502769D-01,  0.9053687375483149D-03/
-        data c0p1b/
+     7     -.1113890671502769D-01,  0.9053687375483149D-03,
      8     0.5030666896877862D-01,  -.4923119348218356D-01,
      9     0.5202355973926321D+00,  -.1705244841954454D+00,
      a     -.1134990486611273D+01,  -.1747542851820576D+01,
@@ -769,7 +791,7 @@ c
      3     -.1685723189234701D+04,  -.6065143678129265D+04,
      4     0.2029510635584355D+04,  0.1244402339119502D+04,
      5     -.4336682903961364D+03,  0.8923209875101459D+02/
-c 
+c
         data c1p1/
      1     -.4019450270734195D-23,  -.4819240943285824D-23,
      2     0.1087220822839791D-20,  0.1219058342725899D-21,
@@ -787,9 +809,7 @@ c
      4     -.1983192412396578D-04,  -.1294811208715315D-04,
      5     0.2062663873080766D-03,  -.2867633324735777D-04,
      6     -.1084309075952914D-02,  0.1227880935969686D-02,
-     7     0.2538406015667726D-03,  -.1153316815955356D-01/
-c 
-        data c1p1b/
+     7     0.2538406015667726D-03,  -.1153316815955356D-01,
      8     0.4520140008266983D-01,  0.5693944718258218D-01,
      9     -.9640790976658534D+00,  -.6517135574036008D+00,
      a     0.2051491829570049D+01,  -.1124151010077572D+01,
@@ -808,7 +828,7 @@ c
      3     0.6376198146666679D+04,  -.1033615527971958D+04,
      4     -.1497604891055181D+04,  0.1929025541588262D+04,
      5     -.4219760183545219D+02,  -.4521162915353207D+03/
-c 
+c
         data c0p2/
      1     0.5641895835569398D+00,  -.5641895835321127D+00,
      2     -.7052370223565544D-01,  -.7052369923405479D-01,
@@ -826,9 +846,7 @@ c
      4     0.1325194353842857D+10,  0.1937443530361381D+10,
      5     -.2245999018652171D+11,  -.5998903865344352D+10,
      6     0.1793237054876609D+12,  -.8625159882306147D+11,
-     7     -.5887763042735203D+12,  0.1345331284205280D+13/
-c 
-        data c0p2b/
+     7     -.5887763042735203D+12,  0.1345331284205280D+13,
      8     -.2743432269370813D+13,  -.8894942160272255D+13,
      9     0.4276463113794564D+14,  0.2665019886647781D+14,
      a     -.2280727423955498D+15,  0.3686908790553973D+14,
@@ -839,8 +857,8 @@ c
      5     -.1565204120687265D+17,  0.1215262806973577D+17,
      6     0.3133802397107054D+16,  -.1801394550807078D+17,
      7     0.4427598668012807D+16,  0.6923499968336864D+16/
-c 
-c 
+c
+c
         data c1p2/
      1     -.5641895835431980D+00,  -.5641895835508094D+00,
      2     0.2115710934750869D+00,  -.2115710923186134D+00,
@@ -858,9 +876,7 @@ c
      4     0.5080557859012385D+10,  -.4534199223888966D+10,
      5     -.1064438211647413D+11,  0.8612243893745942D+11,
      6     -.5466017687785078D+12,  -.8070950386640701D+12,
-     7     0.9337074941225827D+13,  0.2458379240643264D+13/
-c 
-        data c1p2b/
+     7     0.9337074941225827D+13,  0.2458379240643264D+13,
      8     -.7548692171244579D+14,  0.3751093169954336D+14,
      9     0.2460677431350039D+15,  -.5991919372881911D+15,
      a     0.1425679408434606D+16,  0.4132221939781502D+16,
@@ -875,32 +891,31 @@ c
      9     -.5322120857794536D+20,  -.6739879079691706D+20,
      a     0.6780343087166473D+20,  0.1053455984204666D+20,
      1     -.2218784058435737D+20,  0.1505391868530062D+20/
-c 
+c
 c        if z is not in the right lower quadrant - bomb out
-c 
+c
         ier=0
-        com=z
-        if( (rea(1) .ge. 0) .and. (rea(2) .le. 0) ) goto 1400
+        if( (real(z) .ge. 0) .and. (imag(z) .le. 0) ) goto 1400
         ier=4
         return
  1400 continue
-c 
+c
         done=1
         thresh1=4**2
         thresh2=8**2
         thresh3=20**2
-c 
-c       check if if the user-specified z is in one of the
-c       intermediate regimes
-c 
+c
+c       check if if the user-specified z is in one of the 
+c       intermediate regimes 
+c
         d=z*dconjg(z)
         if( (d .lt. thresh1) .or. (d .gt. thresh3) ) goto 3000
-c 
+c
 c        if the user-specified z is in the first intermediate regime
 c        (i.e. if its absolute value is between 4 and 8), act accordingly
-c 
+c
         if(d .gt. thresh2) goto 2000
-c 
+c
         cccexp=1
         if(ifexpon .eq. 1) cccexp=cdexp(ima*z)
         cdd=done/cdsqrt(z)
@@ -909,47 +924,47 @@ c
         m=35
         call hank103p(c0p1,m,cd,h0)
         h0=h0*cdd*cccexp*zz18
-c 
+c
         call hank103p(c1p1,m,cd,h1)
         h1=h1*cdd*cccexp*zz18
         return
  2000 continue
-c 
-c       z is in the second intermediate regime (i.e. its
+c
+c       z is in the second intermediate regime (i.e. its 
 c       absolute value is between 8 and 20). act accordingly.
-c 
+c
         cd=done/z
         cdd=sqrt(cd)
-  
+
         cccexp=1
         if(ifexpon .eq. 1) cccexp=cdexp(ima*z)
-  
+
         m=27
-c 
+c
         call hank103p(c0p2,m,cd,h0)
         h0=h0*cccexp*cdd
-c 
+c
         m=31
         call hank103p(c1p2,m,cd,h1)
         h1=h1*cccexp*cdd
         return
  3000 continue
-c 
-c 
+c
+c
 c        z is either in the local regime or the asymptotic one.
 c        if it is in the local regime - act accordingly.
-c 
+c
         if(d .gt. 50.d0) goto 4000
         call hank103l(z,h0,h1,ifexpon)
         return
-c 
+c
 c        z is in the asymptotic regime. act accordingly.
-c 
+c
  4000 continue
         call hank103a(z,h0,h1,ifexpon)
         return
         end
-  
-  
-  
-  
+
+
+
+
