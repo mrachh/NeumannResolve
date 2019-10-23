@@ -20,7 +20,7 @@ EFOL = ../data
 
 .PHONY: all clean list
 
-SOURCES =  helm_neumann2.f \
+SOURCES =  helm_dir2.f \
   $(SRC)/prini.f \
   $(SRC)/legeexps.f \
   $(SRC)/quaplot.f \
