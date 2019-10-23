@@ -524,7 +524,6 @@ c
 
 
        call prinf('building matrix*',i,0)
-cc       goto 1010       
 
       rfac = 1.0d0
       do iedge=1,nedges
@@ -709,7 +708,6 @@ c
 
 cc       goto 1000
 
-cc      goto 1020
 
       info = 0
       allocate(ipiv_ref(nref))
@@ -877,7 +875,6 @@ c
  1000 continue
       
  1020 continue
-      nres = (nlev*k + ncorner2)*2
 
 c
 c
@@ -891,7 +888,6 @@ c
 c
 c
 
-
       allocate(sigma2_ref(nc_ref),sigma2_px(nc_ref))
       allocate(sigma2_scat(nc_ref),sigma2_rand(nc_ref))
 
@@ -899,6 +895,7 @@ c
       istart0 = lns_ref(1)
       istart = lns2(1)
       nlev = irefinelev
+      nres = (nlev*k + ncorner2)*2
       call interp_spdis_dir(nlev,k,ncorner2,soln2(istart),nc_ref,
      1    ts_ref,sigma2_ref)
 
@@ -910,6 +907,7 @@ c
 
       call interp_spdis_dir(nlev,k,ncorner2,soln2_scat(istart),nc_ref,
      1    ts_ref,sigma2_scat)
+
 
 c
 c       compute xsres,ysres,rpanres based on number of resolve 
@@ -979,6 +977,7 @@ c
         sigma2_rand(i) = sigma2_rand(i)*sqrt(wts_ref(i))
       enddo
 
+      call prinf('istart0=*',istart0,1)   
       call comperr(nnnn1,soln_ref(istart0),sigma2_ref,
      1   errdens2(1))
 
@@ -1177,10 +1176,8 @@ c
  1477 format(4(2x,e11.5))
       open(unit=33,file=fres)
         write(33,*) "Polarization errors"
-        write(33,1477) err_t
         write(33,1477) err_t2
-        write(33,*) "Density after resolve errors"
-        write(33,1477) errdens(1:4)
+        write(33,*) "Density errors"
         write(33,1477) errdens2(1:4)
         write(33,*) "Error in potential at targets in volume"
         write(33,1477) errtarg(1:4)
@@ -1281,7 +1278,6 @@ c
         enddo
       enddo
 
-      call prin2('coefs=*',coefs,2*nc0)
       
 
       do i=1,nc
