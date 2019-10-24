@@ -11,6 +11,9 @@
 
       real *8, allocatable :: pl(:),pr(:),rnxe(:),rnye(:)
 
+      real *8, allocatable :: targv(:,:)
+      complex *16, allocatable :: pottarg2_vol(:)
+      complex *16, allocatable :: potex_vol(:)
 
       real *8, allocatable :: xs_ref(:),ys_ref(:),rnx_ref(:),
      1   rny_ref(:),qwts_ref(:),rkappa_ref(:)
@@ -109,6 +112,7 @@
       character *30 sfname1
       character *29 sfname2
       character *31 sfname3,sfname4
+      character *20 vfname1
       
 
 
@@ -282,7 +286,7 @@ c             panels
 
          pl(i) = rtmp
          pr(i) = rtmp
-         imid(i) = 15
+         imid(i) = 5
          nref = nref + imid(i)*kmid + 2*nc_ref
          n = n + imid(i)*kmid + 2*ncorner
          n2 = n2 + imid(i)*kmid + 2*ncorner2
@@ -338,6 +342,12 @@ c
       allocate(pottarg_px(ntarg),pottarg_ref_px(ntarg))
       allocate(pottarg2_px(ntarg))
 
+      nlatv = 300
+      ntargv = nlatv*nlatv
+      allocate(targv(2,ntargv))
+      allocate(pottarg2_vol(ntargv))
+      allocate(potex_vol(ntargv))
+      
       
 
       allocate(pottarg_scat(ntarg),pottarg_ref_scat(ntarg))
@@ -371,6 +381,55 @@ cc      call prin2('tvals=*',tvals,nlat)
         enddo
       enddo
       close(33)
+c
+c
+c       generate volume targets
+c
+
+      xmin = verts(1,1)
+      xmax = verts(1,1)
+
+      ymin = verts(2,1)
+      ymax = verts(2,2)
+
+      do i=2,nverts
+        if(verts(1,i).ge.xmax) xmax = verts(1,i)
+        if(verts(1,i).le.xmin) xmin = verts(1,i)
+        
+        if(verts(2,i).ge.ymax) ymax = verts(2,i)
+        if(verts(2,i).le.ymin) ymin = verts(2,i)
+      enddo
+
+      xsize = xmax - xmin
+      ysize = ymax - ymin
+
+      bsize = xsize
+      if(ysize.gt.bsize) bsize = ysize
+
+      bsize = bsize*1.2
+
+      xc = (xmin+xmax)/2.0d0
+      yc = (ymin+ymax)/2.0d0
+      
+      xmin = xc - bsize/2.0d0
+      xmax = xc + bsize/2.0d0
+      
+      ymin = yc - bsize/2.0d0
+      ymax = yc + bsize/2.0d0
+
+      do i=1,nlatv
+        do j=1,nlatv
+          ipt = (i-1)*nlatv + j
+          targv(1,ipt) = xmin + (xmax-xmin)*(i-1.0d0)/(nlatv-1.0d0)
+          targv(2,ipt) = ymax + (ymin-ymax)*(j-1.0d0)/(nlatv-1.0d0)
+
+        enddo
+      enddo
+
+      open(unit=33,file='xylim.dat')
+      write(33,*) xmin,xmax,ymin,ymax
+      close(33)
+
 
 c
 cc
@@ -1037,6 +1096,40 @@ c
       write(*,*) " "
       write(*,*) "=============================="
 
+c
+c        compute smooth quadrature in the volume
+c
+c
+      write(vfname1,'(a,i3.3,a)') "helm_dir_vol_",nlatv,".dat"
+
+      open(unit=33,file=vfname1)
+      do j=1,ntargv
+        call getrhs(zk,ncharges,xsrc_ext,ysrc_ext,charges,
+     1    targv(1,j),targv(2,j),potex_vol(j),grad)
+
+        inout = -1
+        call pnpoly(targv(1,j),targv(2,j),xverts,yverts,nverts,
+     1     inout)
+        
+        pottarg2_vol(j) = 0
+
+        if(inout.eq.1) then
+          do i=1,n2
+            rr = sqrt((targv(1,j)-xs2(i))**2 + (targv(2,j)-ys2(i))**2)
+            z = zk*rr
+            call hank103(z,h0,h1,ifexpon)
+            rrn = (targv(1,j)-xs2(i))*rnx2(i) + 
+     1         (targv(2,j)-ys2(i))*rny2(i)
+            pottarg2_vol(j) = pottarg2_vol(j) + 
+     1         imainv4*h1*rrn/rr*soln2(i)*sqrt(qwts2(i))*zk
+          enddo
+        endif
+
+        write(33,*) real(potex_vol(j)),real(pottarg2_vol(j)),inout
+      enddo
+
+      close(33)
+      
       stop
       
       

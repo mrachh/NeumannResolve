@@ -88,8 +88,8 @@
       real *8, allocatable :: pottarg_ref(:),pottarg(:),pottarg2(:)
 
       real *8, allocatable :: targv(:,:)
-      real *8, allocatable :: pottarg_ref_smooth(:)
-      real *8, allocatable :: pottarg2_smooth(:)
+      real *8, allocatable :: pottarg2_vol(:)
+      real *8, allocatable :: potex_vol(:)
 
       real *8, allocatable :: pottarg_ref_px(:),pottarg_px(:),
      1     pottarg2_px(:)
@@ -105,6 +105,8 @@
       character *25 sfname1
       character *24 sfname2
       character *26 sfname3,sfname4
+
+      character *15 vfname1
       
 
 
@@ -167,7 +169,7 @@ c
 c
 c        get reference grid
 c
-       irefinelev = 100
+       irefinelev = 10
        nc_ref = k*irefinelev
        allocate(ts_ref(nc_ref),wts_ref(nc_ref))
        call getcornerdis(k,irefinelev,ts_ref,wts_ref)
@@ -267,7 +269,7 @@ c             panels
 
          pl(i) = rtmp
          pr(i) = rtmp
-         imid(i) = 15
+         imid(i) = 5
          nref = nref + imid(i)*kmid + 2*nc_ref
          n = n + imid(i)*kmid + 2*ncorner
          n2 = n2 + imid(i)*kmid + 2*ncorner2
@@ -324,10 +326,11 @@ c
 
 
 
-      nlatv = 4
+      nlatv = 300
       ntargv = nlatv*nlatv
       allocate(targv(2,ntargv))
-      allocate(pottarg_ref_smooth(ntargv),pottarg2_smooth(ntargv))
+      allocate(pottarg2_vol(ntargv))
+      allocate(potex_vol(ntargv))
       
 
       allocate(pottarg_ref_scat(ntarg))
@@ -363,6 +366,10 @@ cc      call prin2('tvals=*',tvals,nlat)
       enddo
       close(33)
 
+c
+c
+c       generate volume targets
+c
 
       xmin = verts(1,1)
       xmax = verts(1,1)
@@ -399,9 +406,14 @@ cc      call prin2('tvals=*',tvals,nlat)
         do j=1,nlatv
           ipt = (i-1)*nlatv + j
           targv(1,ipt) = xmin + (xmax-xmin)*(i-1.0d0)/(nlatv-1.0d0)
-          targv(2,ipt) = ymin + (ymax-ymin)*(i-1.0d0)/(nlatv-1.0d0)
+          targv(2,ipt) = ymax + (ymin-ymax)*(j-1.0d0)/(nlatv-1.0d0)
+
         enddo
       enddo
+
+      open(unit=33,file='xylim.dat')
+      write(33,*) xmin,xmax,ymin,ymax
+      close(33)
 
 c
 cc
@@ -983,6 +995,37 @@ c
       write(*,*) " "
       write(*,*) "=============================="
 
+c
+c        compute smooth quadrature in the volume
+c
+c
+      write(vfname1,'(a,i3.3,a)') "dir_vol_",nlatv,".dat"
+
+      open(unit=33,file=vfname1)
+      do j=1,ntargv
+        call getrhs(ncharges,xsrc_ext,ysrc_ext,charges,
+     1    targv(1,j),targv(2,j),potex_vol(j),grad)
+
+        inout = -1
+        call pnpoly(targv(1,j),targv(2,j),xverts,yverts,nverts,
+     1     inout)
+        
+        pottarg2_vol(j) = 0
+
+        if(inout.eq.1) then
+          do i=1,n2
+            rr = (targv(1,j)-xs2(i))**2 + (targv(2,j)-ys2(i))**2
+            rrn = (targv(1,j)-xs2(i))*rnx2(i) + 
+     1         (targv(2,j)-ys2(i))*rny2(i)
+            pottarg2_vol(j) = pottarg2_vol(j) + 
+     1         rrn/2/pi/rr*soln2(i)*sqrt(qwts2(i))
+          enddo
+        endif
+
+        write(33,*) potex_vol(j),pottarg2_vol(j),inout
+      enddo
+
+      close(33)
       
 c
 c
@@ -1003,9 +1046,6 @@ c
       do i=1,ntarg
         call getrhs(ncharges,xsrc_ext,ysrc_ext,charges,xt(i),yt(i),
      1     potex(i),grad)
-        
-
-        
       enddo
 
       call comppottarg_adap(ntarg,xt,yt,nref,xs_ref,ys_ref,soln_ref,
@@ -1020,8 +1060,6 @@ c
 
       erra = sqrt(erra/ra)
       call prin2('error in reference potential=*',erra,1)
-
-      stop
 
 
       call comppottarg_adap(ntarg,xt,yt,nref,xs_ref,ys_ref,soln_ref_px,

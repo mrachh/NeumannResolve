@@ -5,7 +5,7 @@ FC = gfortran
 FFLAGS = -O2 -c -w --openmp 
 FLINK = gfortran -w -o $(EXEC) --openmp
 FEND = -L/usr/local/opt/openblas/lib -lopenblas
-FEND = -lopenblas
+#FEND = -lopenblas
 
 SRC = ../src
 
