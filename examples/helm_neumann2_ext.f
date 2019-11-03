@@ -41,27 +41,33 @@
 
       complex *16 grad(2),gradex(2)
 
-      complex *16, allocatable :: rhs_ref(:),soln_ref(:)
-      complex *16, allocatable :: rhs(:),soln(:)
-      complex *16, allocatable :: rhs2(:),soln2(:)
+      complex *16, allocatable :: rhs_ref(:),soln_ref(:),ff_ref(:)
+      complex *16, allocatable :: rhs(:),soln(:),ff(:)
+      complex *16, allocatable :: rhs2(:),soln2(:),ff2(:)
 
 
       complex *16, allocatable :: rhs_ref_px(:),soln_ref_px(:)
-      complex *16, allocatable :: rhs_px(:),soln_px(:)
-      complex *16, allocatable :: rhs2_px(:),soln2_px(:)
+      complex *16, allocatable :: ff_ref_px(:)
+      complex *16, allocatable :: rhs_px(:),soln_px(:),ff_px(:)
+      complex *16, allocatable :: rhs2_px(:),soln2_px(:),ff2_px(:)
 
 
       complex *16, allocatable :: rhs_ref_py(:),soln_ref_py(:)
-      complex *16, allocatable :: rhs_py(:),soln_py(:)
-      complex *16, allocatable :: rhs2_py(:),soln2_py(:)
+      complex *16, allocatable :: ff_ref_py(:)
+      complex *16, allocatable :: rhs_py(:),soln_py(:),ff_py(:)
+      complex *16, allocatable :: rhs2_py(:),soln2_py(:),ff2_py(:)
 
       complex *16, allocatable :: rhs_ref_scat(:),soln_ref_scat(:)
-      complex *16, allocatable :: rhs_scat(:),soln_scat(:)
+      complex *16, allocatable :: ff_ref_scat(:)
+      complex *16, allocatable :: rhs_scat(:),soln_scat(:),ff_scat(:)
       complex *16, allocatable :: rhs2_scat(:),soln2_scat(:)
+      complex *16, allocatable :: ff2_scat(:)
 
       complex *16, allocatable :: rhs_ref_rand(:),soln_ref_rand(:)
+      complex *16, allocatable :: ff_ref_rand(:)
       complex *16, allocatable :: rhs_rand(:), soln_rand(:)
-      complex *16, allocatable :: rhs2_rand(:),soln2_rand(:)
+      complex *16, allocatable :: ff_rand(:)
+      complex *16, allocatable :: rhs2_rand(:),soln2_rand(:),ff2_rand(:)
 
       complex *16, allocatable :: xmatc_ref(:,:,:), xmat_ref(:,:)
       complex *16, allocatable :: xmatc(:,:,:), xmat(:,:)
@@ -74,6 +80,7 @@
       
       real *8 errdens(100),errdens2(100)
       real *8 errtarg(100),errtarg2(100)
+      real *8 errff(100),errff2(100)
 
       real *8, allocatable :: targ(:,:)
 
@@ -96,19 +103,25 @@
      1     pottarg2_scat(:)
       complex *16, allocatable :: pottarg_ref_rand(:),pottarg_rand(:),
      1     pottarg2_rand(:)
-      complex *16 zk,imainv4,h0,h1,z
+      complex *16 zk,imainv4,h0,h1,z,ima
       complex *16 pot_ref,pot1,pot2,potex_1
       complex *16 pot
       integer ifexpon
       data imainv4/(0.0d0,0.25d0)/
+      data ima/(0.0d0,1.0d0)/
       character *21 tfname
-      character *26 fname1,fres
-      character *23 fname2
-      character *25 fname3,fname4
+      character *26 fres
+      character *30 fname1
+      character *29 fname2
+      character *31 fname3,fname4
 
-      character *30 sfname1
-      character *29 sfname2
-      character *31 sfname3,sfname4
+      character *25 sfname1
+      character *24 sfname2
+      character *26 sfname3,sfname4
+      
+      character *26 ffname1
+      character *25 ffname2
+      character *27 ffname3,ffname4
       
 
 
@@ -181,7 +194,7 @@ c
 c
 c        get reference grid
 c
-       irefinelev = 100
+       irefinelev = 150
        nc_ref = k*irefinelev
        allocate(ts_ref(nc_ref),wts_ref(nc_ref))
        call getcornerdis(k,irefinelev,ts_ref,wts_ref)
@@ -190,7 +203,7 @@ c
 c         get bisection grid
 c
 
-       nlev = 40
+       nlev = 10
        ncorner = k*nlev
        allocate(ts(ncorner),wts(ncorner))
        call getcornerdis(k,nlev,ts,wts)
@@ -291,7 +304,7 @@ c             panels
 
          pl(i) = rtmp
          pr(i) = rtmp
-         imid(i) = 15
+         imid(i) = 5
          nref = nref + imid(i)*kmid + 2*nc_ref
          n = n + imid(i)*kmid + 2*ncorner
          n2 = n2 + imid(i)*kmid + 2*ncorner2
@@ -349,8 +362,23 @@ c       generate targets on an exponential grid
 c
       nlat = 300
       ntarg = nlat*nlat
-      tmin = atan2(verts(2,2),verts(1,2))
-      tmax = atan2(verts(2,3),verts(1,3))
+      t0 = atan2(verts(2,2),verts(1,2))
+      t1 = atan2(verts(2,3),verts(1,3))
+
+      if(t0.lt.0) t0 = t0 + 2*pi
+      if(t1.lt.0) t1 = t1 + 2*pi
+
+      if(t0.le.t1) then
+        tmin = t0
+        tmax = t1
+      endif
+
+      if(t1.le.t0) then
+        tmin = t1
+        tmax = t0
+      endif
+
+      
       allocate(ztarg(2,ntarg),potex(ntarg),pottarg(ntarg))
       allocate(pottarg2(ntarg),pottarg_ref(ntarg))
       allocate(pottarg_px(ntarg),pottarg_ref_px(ntarg))
@@ -377,7 +405,7 @@ c
 cc      call prin2('rvals=*',rvals,nlat)
 cc      call prin2('tvals=*',tvals,nlat)
 
-      write(tfname,'(a,i3.3,a)') "targ_",nlat,".dat"
+      write(tfname,'(a,i3.3,a)') "helm_ext/targ_",nlat,".dat"
       open(unit=33,file=tfname) 
       do irr = 1,nlat
         do itt = 1,nlat
@@ -652,23 +680,25 @@ c
       ysrc_in(3) = -0.01d0
       
 
-      allocate(rhs_ref(nref),soln_ref(nref))
-      allocate(rhs_ref_px(nref),soln_ref_px(nref))
-      allocate(rhs_ref_py(nref),soln_ref_py(nref))
+      nthet = 100
+      allocate(rhs_ref(nref),soln_ref(nref),ff_ref(nthet))
+      allocate(rhs_ref_px(nref),soln_ref_px(nref),ff_ref_px(nthet))
+      allocate(rhs_ref_py(nref),soln_ref_py(nref),ff_ref_py(nthet))
       allocate(rhs_ref_scat(nref),soln_ref_scat(nref))
       allocate(rhs_ref_rand(nref),soln_ref_rand(nref))
+      allocate(ff_ref_scat(nthet),ff_ref_rand(nthet))
 
-      allocate(rhs(n),soln(n))
-      allocate(rhs_px(n),soln_px(n))
-      allocate(rhs_py(n),soln_py(n))
-      allocate(rhs_scat(n),soln_scat(n))
-      allocate(rhs_rand(n),soln_rand(n))
+      allocate(rhs(n),soln(n),ff(nthet))
+      allocate(rhs_px(n),soln_px(n),ff_px(nthet))
+      allocate(rhs_py(n),soln_py(n),ff_py(nthet))
+      allocate(rhs_scat(n),soln_scat(n),ff_scat(nthet))
+      allocate(rhs_rand(n),soln_rand(n),ff_rand(nthet))
 
-      allocate(rhs2(n2),soln2(n2))
-      allocate(rhs2_px(n2),soln2_px(n2))
-      allocate(rhs2_py(n2),soln2_py(n2))
-      allocate(rhs2_scat(n2),soln2_scat(n2))
-      allocate(rhs2_rand(n2),soln2_rand(n2))
+      allocate(rhs2(n2),soln2(n2),ff2(nthet))
+      allocate(rhs2_px(n2),soln2_px(n2),ff2_px(nthet))
+      allocate(rhs2_py(n2),soln2_py(n2),ff2_py(nthet))
+      allocate(rhs2_scat(n2),soln2_scat(n2),ff2_scat(nthet))
+      allocate(rhs2_rand(n2),soln2_rand(n2),ff2_rand(nthet))
 
 
 
@@ -760,6 +790,7 @@ c
       enddo
 
 
+
       do i=1,nref
         do j=1,nref
           xmat_ref(j,i) = xmat_ref(j,i) 
@@ -812,6 +843,10 @@ cc      goto 1020
       info = 0
       allocate(ipiv_ref(nref))
 
+
+      ifcompref = 0
+      if(ifcompref.eq.1) then
+
       call zgetrf(nref,nref,xmat_ref,nref,ipiv_ref,info)
 
       info = 0
@@ -832,6 +867,59 @@ cc      goto 1020
       info = 0
       call zgetrs('t',nref,1,xmat_ref,nref,ipiv_ref,soln_ref_rand,nref,
      1   info)
+
+
+      open(unit=33,file='helm_ext/solnref_ref_150.dat')
+      open(unit=34,file='helm_ext/solnref_px_150.dat')
+      open(unit=35,file='helm_ext/solnref_py_150.dat')
+      open(unit=36,file='helm_ext/solnref_scat_150.dat')
+      open(unit=37,file='helm_ext/solnref_rand_150.dat')
+
+ 1441 format(2(2x,d22.16))      
+      do i=1,nref
+        write(33,1441) real(soln_ref(i)),imag(soln_ref(i))
+        write(34,1441) real(soln_ref_px(i)),imag(soln_ref_px(i))
+        write(35,1441) real(soln_ref_py(i)),imag(soln_ref_py(i))
+        write(36,1441) real(soln_ref_scat(i)),imag(soln_ref_scat(i))
+        write(37,1441) real(soln_ref_rand(i)),imag(soln_ref_rand(i))
+      enddo
+
+      close(33)
+      close(34)
+      close(35)
+      close(36)
+      close(37)
+
+      endif
+
+      if(ifcompref.ne.1) then
+
+      open(unit=33,file='helm_ext/solnref_ref_150.dat')
+      open(unit=34,file='helm_ext/solnref_px_150.dat')
+      open(unit=35,file='helm_ext/solnref_py_150.dat')
+      open(unit=36,file='helm_ext/solnref_scat_150.dat')
+      open(unit=37,file='helm_ext/solnref_rand_150.dat')
+
+      do i=1,nref
+        read(33,1441) tmp1,tmp2
+        soln_ref(i) = tmp1 + ima*tmp2
+        read(34,1441) tmp1,tmp2
+        soln_ref_px(i) = tmp1 + ima*tmp2
+        read(35,1441) tmp1,tmp2
+        soln_ref_py(i) = tmp1 + ima*tmp2
+        read(36,1441) tmp1,tmp2
+        soln_ref_scat(i) = tmp1 + ima*tmp2
+        read(37,1441) tmp1,tmp2
+        soln_ref_rand(i) = tmp1 + ima*tmp2
+      enddo
+
+      close(33)
+      close(34)
+      close(35)
+      close(36)
+      close(37)
+
+      endif
 
 
       info = 0
@@ -876,6 +964,124 @@ cc      goto 1020
       info = 0
       call zgetrs('t',n2,1,xmat2,n2,ipiv2,soln2_rand,n2,info)
 
+C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,tt,rrn,rr)
+      do i=1,nthet
+        tt = 2.0d0*pi*(i-1)/(nthet+0.0d0)
+        ff_ref(i) = 0
+        ff_ref_px(i) = 0
+        ff_ref_py(i) = 0
+        ff_ref_scat(i) = 0
+        ff_ref_rand(i) = 0
+        
+        do j=1,nref
+          rr = xs_ref(j)*cos(tt) + ys_ref(j)*sin(tt)
+          rrn = rnx_ref(j)*cos(tt) + rny_ref(j)*sin(tt)
+          ff_ref(i) = ff_ref(i) + soln_ref(j)*exp(-ima*zk*rr)*
+     1      sqrt(qwts_ref(j))*ima*zk*rrn
+          ff_ref_px(i) = ff_ref_px(i) + soln_ref_px(j)*exp(-ima*zk*rr)*
+     1      sqrt(qwts_ref(j))*ima*zk*rrn
+          ff_ref_py(i) = ff_ref_py(i) + soln_ref_py(j)*exp(-ima*zk*rr)*
+     1      sqrt(qwts_ref(j))*ima*zk*rrn
+          ff_ref_scat(i) = ff_ref_scat(i) + soln_ref_scat(j)*
+     1       exp(-ima*zk*rr)*sqrt(qwts_ref(j))*ima*zk*rrn
+          ff_ref_rand(i) = ff_ref_rand(i) + soln_ref_rand(j)*
+     1       exp(-ima*zk*rr)*sqrt(qwts_ref(j))*ima*zk*rrn
+        enddo
+
+        ff(i) = 0
+        ff_px(i) = 0
+        ff_py(i) = 0
+        ff_scat(i) = 0
+        ff_rand(i) = 0
+        
+        do j=1,n
+          rr = xs(j)*cos(tt) + ys(j)*sin(tt)
+          rrn = rnx(j)*cos(tt) + rny(j)*sin(tt)
+          ff(i) = ff(i) + soln(j)*exp(-ima*zk*rr)*
+     1      sqrt(qwts(j))*ima*zk*rrn
+          ff_px(i) = ff_px(i) + soln_px(j)*exp(-ima*zk*rr)*
+     1      sqrt(qwts(j))*ima*zk*rrn
+          ff_py(i) = ff_py(i) + soln_py(j)*exp(-ima*zk*rr)*
+     1      sqrt(qwts(j))*ima*zk*rrn
+          ff_scat(i) = ff_scat(i) + soln_scat(j)*
+     1       exp(-ima*zk*rr)*sqrt(qwts(j))*ima*zk*rrn
+          ff_rand(i) = ff_rand(i) + soln_rand(j)*
+     1       exp(-ima*zk*rr)*sqrt(qwts(j))*ima*zk*rrn
+        enddo
+
+        ff2(i) = 0
+        ff2_px(i) = 0
+        ff2_py(i) = 0
+        ff2_scat(i) = 0
+        ff2_rand(i) = 0
+        
+        do j=1,n2
+          rr = xs2(j)*cos(tt) + ys2(j)*sin(tt)
+          rrn = rnx2(j)*cos(tt) + rny2(j)*sin(tt)
+          ff2(i) = ff2(i) + soln2(j)*exp(-ima*zk*rr)*
+     1      sqrt(qwts2(j))*ima*zk*rrn
+          ff2_px(i) = ff2_px(i) + soln2_px(j)*exp(-ima*zk*rr)*
+     1      sqrt(qwts2(j))*ima*zk*rrn
+          ff2_py(i) = ff2_py(i) + soln2_py(j)*exp(-ima*zk*rr)*
+     1      sqrt(qwts2(j))*ima*zk*rrn
+          ff2_scat(i) = ff2_scat(i) + soln2_scat(j)*
+     1       exp(-ima*zk*rr)*sqrt(qwts2(j))*ima*zk*rrn
+          ff2_rand(i) = ff2_rand(i) + soln2_rand(j)*
+     1       exp(-ima*zk*rr)*sqrt(qwts2(j))*ima*zk*rrn
+        enddo
+      enddo
+C$OMP END PARALLEL DO      
+
+
+      write(ffname1,'(a,i3.3,a,i2.2,a)') "helm_ext/ff_ref_",
+     1   irefinelev,"_",nlev,".dat"
+      write(ffname2,'(a,i3.3,a,i2.2,a)') "helm_ext/ff_px_",
+     1    irefinelev,"_",nlev,".dat"
+      write(ffname3,'(a,i3.3,a,i2.2,a)') "helm_ext/ff_scat_",
+     1    irefinelev,"_",nlev,".dat"
+      write(ffname4,'(a,i3.3,a,i2.2,a)') "helm_ext/ff_rand_",
+     1   irefinelev,"_",nlev,".dat"
+
+      open(unit=33,file=ffname1)
+      Open(unit=34,file=ffname2)
+      open(unit=35,file=ffname3)
+      open(unit=36,file=ffname4)
+ 1422 format(7(2x,e22.16))     
+
+      do i=1,nthet
+        tt = 2.0d0*pi*(i-1)/(nthet+0.0d0)
+        write(33,1422) tt,real(ff_ref(i)),imag(ff_ref(i)),
+     1    real(ff(i)),imag(ff(i)),real(ff2(i)),imag(ff2(i))
+        write(34,1422) tt,real(ff_ref_px(i)),imag(ff_ref_px(i)),
+     1    real(ff_px(i)),imag(ff_px(i)),real(ff2_px(i)),
+     2    imag(ff2_px(i))
+        write(35,1422) tt,real(ff_ref_scat(i)),imag(ff_ref_scat(i)),
+     1    real(ff_scat(i)),imag(ff_scat(i)),real(ff2_scat(i)),
+     2    imag(ff2_scat(i))
+        write(36,1422) tt,real(ff_ref_rand(i)),imag(ff_ref_rand(i)),
+     1    real(ff_rand(i)),imag(ff_rand(i)),real(ff2_rand(i)),
+     2    imag(ff2_rand(i))
+      enddo
+
+      close(33)
+      close(34)
+      close(35)
+      close(36)
+
+      call comperr(nthet,ff_ref,ff,errff(1))
+      call comperr(nthet,ff_ref,ff2,errff2(1))
+
+      call comperr(nthet,ff_ref_px,ff_px,errff(2))
+      call comperr(nthet,ff_ref_px,ff2_px,errff2(2))
+
+      call comperr(nthet,ff_ref_scat,ff_scat,errff(3))
+      call comperr(nthet,ff_ref_scat,ff2_scat,errff2(3))
+
+      call comperr(nthet,ff_ref_rand,ff_rand,errff(4))
+      call comperr(nthet,ff_ref_rand,ff2_rand,errff2(4))
+
+      call prin2('err ff=*',errff,4)
+      call prin2('err ff2=*',errff2,4)
 
 
 c
@@ -1149,36 +1355,36 @@ c
       
       nnnn1 = nlev*k
       nnnn2 = (nlev-1)*k
-      call comperrq(nnnn1,soln_ref(istart0),solncomp,qwts_ref(istart0),
+      call comperr(nnnn1,soln_ref(istart0),solncomp,
      1   errdens2(1))
-      call comperrq(nnnn2,soln_ref(istart0),soln(istart),
-     1   qwts_ref(istart0),errdens(1))
+      call comperr(nnnn2,soln_ref(istart0),soln(istart),
+     1   errdens(1))
 
-      call comperrq(nnnn1,soln_ref_px(istart0),solncomp_px,
-     1   qwts_ref(istart0),errdens2(2))
-      call comperrq(nnnn2,soln_ref_px(istart0),soln_px(istart),
-     1   qwts_ref(istart0),errdens(2))
+      call comperr(nnnn1,soln_ref_px(istart0),solncomp_px,
+     1   errdens2(2))
+      call comperr(nnnn2,soln_ref_px(istart0),soln_px(istart),
+     1   errdens(2))
 
 
-      call comperrq(nnnn1,soln_ref_scat(istart0),solncomp_scat,
-     1   qwts_ref(istart0),errdens2(3))
-      call comperrq(nnnn2,soln_ref_scat(istart0),soln_scat(istart),
-     1   qwts_ref(istart0),errdens(3))
+      call comperr(nnnn1,soln_ref_scat(istart0),solncomp_scat,
+     1   errdens2(3))
+      call comperr(nnnn2,soln_ref_scat(istart0),soln_scat(istart),
+     1   errdens(3))
 
-      call comperrq(nnnn1,soln_ref_rand(istart0),solncomp_rand,
-     1   qwts_ref(istart0),errdens2(4))
+      call comperr(nnnn1,soln_ref_rand(istart0),solncomp_rand,
+     1   errdens2(4))
       
-      call comperrq(nnnn2,soln_ref_rand(istart0),soln_rand(istart),
-     1   qwts_ref(istart0),errdens(4))
+      call comperr(nnnn2,soln_ref_rand(istart0),soln_rand(istart),
+     1   errdens(4))
 
-      write(sfname1,'(a,i3.3,a,i2.2,a)') "ext_helm_sigma_ref_",
-     1   nlat,"_",nlev,".dat"
-      write(sfname2,'(a,i3.3,a,i2.2,a)') "ext_helm_sigma_px_",nlat,"_",
+      write(sfname1,'(a,i2.2,a)') "helm_ext/sigma_ref_",
+     1   nlev,".dat"
+      write(sfname2,'(a,i2.2,a)') "helm_ext/sigma_px_",
+     1     nlev,".dat"
+      write(sfname3,'(a,i2.2,a)') "helm_ext/sigma_scat_",
      1    nlev,".dat"
-      write(sfname3,'(a,i3.3,a,i2.2,a)') "ext_helm_sigma_scat_",nlat,
-     1    "_",nlev,".dat"
-      write(sfname4,'(a,i3.3,a,i2.2,a)') "ext_helm_sigma_rand_",
-     1   nlat,"_",nlev,".dat"
+      write(sfname4,'(a,i2.2,a)') "helm_ext/sigma_rand_",
+     1   nlev,".dat"
 
       open(unit=33,file=sfname1)
       Open(unit=34,file=sfname2)
@@ -1186,23 +1392,31 @@ c
       open(unit=36,file=sfname4)
 
 
- 1457 format(4(2x,e22.16))      
+ 1457 format(7(2x,e22.16))      
       do i=1,nc_ref
         ii = istart0+i-1
         write(33,1457) ts_ref(i),real(soln_ref(ii))/sqrt(qwts_ref(ii)),
-     1     real(sigma_ref(i)),real(sigma2_ref(i))
+     1     imag(soln_ref(ii))/sqrt(qwts_ref(ii)),
+     1     real(sigma_ref(i)),imag(sigma_ref(i)),real(sigma2_ref(i)),
+     1     imag(sigma2_ref(i))
 
         write(34,1457) ts_ref(i),
-     1     real(soln_ref_px(ii))/sqrt(qwts_ref(ii)),real(sigma_px(i)),
-     2     real(sigma2_px(i))
+     1     real(soln_ref_px(ii))/sqrt(qwts_ref(ii)),
+     1     imag(soln_ref_px(ii))/sqrt(qwts_ref(ii)),
+     1     real(sigma_px(i)),imag(sigma_px(i)),
+     2     real(sigma2_px(i)),imag(sigma2_px(i))
 
         write(35,1457) ts_ref(i),
      1     real(soln_ref_scat(ii))/sqrt(qwts_ref(ii)),
-     2     real(sigma_scat(i)),real(sigma2_scat(i))
+     1     imag(soln_ref_scat(ii))/sqrt(qwts_ref(ii)),
+     2     real(sigma_scat(i)),imag(sigma_scat(i)),
+     2     real(sigma2_scat(i)),imag(sigma2_scat(i))
 
         write(36,1457) ts_ref(i),
      1     real(soln_ref_rand(ii))/sqrt(qwts_ref(ii)),
-     1     real(sigma_rand(i)),real(sigma2_rand(i))
+     1     imag(soln_ref_rand(ii))/sqrt(qwts_ref(ii)),
+     1     real(sigma_rand(i)),imag(sigma_rand(i)),
+     1     real(sigma2_rand(i)),imag(sigma2_rand(i))
 
       enddo
 
@@ -1217,6 +1431,9 @@ c
       write(*,*) " "
       write(*,*) " "
       write(*,*) "=============================="
+
+      stop
+
       
       
 
@@ -1338,14 +1555,14 @@ C$      t2 = omp_get_wtime()
       call comperr(ntarg,pottarg_ref_rand,pottarg2_rand,errtarg2(4))
       call comperr(ntarg,pottarg_ref_rand,pottarg_rand,errtarg(4))
 
-      write(fname1,'(a,i3.3,a,i2.2,a)') "ext_helm_ref_",nlat,"_",nlev,
-     1    ".dat"
-      write(fname2,'(a,i3.3,a,i2.2,a)') "ext_helm_px_",nlat,"_",
-     1  nlev,".dat"
-      write(fname3,'(a,i3.3,a,i2.2,a)') "ext_helm_scat_",nlat,"_",nlev,
-     1    ".dat"
-      write(fname4,'(a,i3.3,a,i2.2,a)') "ext_helm_rand_",nlat,"_",nlev,
-     1    ".dat"
+      write(fname1,'(a,i3.3,a,i2.2,a)') "helm_ext/potvol_ref_",
+     1    nlat,"_",nlev,".dat"
+      write(fname2,'(a,i3.3,a,i2.2,a)') "helm_ext/potvol_px_",
+     1    nlat,"_",nlev,".dat"
+      write(fname3,'(a,i3.3,a,i2.2,a)') "helm_ext/potvol_scat_",
+     1    nlat,"_",nlev,".dat"
+      write(fname4,'(a,i3.3,a,i2.2,a)') "helm_ext/potvol_rand_",
+     1    nlat,"_",nlev,".dat"
 
       open(unit=33,file=fname1)
       Open(unit=34,file=fname2)
@@ -1382,7 +1599,7 @@ C$      t2 = omp_get_wtime()
       write(*,*) " "
       write(*,*) "=============================="
 
-      write(fres,'(a,i3.3,a,i2.2,a)') "ext_helm_res_",nlat,"_",
+      write(fres,'(a,i3.3,a,i2.2,a)') "helm_ext/res_",nlat,"_",
      1   nlev,".dat"
  1477 format(4(2x,e11.5))
       open(unit=33,file=fres)

@@ -65,6 +65,8 @@
       real *8, allocatable :: xmatc2(:,:,:), xmat2(:,:),xmat2copy(:,:)
       real *8, allocatable :: xtmp(:,:)
 
+      real *8, allocatable :: svdcoefs(:)
+
       real *8 pol_t(2,2),pol_t2(2,2),pol_t_ref(2,2),
      1   err_t(2,2),err_t2(2,2)
       
@@ -102,9 +104,9 @@
       character *18 fname2
       character *20 fname3,fname4
 
-      character *25 sfname1
-      character *24 sfname2
-      character *26 sfname3,sfname4
+      character *21 sfname1
+      character *20 sfname2
+      character *22 sfname3,sfname4
 
       character *15 vfname1
       
@@ -160,6 +162,17 @@ c      generate diadically refined mesh
 c      with refinement at the origin
 c      between [0,1]
 c
+c
+c        read svd coefs
+c
+       read(32,*) lkeep
+ 1200 format(6x,d38.32)
+       allocate(svdcoefs(lkeep*10))
+       do i=1,lkeep
+         read(32,1200) svdcoefs(i)
+       enddo
+       close(32)
+c
 
        itype = 1
 
@@ -169,7 +182,7 @@ c
 c
 c        get reference grid
 c
-       irefinelev = 10
+       irefinelev = 100
        nc_ref = k*irefinelev
        allocate(ts_ref(nc_ref),wts_ref(nc_ref))
        call getcornerdis(k,irefinelev,ts_ref,wts_ref)
@@ -315,7 +328,7 @@ c
 c
 c       generate targets on an exponential grid
 c
-      nlat = 4
+      nlat = 100
       ntarg = nlat*nlat
       tmin = atan2(verts(2,2),verts(1,2))
       tmax = atan2(verts(2,3),verts(1,3))
@@ -737,6 +750,8 @@ c
 
        call prinf('end of building rhs*',i,0)
 
+cc      goto 1021       
+
       info = 0
       allocate(ipiv_ref(nref))
 
@@ -954,14 +969,10 @@ c
      1   errdens2(4))
       
 
-      write(sfname1,'(a,i3.3,a,i2.2,a)') "dir_sigma_ref_",nlat,"_",
-     1     nlev,".dat"
-      write(sfname2,'(a,i3.3,a,i2.2,a)') "dir_sigma_px_",nlat,"_",nlev,
-     1     ".dat"
-      write(sfname3,'(a,i3.3,a,i2.2,a)') "dir_sigma_scat_",nlat,"_",
-     1    nlev,".dat"
-      write(sfname4,'(a,i3.3,a,i2.2,a)') "dir_sigma_rand_",nlat,"_",
-     1    nlev,".dat"
+      write(sfname1,'(a,i3.3,a)') "dir_sigma_ref_",nlat,".dat"
+      write(sfname2,'(a,i3.3,a)') "dir_sigma_px_",nlat,".dat"
+      write(sfname3,'(a,i3.3,a)') "dir_sigma_scat_",nlat,".dat"
+      write(sfname4,'(a,i3.3,a)') "dir_sigma_rand_",nlat,".dat"
 
       open(unit=33,file=sfname1)
       Open(unit=34,file=sfname2)
@@ -1026,6 +1037,8 @@ c
       enddo
 
       close(33)
+
+      stop
       
 c
 c
@@ -1076,11 +1089,24 @@ c
       
       call prin2('done generating reference potentials*',i,0)
 
-
+ 1021 continue
 
       call comppottarg_adap_newquad(ntarg,xt,yt,n2,xs2,ys2,soln2,qwts2,
      1 nedges,rnxe,rnye,nepts2,lns2,rns2,imid,k,ncorner2,rtmp,svdcoefs,
      2 lkeep,pottarg2)
+      erra = 0
+      ra = 0
+      do i=1,ntarg
+        erra = erra + abs(pottarg2(i)-potex(i))**2
+        ra = ra + abs(potex(i))**2
+      enddo
+
+      erra = sqrt(erra/ra)
+      call prin2('error in reference potential=*',erra,1)
+
+      stop
+
+
 
       call comppottarg_adap_newquad(ntarg,xt,yt,n2,xs2,ys2,soln2_px,
      1 qwts2,nedges,rnxe,rnye,nepts2,lns2,rns2,imid,k,ncorner2,
@@ -1622,9 +1648,8 @@ c
 c
 c
 c
-
       subroutine comppottarg_adap_newquad(ntarg,xt,yt,n,xs,ys,soln,
-     1  qwts,nedges,rnxe,rnye,nepts,lns,rns,imid,k,nlev,ncorner,rtmp,
+     1  qwts,nedges,rnxe,rnye,nepts,lns,rns,imid,k,ncorner,rtmp,
      2  svdcoefs,lkeep,pot)
       implicit real *8 (a-h,o-z)
       integer ntarg,n,nedges,nepts(nedges+1)
@@ -1783,9 +1808,11 @@ C$OMP$PRIVATE(itarg,par1,ipan0,iedge,istart,i,ipt,rr,j,tpack)
 C$OMP$PRIVATE(stack,vals,pottmp,ier,maxrec,numint,tpackcon)
 C$OMP$PRIVATE(a,b)
       do itarg=1,ntarg
+        print *, itarg
         pot(itarg) = 0
         par1(2) = xt(itarg)
         par1(3) = yt(itarg)
+
         ipan0 = 1
 c
 c        evaluate potential adaptively for all panels
@@ -1796,27 +1823,25 @@ c
 c
 c          handle corner panels for the edges
 c
-c
-c
-         par1(5) = rnxe(iedge)
-         par1(6) = rnye(iedge)
-         par1(1) = ncorner+0.1d0
+          par1(5) = rnxe(iedge)
+          par1(6) = rnye(iedge)
+          par1(1) = ncorner+0.1d0
 
 c
 c         left side of edge
 c
-         par1(4) = rpanlen(ipan0)/2/pi
-         istart = lns(iedge)
-         do j=1,ncorner
-           ipt = istart + j-1
-           tpackcon(j) = xcoefs(ipt)
-           tpackcon(j+ncorner) = ycoefs(ipt)
-           tpackcon(j+2*ncorner) = soln_coefs(ipt)
-         enddo
+          par1(4) = sqrt(rpanlen(ipan0))/2/pi
+          istart = lns(iedge)
+          do j=1,ncorner
+            ipt = istart + j-1
+            tpackcon(j) = xcoefs(ipt)
+            tpackcon(j+ncorner) = ycoefs(ipt)
+            tpackcon(j+2*ncorner) = soln_coefs(ipt)
+          enddo
 
-         do i=1,3*ncorner
-           par1(6+i) = tpackcon(i)
-         enddo
+          do i=1,3*ncorner
+            par1(6+i) = tpackcon(i)
+          enddo
 
 
          do j=1,200
@@ -1832,10 +1857,11 @@ c
          ier = 0
          maxrec = 0
          numint = 0
-         call adinrec(ier,stack,a,b,dlp_adap,par1,svdcoefs,tsquad,
-     1       wquad,m,vals,nnmax,eps,pottmp,maxdepth,maxrec,numint)
+         call adinrec(ier,stack,a,b,dlp_adap_spdis,par1,svdcoefs,
+     1     tsquad,wquad,m,vals,nnmax,eps,pottmp,maxdepth,
+     2     maxrec,numint)
           
-         pot(itarg) = pot(itarg) + pottmp*sqrt(rtmp)
+         pot(itarg) = pot(itarg) + pottmp
 
          ipan0 = ipan0 + 1
 
@@ -1873,7 +1899,7 @@ c
      1       tsquad,wquad,m,vals,nnmax,eps,pottmp,maxdepth,
      2       maxrec,numint)
           
-         pot(itarg) = pot(itarg) + pottmp*sqrt(rtmp)
+         pot(itarg) = pot(itarg) + pottmp
 
 
 
@@ -2115,7 +2141,7 @@ c
       rlen = par1(4)
       rnxe = par1(5)
       rnye = par1(6)
-     
+
       do i=1,k
         call lapnestev2(ier,svdcoefs,x,i,pol)
         xx = xx + par1(6+i)*pol

@@ -1,5 +1,5 @@
 
-EXEC = int2
+EXEC = int3
 
 FC = gfortran
 FFLAGS = -O2 -c -w --openmp 

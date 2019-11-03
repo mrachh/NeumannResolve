@@ -109,9 +109,9 @@
       character *23 fname2
       character *25 fname3,fname4
 
-      character *30 sfname1
-      character *29 sfname2
-      character *31 sfname3,sfname4
+      character *26 sfname1
+      character *25 sfname2
+      character *27 sfname3,sfname4
       character *20 vfname1
       
 
@@ -1050,14 +1050,14 @@ c
       call comperr(nnnn1,soln_ref_rand(istart0),sigma2_rand,
      1   errdens2(4))
       
-      write(sfname1,'(a,i3.3,a,i2.2,a)') "dir_helm_sigma_ref_",
-     1   nlat,"_",nlev,".dat"
-      write(sfname2,'(a,i3.3,a,i2.2,a)') "dir_helm_sigma_px_",nlat,"_",
-     1    nlev,".dat"
-      write(sfname3,'(a,i3.3,a,i2.2,a)') "dir_helm_sigma_scat_",nlat,
-     1    "_",nlev,".dat"
-      write(sfname4,'(a,i3.3,a,i2.2,a)') "dir_helm_sigma_rand_",
-     1   nlat,"_",nlev,".dat"
+      write(sfname1,'(a,i3.3,a)') "dir_helm_sigma_ref_",
+     1   nlat,".dat"
+      write(sfname2,'(a,i3.3,a)') "dir_helm_sigma_px_",nlat,
+     1    ".dat"
+      write(sfname3,'(a,i3.3,a)') "dir_helm_sigma_scat_",nlat,
+     1    ".dat"
+      write(sfname4,'(a,i3.3,a)') "dir_helm_sigma_rand_",
+     1   nlat,".dat"
 
       open(unit=33,file=sfname1)
       Open(unit=34,file=sfname2)

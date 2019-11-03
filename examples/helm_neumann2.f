@@ -89,6 +89,7 @@
 
       complex *16, allocatable :: sigma_ref(:),sigma_px(:)
       complex *16, allocatable :: sigma_rand(:),sigma_scat(:)
+      complex *16, allocatable :: sigmatmp(:)
 
       complex *16, allocatable :: sigma2_ref(:),sigma2_px(:)
       complex *16, allocatable :: sigma2_rand(:),sigma2_scat(:)
@@ -186,7 +187,7 @@ c
 c
 c        get reference grid
 c
-       irefinelev = 100
+       irefinelev = 150
        nc_ref = k*irefinelev
        allocate(ts_ref(nc_ref),wts_ref(nc_ref))
        call getcornerdis(k,irefinelev,ts_ref,wts_ref)
@@ -195,7 +196,7 @@ c
 c         get bisection grid
 c
 
-       nlev = 40
+       nlev = 80
        ncorner = k*nlev
        allocate(ts(ncorner),wts(ncorner))
        call getcornerdis(k,nlev,ts,wts)
@@ -296,7 +297,7 @@ c             panels
 
          pl(i) = rtmp
          pr(i) = rtmp
-         imid(i) = 5
+         imid(i) = 15
          nref = nref + imid(i)*kmid + 2*nc_ref
          n = n + imid(i)*kmid + 2*ncorner
          n2 = n2 + imid(i)*kmid + 2*ncorner2
@@ -1178,6 +1179,21 @@ c
       npanhalf = nlev+1
 
 
+      allocate(sigmatmp(nc_ref))
+
+      istart2 = lns2(1)
+
+      call interp_spdis_dir(irefinelev,k,ncorner2,
+     1  soln2_scat(istart2),nc_ref,ts_ref,sigmatmp)
+      
+      do i=1,irefinelev*k
+        sigmatmp(i) = sigmatmp(i)
+        write(64,*) ts_ref(i),real(soln_ref_scat(i))/sqrt(qwts_ref(i)),
+     1     real(sigmatmp(i))/sqrt(rtmp)
+      enddo
+
+
+
       call interp_spdis(nlev,k,ncorner2,nres,solncomp,
      1   qres,nc_ref,ts_ref,sigma2_ref)
 
@@ -1303,9 +1319,8 @@ c
 
       close(33)
       
-      stop
       
-      
+      stop 
 
 c
 c
@@ -1545,6 +1560,55 @@ c
 c
 c
 c
+c---------------------------------------------
+c
+c
+c
+c
+c
+      subroutine interp_spdis_dir(nlev,k,nc0,soln,nc,ts,sigma)
+      implicit real *8 (a-h,o-z)
+      complex *16 soln(*),sigma(*)
+      complex *16, allocatable :: coefs(:)
+      real *8 ts(*)
+      real *8, allocatable :: ts0(:),wts0(:)
+      real *8, allocatable :: umat(:,:),vmat(:,:)
+      real *8 pols
+      
+      
+      itype = 2
+      allocate(umat(nc0,nc0),vmat(nc0,nc0),coefs(nc0))
+      allocate(ts0(nc0),wts0(nc0))
+
+      itype = 2
+      call lapdisc(ts0,wts0,umat,vmat,nc0,itype)
+
+      do i=1,nc0
+        coefs(i) = 0
+        do j=1,nc0
+          coefs(i) = coefs(i) + vmat(i,j)*soln(j)
+        enddo
+      enddo
+
+      
+
+      do i=1,nc
+        tt = ts(i)
+        sigma(i) = 0
+        do j=1,nc0
+          call lapeval(tt,j,pol)
+          sigma(i) = sigma(i) + coefs(j)*pol
+        enddo
+      enddo
+
+      return
+      end
+c
+c
+c
+c
+c
+
 c
 
       subroutine helmcornmat2(thet,zk,rtmp,n,ts,wts,umat,svdcoefs,xmat)

@@ -83,6 +83,8 @@
 
       real *8, allocatable :: sigma_ref(:),sigma_px(:)
       real *8, allocatable :: sigma_rand(:),sigma_scat(:)
+      
+      real *8, allocatable :: sigmatmp(:)
 
       real *8, allocatable :: sigma2_ref(:),sigma2_px(:)
       real *8, allocatable :: sigma2_rand(:),sigma2_scat(:)
@@ -178,7 +180,7 @@ c
 c         get bisection grid
 c
 
-       nlev = 10
+       nlev = 80
        ncorner = k*nlev
        allocate(ts(ncorner),wts(ncorner))
        call getcornerdis(k,nlev,ts,wts)
@@ -360,6 +362,7 @@ c
       
       allocate(xt(ntarg),yt(ntarg))
       allocate(rvals(nlat),tvals(nlat))
+
 
 
       do i=1,nlat
@@ -836,8 +839,10 @@ c
         soln2_rand(i) = rhs2_rand(i)
       enddo
 
+
        call prinf('end of building rhs*',i,0)
 
+cc      goto 1111      
       info = 0
       allocate(ipiv_ref(nref))
 
@@ -1182,6 +1187,20 @@ c
 
       npanhalf = nlev+1
 
+      allocate(sigmatmp(nc_ref))
+
+      istart2 = lns2(1)
+
+      call interp_spdis_dir(irefinelev,k,ncorner2,
+     1  soln2(istart2),nc_ref,ts_ref,sigmatmp)
+      
+      do i=1,irefinelev*k
+        sigmatmp(i) = sigmatmp(i)
+        write(63,*) ts_ref(i),soln_ref(i)/sqrt(qwts_ref(i)),
+     1     sigmatmp(i)/sqrt(rtmp)
+      enddo
+
+      stop
 
       call interp_spdis(nlev,k,ncorner2,nres,solncomp,
      1   qres,nc_ref,ts_ref,sigma2_ref)
@@ -1301,8 +1320,9 @@ c
       enddo
 
       close(33)
-      
+
       stop
+      
       
 
 c
@@ -1325,7 +1345,7 @@ c
         call getrhs(ncharges,xsrc,ysrc,charges,xt(i),yt(i),potex(i),
      1     grad)
       enddo
-
+ 1111 continue
       call comppottarg_adap(ntarg,xt,yt,nref,xs_ref,ys_ref,soln_ref,
      1    qwts_ref,nedges,nepts_ref,lns_ref,rns_ref,imid,k,irefinelev,
      2    pottarg_ref)
@@ -1512,8 +1532,6 @@ c
 
       do i=istart+1,nc
         tt = ts(i)*2.0d0**(nlev-1)
-        print *, ts(i)
-        write(76,*) tt
         sigma(i) = 0
         do j=1,nc0
           call lapeval(tt,j,pol)
@@ -1524,6 +1542,51 @@ c
       return
       end
 
+c---------------------------------------------
+c
+c
+c
+c
+c
+      subroutine interp_spdis_dir(nlev,k,nc0,soln,nc,ts,sigma)
+      implicit real *8 (a-h,o-z)
+      real *8 soln(*),sigma(*),ts(*)
+      real *8, allocatable :: ts0(:),wts0(:)
+      real *8, allocatable :: coefs(:),umat(:,:),vmat(:,:),vals(:)
+      real *8 pols
+      
+      
+      itype = 2
+      allocate(umat(nc0,nc0),vmat(nc0,nc0),coefs(nc0))
+      allocate(ts0(nc0),wts0(nc0))
+
+      itype = 2
+      call lapdisc(ts0,wts0,umat,vmat,nc0,itype)
+
+      alpha = 1.0d0
+      beta = 0
+      call dgemv('n',nc0,nc0,alpha,vmat,nc0,soln,1,beta,coefs,1)
+
+      call prin2('coefs=*',coefs,nc0)
+      
+
+      do i=1,nc
+        tt = ts(i)
+        sigma(i) = 0
+        do j=1,nc0
+          call lapeval(tt,j,pol)
+          sigma(i) = sigma(i) + coefs(j)*pol
+        enddo
+      enddo
+
+      return
+      end
+
+
+
+c---------------------------------------------
+c
+c
 
 
 c---------------------------------------------
@@ -1560,8 +1623,6 @@ c
 
       do i=istart+1,nc
         tt = ts(i)*2.0d0**(nlev)-1.0d0
-        print *, ts(i)
-        write(76,*) tt
         call legepols(tt,k-1,pols)
         sigma(i) = 0
         do j=1,k
@@ -2329,7 +2390,7 @@ C$OMP END PARALLEL DO
       real *8, allocatable :: rpanlen(:)
       real *8 ts(k),umat(k,k),vmat(k,k),wts(k)
       real *8 tsquad(100),wquad(100)
-      real *8 stack(2,200),vals(200),par1(4)
+      real *8 stack(2,200),vals(200),par1(100)
       real *8, allocatable :: tpack(:)
 
       external slp_adap
@@ -2373,17 +2434,13 @@ C$OMP END PARALLEL DO
 
 cc      call prin2('rpanlen=*',rpanlen,npan)
 
-      do i=1,n
-        write(35,'(5(2x,e11.5))') xs(i),ys(i),xcoefs(i),ycoefs(i),
-     1     soln_coefs(i)
-      enddo
 
       a = -1.0d0
       b = 1.0d0
       m = 20
       eps = 1.0d-13
       maxdepth = 200
-      nnmax = 10000
+      nnmax = 100000
 
       ifwhts = 1
       call legewhts(m,tsquad,wquad,ifwhts)
@@ -2391,11 +2448,10 @@ cc      call prin2('rpanlen=*',rpanlen,npan)
       allocate(tpack(3*k))
 
 
-      
 
 
 C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(itarg,par1,i,j,ipt)
-C$OMP$PRIVATE(tpack,pottmp,ier,stack,vals,maxrec,numint,a,b)
+C$OMP$PRIVATE(tpack,pottmp,ier,stack,vals,maxrec,numint)
       do itarg=1,ntarg
         pot(itarg) = 0
         par1(1) = k+0.1d0
