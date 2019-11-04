@@ -1,0 +1,41 @@
+\section{Mathematical preliminaries}
+\subsection{Boundary value problems}
+Consider a polygonal domain $\Omega \subset \mathbb{R}^2$ with boundary $\Gamma.$ 
+Let $\gamma:[0,L] \to \Gamma$ be an arclength parametrization, and $\nu(t)$ denote the 
+outward-pointing normal to $\Gamma$ at $\gamma(t).$  
+Let $\omega \in \mathbb{C}$ in the first quadrant of the complex plane denote the 
+Helmholtz wave number.
+For ease of exposition our primary focus in the first portion of this paper will be on the 
+following four boundary value problems.
+\begin{enumerate}
+\item The interior Dirichlet problem:
+\begin{align}\label{eqn:BVPID}
+(\Delta + \omega^2)u(x) &= 0, \hspace{1 cm} x \in \Omega,\\
+u(\gamma(t)) &= f(t), \hspace{0.43 cm} t \in [0,L].
+\end{align}
+
+\item The exterior Dirichlet problem:
+\begin{align}\label{eqn:BCPED}
+(\Delta + \omega^2) u(x) &= 0, \hspace{1 cm} x \in \mathbb{R}^2\setminus\Omega,\\
+u(\gamma(t)) &= f(t), \hspace{0.43 cm} t \in[0,L].
+\end{align}
+
+\item The interior Neumann problem:
+\begin{align}\label{eqn:BVPIN}
+(\Delta + \omega^2) u(x) &= 0, \hspace{1 cm} x \in \Omega,\\
+\nabla u(\gamma(t))\cdot \nu(t)  &= f(t), \hspace{0.45 cm} t\in [0,L].
+\end{align}
+
+\item The exterior Neumann problem:
+\begin{align}\label{eqn:BVPEN}
+(\Delta + \omega^2) u(x) &= 0, \hspace{1 cm} x \in \mathbb{R}^2\setminus\Omega,\\
+\nabla u(\gamma(t))\cdot \nu(t)  &= f(t), \hspace{0.45 cm} t\in [0,L].
+\end{align}
+
+\end{enumerate}
+
+\begin{remark}
+The existence and uniqueness of solutions to the above equations is a classical result. 
+The exterior Dirichlet problem and interior Neumann problem require the additional assumption that
+$$\int_0^L f(t)\,{\rm d}t = 0.$$
+\end{remark}
