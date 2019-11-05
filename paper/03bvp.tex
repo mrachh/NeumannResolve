@@ -1,25 +1,37 @@
  \section{Boundary integral equations}
-A classical way of solving the interior and exterior Dirchlet and Neumann Laplace boundary value problems given above is to convert them to boundary integral equations. Before describing this reduction we first define the single and double layer potential operators and summarize their relevant properties.
+A classical way of solving the interior and exterior Dirchlet and Neumann Laplace and Helmholtz boundary value problems given above is to convert them to boundary integral equations. Before describing this reduction we first define the single and double layer potential operators and summarize their relevant properties.
  \subsection{Layer potentials}
 \begin{definition}
 Given a density $\sigma$ defined on $\Gamma$ the single-layer potential is defined by
 \beqn
-\cS[\sigma](\by) = -\frac{1}{2\pi} \int_{\Gamma} \log{|\bx - \by|} \sigma(\bx) dS_{\bx}.
+\cS_{\omega}[\sigma](\by) =  \int_{\Gamma} G_{\omega} (\bx,\by)\sigma(\bx) dS_{\bx} \, ,
 \eeqn
+where
+\beqn
+G_{\omega}(\bx,\by) = \begin{cases} 
+\frac{i}{4} H_{0}(\omega |\bx-\by|) &\quad \omega \neq 0 \,, \\
+-\frac{1}{2\pi} \log{|\bx-\by|} &\quad \omega = 0.
+\end{cases}
+\eeqn
+Here $H_{0}$ is the Hankel 
+function of the first kind of order $0$. 
 Similarly, the double-layer potential is defined via the formula
 \beqn
-\cD[\sigma](\by) = \frac{1}{2\pi} \int_{\Gamma} \frac{\nu(\bx) \cdot( \by-\bx)}{|\bx-\by|^2}\sigma(\bx) dS_{\bx},
+\cD_{\omega}[\sigma](\by) =\int_{\Gamma} \bnu(\bx) \cdot \nabla_{\bx} G_{\omega}(\bx,\by) \sigma(\bx) dS_{\bx},
 \eeqn
-where with some abuse of notation we denote the normal to $\Gamma$ at $\bx$ by $\nu(\bx).$
+where with some abuse of notation we denote the normal to $\Gamma$ at $\bx$ by $\bnu(\bx).$
 \end{definition}
+\begin{remark}
+The layer potentials $\cS_{0}[\sigma]$ and $\cD_{0}[\omega]$ are the layer potentials for Laplace's equation.
+\end{remark}
 \begin{definition}
-For $\bx \in \Gamma$ we define the kernel $K(x,y)$ by
+For $\bx \in \Gamma$ we define the kernel $K_{\omega}(\bx,\by)$ by
 \begin{equation}
-K(\bx,\by) =\frac{1}{2\pi}  \frac{\nu(\bx) \cdot( \by-\bx)}{|\bx-\by|^2},
+K_{\omega}(\bx,\by) =\bnu(\bx) \cdot \nabla_{\bx} G_{\omega}(\bx,\by),
 \end{equation}
-where $\nu(\bx)$ is the normal to $\Gamma$ at $\bx.$ It is often convenient to work instead with the parametrization of $K$ which we will denote by $k:[0,L]\times k[0,L] \to \mathbb{R}$ and is defined by
+where $\nu(\bx)$ is the normal to $\Gamma$ at $\bx.$ It is often convenient to work instead with the parametrization of $K_{\omega}$ which we will denote by $k_{\omega}:[0,L]\times k[0,L] \to \mathbb{R}$ and is defined by
 \begin{align}
-k(s,t) = \frac{1}{2 \pi} \frac{\nu(s) \cdot( \gamma(t)-\gamma(s))}{|\gamma(s)-\gamma(t)|^2}.
+k_{\omega}(s,t) = K_{\omega}(\gamma(s),\gamma(t)).
 \end{align}
 \end{definition}
 
@@ -32,83 +44,118 @@ Suppose the point $\bx$ approaches a point $\bx_0 = \gamma(t_0)$ from the inside
 \end{align}
 for some $\alpha >0.$ Then 
 \begin{align}
-&\lim_{\bx \to \bx_0} \cS[\sigma](\bx) = \cS[\sigma](\bx_0)\\
-&\lim_{\bx \to \bx_0} \cD[\rho](\bx) = \cD[\rho](\bx_0)- \rho(\bx_0)\\
-&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS\rho(\bx+\tau \nu(t_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\rho](\bx_0+\tau \nu(t_0))+ \rho(\bx_0).
+&\lim_{\bx \to \bx_0} \cS_{\omega}[\sigma](\bx) = \cS_{\omega}[\sigma](\bx_0)\\
+&\lim_{\bx \to \bx_0} \cD_{\omega}[\rho](\bx) = \cD_{\omega}[\rho](\bx_0)- \rho(\bx_0)\\
+&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS_{\omega}[\rho](\bx+\tau \bnu(t_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS_{\omega}[\rho](\bx_0+\tau \bnu(t_0))+ \rho(\bx_0).
 \end{align}
 Similarly, if $\bx$ approaches a point $\bx_0 = \gamma(t_0)$ from the outside then
 \begin{align}
-&\lim_{\bx \to \bx_0} \cS[\sigma](\bx) = \cS[\sigma](\bx_0)\\
-&\lim_{\bx \to \bx_0} \cD[\rho](\bx) = \cD[\rho](\bx_0)+ \rho(\bx_0)\\
-&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\rho](\bx+\tau \nu(t_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\rho](\bx_0+\tau \nu(t_0))- \rho(\bx_0).
+&\lim_{\bx \to \bx_0} \cS_{\omega}[\sigma](\bx) = \cS_{\omega}[\sigma](\bx_0)\\
+&\lim_{\bx \to \bx_0} \cD_{\omega}[\rho](\bx) = \cD_{\omega}[\rho](\bx_0)+ \rho(\bx_0)\\
+&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS_{\omega}[\rho](\bx+\tau \bnu(t_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS_{\omega}[\rho](\bx_0+\tau \bnu(t_0))- \rho(\bx_0).
 \end{align}
 \end{theorem}
 
 We define the following operator which arises in the study of Neumann boundary value problems.
 \begin{definition}
-Let $\cS$ be the single-layer potential operator. Let $\nu\cdot \nabla \cS$  denote its normal derivative restricted to $\Gamma.$ In particular, for $\by \in \Gamma,$
+Let $\cS_{\omega}$ be the single-layer potential operator. Let $\bnu\cdot \nabla \cS_{\omega}$  denote its normal derivative restricted to $\Gamma.$ In particular, for $\by \in \Gamma,$
 \begin{align}
-\nu\cdot \nabla \cS[\rho] (\by) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau = 0} \cS[\rho](\by + \tau \nu(t_0)),
+\bnu(\by)\cdot \nabla \cS_{\omega}[\rho] (\by) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau = 0} \cS_{\omega}[\rho](\by + \tau \bnu(t_0)),
 \end{align}
 where $\gamma(t_0) = \by.$
 \end{definition}
 
 The following proposition relates the normal derivative of the single-layer operator to the double-layer operator. Its proof follows directly from the definitions.
 \begin{proposition}
-Let $\cS,\cD:L^2(\Gamma) \to L^2(\Gamma)$ be defined as above. Let $\nu \cdot \nabla \cS$ denote the normal derivative of $\cS$ in the sense of the previous definition. Then $\nu \cdot \nabla \cS = \cD^*$ where $*$ denotes the adjoint operator. In particular, for all $\rho,\sigma \in L^2(\Gamma)$
+Let $\cS_{\omega},\cD_{\omega}:L^2(\Gamma) \to L^2(\Gamma)$ be defined as above. Let $\bnu \cdot \nabla \cS_{\omega}$ denote the normal derivative of $\cS_{\omega}$ in the sense of the previous definition. Then $\bnu \cdot \nabla \cS _{\omega}= \cD_{\omega}^{T}$ where $T$ denotes the adjoint operator with respect to the inner product
+\beqn
+< f,g > = \int_{0}^{L} f(\gamma(t)) g(\gamma(t)) dt\,.
+\eeqn
+In particular, for all $\rho,\sigma \in L^2(\Gamma)$
 \begin{align}
-\cD[\sigma](\gamma(t)] = \int_0^L k(s,t)\,\sigma(\gamma(s))\, {\rm d}s
+\cD_{\omega}[\sigma](\gamma(t)] = \int_0^L k_{\omega}(s,t)\,\sigma(\gamma(s))\, {\rm d}s
 \end{align}
 and
 \begin{align}
-\nu\cdot \nabla\cS[\rho](\gamma(t)] = \int_0^L k(t,s)\,\rho(\gamma(s))\, {\rm d}s.
+\bnu(\gamma(t))\cdot \nabla\cS_{\omega}[\rho](\gamma(t)] = \int_0^L k_{\omega}(t,s)\,\rho(\gamma(s))\, {\rm d}s.
 \end{align}
 \end{proposition}
 
 \subsection{Reduction of boundary value problems}
 In this section we describe the conversion of the Laplace boundary value problems (interior Dirichlet, exterior  Dirichlet, interior Neumann, and exterior Neumann) to second-kind integral equations.
 
-\begin{theorem}
-Let $\sigma \in L^2([0,L])$ and $f: [0,L] \rightarrow \mathbb{R}$ be defined via the formula
+\begin{theorem} [Interior Dirichlet problem for the Laplace and Helmholtz equations]
+Let $f:[0,L] \rightarrow \mathbb{C}$ be in $L^{2}[0,L]$. If $\omega$ is not an Dirichlet resonance of $\Omega$, then 
+there exists a unique $\sigma \in L^{2}[0,L]$ which satisfies
 \begin{align}
-f(s)= - \sigma(s)+ \int_0^L k(t,s)\,\sigma(t)\,{\rm d}t,
+f(s)= - \sigma(s)+ \int_0^L k_{\omega}(t,s)\,\sigma(t)\,{\rm d}t,
 \label{bie_intd}
 \end{align}
-for all $s \in [0,L].$ For $f \in L^2([0,L])$ the above integral equation has a unique solution for $\sigma \in L^2([0.L]).$ Moreover, the solution to the interior Dirichlet problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cD[\sigma](\by)$ for all $\by \in \Omega.$
+Moreover, the solution to the interior Dirichlet problem for Laplace/Helmeholtz equation with boundary data $f$ is given by $u(\by) = \cD_{\omega}[\sigma](\by)$ for all $\by \in \Omega.$
 \end{theorem}
 
-\begin{theorem}
-Let $\sigma \in L^2([0,L])$ and $f: [0,L] \rightarrow \mathbb{R}$ be defined via the formula
+\begin{theorem} [Exterior Dirichlet problem for the Laplace equation]
+Let $f:[0,L] \rightarrow \mathbb{C}$ be in $L^{2}[0,L]$. Then there exists a unique $\sigma \in L^{2}[0,L]$ which
+satisfies
 \begin{align}
-f(s)=  \sigma(s)+ \int_0^L k(t,s)\,\sigma(t)\,{\rm d}t,
+f(s)=  \sigma(s)+ \int_0^L (k_{0}(t,s) + 1)\,\sigma(t)\,{\rm d}t,
 \end{align}
-for all $s \in [0,L].$ For $f \in L^2([0,L])$ such that
-\begin{align}
-\int_0^L f(t)\,{\rm d}t = 0
-\end{align}
- the above integral equation has a unique solution for $\sigma \in L^2([0.L]).$ Moreover, the solution to the exterior Dirichlet problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cD[\sigma](\by)$
+for all $s \in [0,L].$ 
+Moreover, the solution to the exterior Dirichlet problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cD_{0}[\sigma](\by) + \int_{0}^{L} \sigma(t) dt$
 for all $\by \in \mathbb{R}^2 \setminus \Omega.$
 \end{theorem}
 
-\begin{theorem}
-Let $\rho \in L^2([0,L])$ and $f: [0,L] \rightarrow \mathbb{R}$ be defined via the formula
+\begin{theorem} [Exterior Dirichlet problem for the Helmholtz equation]
+Let $f:[0,L] \rightarrow \mathbb{C}$ be in $L^{2}[0,L]$. Suppose $\omega$ is not an interior Neumann resonance of $\Omega$. Then there exists a unique $\sigma \in L^{2}[0,L]$ which
+satisfies
 \begin{align}
-f(s)= \rho(s)+ \int_0^L k(s,t)\,\rho(t)\,{\rm d}t,
+f(s)=  \sigma(s)+ \int_0^L k_{\omega}(t,s) \,\sigma(t)\,{\rm d}t,
 \end{align}
-for all $s \in [0,L].$ For $f \in L^2([0,L])$ the above integral equation has a unique solution for $\rho \in L^2([0,L])$  if and only if
-\begin{align}
-\int_0^L f(t)\,{\rm d}t.
-\end{align}
- Moreover, the solution to the interior Neumann problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cS[\rho](\by)$ for all $\by \in \Omega.$
+for all $s \in [0,L].$ 
+Moreover, the solution to the exterior Dirichlet problem for Helmholtz's equation with boundary data $f$ is given by $u(\by) = \cD_{\omega}[\sigma](\by)$
+for all $\by \in \mathbb{R}^2 \setminus \Omega.$
 \end{theorem}
 
-\begin{theorem}
-Let $\rho \in L^2([0,L])$ and $f: [0,L] \rightarrow \mathbb{R}$ be defined via the formula
+
+\begin{theorem}[Interior Neumann problem for the Laplace equation]
+Let $f:[0,L] \rightarrow \mathbb{C}$ be in $L^{2}[0,L]$ and satisfy $\int_{0}^{L} f(t) = 0$ \, .
+Then there exists a unique $\rho \in L^{2}[0,L]$ which satisfies
 \begin{align}
-f(s)= -\rho(s)+ \int_0^L k(s,t)\,\rho(t)\,{\rm d}t,
+f(s)=  \rho(s)+ \int_0^L (k_{0}(s,t) + 1)\,\sigma(t)\,{\rm d}t,
+\label{bie_intd}
 \end{align}
-for all $s \in [0,L].$ For $f \in L^2([0,L])$ the above integral equation has a unique solution for $\rho \in L^2([0.L]).$ Moreover, the solution to the exterior Neumann problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cS[\rho](\by)$ for all $\by \in \Omega.$
+Moreover, the solution to the interior Neumann problem for Laplace equation with boundary data $f$ is given by $u(\by) = \cS_{0}[\rho](\by)$ for all $\by \in \Omega.$
 \end{theorem}
+
+\begin{theorem}[Interior Neumann problem for the Helmholtz equation]
+Let $f:[0,L] \rightarrow \mathbb{C}$ be in $L^{2}[0,L]$. Suppose that $\omega$ is not an interior Neumann resonance for 
+$\Omega$. 
+Then there exists a unique $\rho \in L^{2}[0,L]$ which satisfies
+\begin{align}
+f(s)=  \rho(s)+ \int_0^L k_{\omega}(s,t) \,\sigma(t)\,{\rm d}t,
+\label{bie_intd}
+\end{align}
+Moreover, the solution to the interior Neumann problem for the Helmholtz equation with boundary data $f$ is given by $u(\by) = \cS_{\omega}[\rho](\by)$ for all $\by \in \Omega.$
+\end{theorem}
+
+
+
+\begin{theorem}[Exterior Neumann problem for the Laplace and Helmholtz equations]
+Let $f:[0,L] \rightarrow \mathbb{C}$ be in $L^{2}[0,L]$. Suppose that $\omega$ is not an interior Dirichlet resonance for 
+$\Omega$. 
+Then there exists a unique $\rho \in L^{2}[0,L]$ which satisfies
+\begin{align}
+f(s)=  \rho(s)+ \int_0^L k_{\omega}(s,t) \,\sigma(t)\,{\rm d}t,
+\label{bie_intd}
+\end{align}
+Moreover, the solution to the interior Neumann problem for the Laplace ($\omega =0$) and Helmholtz equation with boundary data $f$ is given by $u(\by) = \cS_{\omega}[\rho](\by)$ for all $\by \in \Omega.$
+\end{theorem}
+
+\begin{remark}
+Even though the exterior Dirichlet and Neumann problems for Helmholtz equations are well-posed partial differential equations, the corresponding integral equations obtained by setting $u = \cD_{\omega}[\sigma](\by)$ for the Dirichlet problem and
+$u = \cS_{\omega}[\rho](\by)$ are known to have a countable set of spurious resonances at the interior Neumann and Dirichlet resonances respectively. These spurious resonances can be eliminated by using a combined field integral representation 
+for $u$ instead. We defer the extension of our method to the combined field representation to section (ENTER section number here).
+\end{remark}
 
 \subsection{Corner expansions}
 

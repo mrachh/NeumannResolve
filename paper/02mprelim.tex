@@ -3,39 +3,67 @@
 Consider a polygonal domain $\Omega \subset \mathbb{R}^2$ with boundary $\Gamma.$ 
 Let $\gamma:[0,L] \to \Gamma$ be an arclength parametrization, and $\nu(t)$ denote the 
 outward-pointing normal to $\Gamma$ at $\gamma(t).$  
-Let $\omega \in \mathbb{C}$ in the first quadrant of the complex plane denote the 
+Let $\omega \in \mathbb{C} \setminus \{ 0 \}$ in the first quadrant of the complex plane denote the 
 Helmholtz wave number.
-For ease of exposition our primary focus in the first portion of this paper will be on the 
-following four boundary value problems.
 \begin{enumerate}
-\item The interior Dirichlet problem:
-\begin{align}\label{eqn:BVPID}
-(\Delta + \omega^2)u(x) &= 0, \hspace{1 cm} x \in \Omega,\\
+\item The interior Dirichlet problem for Laplace's equation:
+\begin{align}\label{eqn:BVPIDL}
+\Delta u(\bx) &= 0, \hspace{1 cm} \bx \in \Omega,\\
 u(\gamma(t)) &= f(t), \hspace{0.43 cm} t \in [0,L].
 \end{align}
 
-\item The exterior Dirichlet problem:
-\begin{align}\label{eqn:BCPED}
-(\Delta + \omega^2) u(x) &= 0, \hspace{1 cm} x \in \mathbb{R}^2\setminus\Omega,\\
-u(\gamma(t)) &= f(t), \hspace{0.43 cm} t \in[0,L].
+\item The interior Dirichlet problem for Helmholtz's equation:
+\begin{align}\label{eqn:BVPIDH}
+(\Delta + \omega^2) u(\bx) &= 0, \hspace{1 cm} \bx \in \Omega,\\
+u(\gamma(t)) &= f(t), \hspace{0.43 cm} t \in [0,L].
 \end{align}
 
-\item The interior Neumann problem:
-\begin{align}\label{eqn:BVPIN}
-(\Delta + \omega^2) u(x) &= 0, \hspace{1 cm} x \in \Omega,\\
-\nabla u(\gamma(t))\cdot \nu(t)  &= f(t), \hspace{0.45 cm} t\in [0,L].
+
+\item The exterior Dirichlet problem for Laplace's equation:
+\begin{align}\label{eqn:BVPEDL}
+\Delta u(\bx) &= 0, \hspace{1 cm} \bx \in \mathbb{R}^2\setminus\Omega,\\
+u(\gamma(t)) &= f(t), \hspace{0.43 cm} t \in[0,L], \\
+u(\bx) &= O(1) , \hspace{0.4cm} |\bx| \to \infty.
 \end{align}
 
-\item The exterior Neumann problem:
-\begin{align}\label{eqn:BVPEN}
-(\Delta + \omega^2) u(x) &= 0, \hspace{1 cm} x \in \mathbb{R}^2\setminus\Omega,\\
-\nabla u(\gamma(t))\cdot \nu(t)  &= f(t), \hspace{0.45 cm} t\in [0,L].
+\item The exterior Dirichlet problem for Helmholtz's equation:
+\begin{align}\label{eqn:BVPEDH}
+\Delta u(\bx) &= 0, \hspace{1 cm} x \in \mathbb{R}^2\setminus\Omega,\\
+u(\gamma(t)) &= f(t), \hspace{0.43 cm} t \in[0,L], \\
+\sqrt{|\bx|} \left|\partial_{|\bx|} u - i\omega u(\bx)\right| &\to 0 , \hspace{0.86cm} |\bx| \to \infty.
+\end{align}
+
+\item The interior Neumann problem for Laplace's equation:
+\begin{align}\label{eqn:BVPINL}
+\Delta u(\bx) &= 0, \hspace{1 cm} \bx \in \Omega,\\
+\nabla u(\gamma(t))\cdot \bnu(t)  &= f(t), \hspace{0.45 cm} t\in [0,L],\\
+\int_{0}^{L} f(t) dt &= 0.
+\end{align}
+
+\item The interior Neumann problem for Helmholtz's equation:
+\begin{align}\label{eqn:BVPINH}
+(\Delta + \omega^2) u(\bx) &= 0, \hspace{1 cm} \bx \in \Omega,\\
+\nabla u(\gamma(t))\cdot \bnu(t)  &= f(t), \hspace{0.45 cm} t\in [0,L].
+\end{align}
+
+\item The exterior Neumann problem for Laplace's equation:
+\begin{align}\label{eqn:BVPEDL}
+\Delta u(\bx) &= 0, \hspace{1 cm} \bx \in \mathbb{R}^2\setminus\Omega,\\
+\nabla u(\gamma(t))\cdot \bnu(t)  &= f(t), \hspace{0.43 cm} t \in[0,L], \\
+\left|u(\bx) + \left(\frac{1}{2\pi} \int_{0}^{L} f(t) dt\right) \log{|\bx|}\right| &\to 0 , \hspace{0.4cm} |\bx| \to \infty.
+\end{align}
+
+\item The exterior Neumann problem for Helmholtz's equation:
+\begin{align}\label{eqn:BVPEDH}
+\Delta u(\bx) &= 0, \hspace{1 cm} x \in \mathbb{R}^2\setminus\Omega,\\
+\nabla u(\gamma(t))\cdot \bnu(t)  &= f(t), \hspace{0.43 cm} t \in[0,L], \\
+\sqrt{|\bx|} \left|\partial_{|\bx|} u - i\omega u(\bx)\right| &\to 0 , \hspace{0.86cm} |\bx| \to \infty.
 \end{align}
 
 \end{enumerate}
 
 \begin{remark}
 The existence and uniqueness of solutions to the above equations is a classical result. 
-The exterior Dirichlet problem and interior Neumann problem require the additional assumption that
-$$\int_0^L f(t)\,{\rm d}t = 0.$$
+The interior Dirichlet and Neumann problems for Helmholtz equation have a countable set of
+real $\omega$'s (which only accumulate at $\infty$)  for which the PDE has a non-unique solution. 
 \end{remark}
