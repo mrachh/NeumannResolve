@@ -1,0 +1,60 @@
+
+\section{Numerical preliminaries}
+In this section we summarize the numerical tools which are necessary for the main result. In particular we summarize the method for discretizing the boundary integral equation for the Dirichlet problem described in \cite{}, which uses the expansion in Theorem \ref{thm_cord}.
+\subsection{Discretization of the Dirichlet problem}
+In this section we sketch an algorithm for solving the interior Dirichlet boundary integral equation using a Nystr\"{o}m method; the exterior Dirichlet boundary integral equation can be discretized in a similar way. See \cite{} for a thorough description of the method. We begin by constructing a discretization of the boundary $\Gamma$ with nodes $s_1,\dots,s_N,$ and weights $w_1,\dots,w_N,$ which enable interpolation of the left- and right-hand sides of the boundary integral equation
+\begin{align}
+f(t) = -\sigma(t) + \int_0^L k(t,s) \,\sigma(t)\, {\rm d} t
+\end{align}
+with precision $\epsilon.$ We proceed by enforcing equality at the discretization nodes, which yields the system of equations
+\begin{align}
+f(s_i) \sqrt{w_i} = -\pi \sigma(s_i)\sqrt{w_i} +  \sqrt{w_i}\int_0^L K(\gamma(s_i),\gamma(t))\, \sigma(t)\,{\rm d}t,\quad i=1,\dots,N. \label{eqn_1std}
+\end{align}
+Scaling by the square root of the weights is equivalent to solving the problem in the $L^2$ sense, and results in discretized operators with condition numbers which are close to those of the original physical systems \cite{bremer3}.
+
+The boundary $\Gamma$ is separated into intervals which are at least some distance $\delta$  (measured in terms of arclength) away from a corner and intervals of length $2 \delta$ centered about each corner. The former are discretized using a standard smooth quadrature rule such as nested Gauss-Legendre quadrature while the latter are discretized using a custom set of interpolation nodes constructed in the following way.
+
+First, all functions of the form $x^\mu,$ $\mu \in \{0\} \cup [1/2,40],$ $x \in [0,1]$ are discretized using nested Gauss-Legendre panels in $x$ and a single Gauss-Legendre panel in $\mu$. This creates a $N \times M$ matrix where $N$ denotes the number of spatial discretization points $r_i$ and $M$ denotes the number of $\mu_j$ chosen. $M$ and $N$ are increased until it is guaranteed that using Lagrange interpolation from the nested discretization the function $x^\mu$ can be interpolated to within an $L^2$ error less than $\epsilon$ on the interval $[0,1/2]$ for any $\mu$ in the specified range. A singular value decomposition is then performed on the $N\times M$ matrix. Let $K$ denote the number of singular values greater than $\epsilon.$ The right singular vectors correspond to discretizations of an orthonormal set of functions $\phi_1,\dots,\phi_K$ such that $x^\mu$ is in the span of $\phi_1,\dots,\phi_K$ to within an accuracy of $\epsilon.$
+
+Finally, a set of interpolation points $x_j,$ $j=1,\dots,K$ and quadrature weights $w_j,$ $j=1,\dots,K$ are chosen for $\phi_1,\dots,\phi_K$ such that the matrix $U_{ij} = \phi_i(x_j) \sqrt{x_j}$ is well-conditioned. In practice suitable interpolation points can be obtained by using the roots of $\phi_{K+1}$ and calculating the corresponding weights by solving a linear system. The corresponding discretization nodes and weights for the corner-containing intervals of $\Gamma$ are obtained by suitable translations and scalings of $\{x_j\}$ and $\{w_j\}.$
+
+Once the discretization has been constructed it is necessary to construct appropriate quadrature for the integrals appearing in equation (\ref{eqn_1std}). When $s_i$ and $t$ do not belong to the same corner panel (in particular when either is not itself contained in a corner panel) then the weights and nodes associated with the discretization can be used as the quadrature rule. When $s_i$ corresponds to a corner panel special care must be taken. Instead, using an algorithm for generating generalized Gaussian quadratures \cite{}, quadrature nodes are chosen which integrate
+\begin{align}
+\int_{0}^\delta k(t,s_j) \tilde{\phi}_j(t)\,{\rm d}t
+\end{align} 
+where for ease of exposition we assume that the corner panel corresponds to $(-\delta,\delta)$ in the parametrization with $t=0$ corresponding to the corner itself. Moreover, it is assumed that $s_j$ lies in the half of a corner panel parametrized by $(-\delta,0)$ and $\tilde{\phi}_j$ is a suitably scaled and translated copy of the singular function obtained in the discretization step.
+\begin{remark1}
+Due to scale invariance, it suffices to compute quadratures for 
+\begin{align}
+\int_{0}^\frac{1}{2} k(t,-x_j) {\phi}_j(t)\,{\rm d}t,
+\end{align} 
+where $x_j$ was one of the original discretization nodes generated on the interval $[0,1/2].$
+\end{remark1}
+\begin{remark1}
+By interpolating from the discretization nodes to these quadrature nodes we obtain a set of weights $\tilde{w}_{i,j}$ such that if $s_1,\dots,s_{2K}$ correspond to the discretization of a corner parametrized by $(-\delta,\delta)$ with $0$ corresponding to the corner then
+\begin{align}
+\left| \int_{-\delta}^\delta k(t,s_i) \, \tilde{\phi}_m(t)\,{\rm d}t - \sum_{j=1}^{2K} \tilde{w}_{ij} \tilde{\phi}_{m}(t_j) \right| < \epsilon
+\end{align}
+for all $i=1,\dots,2K$ and $m=1,\dots,K.$
+\end{remark1}
+
+After all the quadratures have been constructed the result is an $N \times N$ linear system the solution of which gives an approximation to $\sigma$ sampled at the discretization nodes. 
+
+\begin{definition}\label{def:seps}
+Let $S_\epsilon \subset L^2([0,L])$ denote the set of functions which can be interpolated from their values at the $N$ discretization nodes to any point in $[0,L]$ with an $L^2$ accuracy of $\epsilon.$ That is to say that for $f \in S_\epsilon$ if $\tilde{f}:[0,L] \to \mathbb{R}$ denotes the function obtained by interpolating using the values $f(s_1),\dots,f(s_N)$ then $\|f -\tilde{f}\|_{L^2} < \epsilon.$ 
+\end{definition}
+
+The results of this algorithm are summarized in the following theorem (see \cite{}).
+\begin{theorem}
+Let $A$ be the $N\times N$ matrix obtained by discretizing the interior Dirichlet problem in the preceding manner. In particular if $f \in S_\epsilon $ is piecewise analytic and ${\bf f} = (\sqrt{w_1}f(s_1),\dots,\sqrt{w_N}f(s_N))^T$ then
+\begin{align}
+\underline{\bf \sigma} = A^{-1} {\bf f}
+\end{align}
+can be interpolated to a function $\tilde{\sigma}$ which is within $\epsilon$ of the true density $\sigma$ in an $L^2$-sense. 
+\end{theorem}
+
+
+\subsection{Discretization of the Neumann problem}
+In principle a similar method could be employed to discretize the Neumann boundary integral equations. Unfortunately, the singular nature of the powers (the smallest in the expansion given in Theorem \ref{thm_cord} lies in the range $(-1/2,0)$) makes it difficult to produce universal discretizations and quadratures which work for large ranges of angles. When the above method is run on these problems, discretization nodes tend to accumulate close to the corner (within $10^{-14}$). Apart from posing certain numerical challenges, it also makes the task of finding suitable quadrature formulae difficult. Instead a different set of discretization nodes and a different set of quadrature nodes must be constructed for each angle, drastically increasing the precomputation cost.
+
+Finally, in many applications one already has a discretization of the Dirichlet problem. For example, when considering Laplace transmission problems or triple junction problems one has to solve two decoupled boundary integral equations: one of them a Dirichlet-type boundary integral equation with the diagonal term scaled and the other a Neumann-type boundary integral equation with the identity term scaled (see \cite{} and \cite{} for example). In such cases it is convenient to reuse the Dirichlet discretization for the Neumann problem.  
