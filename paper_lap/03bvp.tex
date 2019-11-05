@@ -1,0 +1,215 @@
+ \section{Boundary integral equations}
+A classical way of solving the interior and exterior Dirchlet and Neumann Laplace and Helmholtz boundary value problems given above is to convert them to boundary integral equations. Before describing this reduction we first define the single and double layer potential operators and summarize their relevant properties.
+ \subsection{Layer potentials}
+\begin{definition}
+Given a density $\sigma$ defined on $\Gamma$ the single-layer potential is defined by
+\beqn
+\cS_{\omega}[\sigma](\by) =  \int_{\Gamma} G_{\omega} (\bx,\by)\sigma(\bx) dS_{\bx} \, ,
+\eeqn
+where
+\beqn
+G_{\omega}(\bx,\by) = \begin{cases} 
+\frac{i}{4} H_{0}(\omega |\bx-\by|) &\quad \omega \neq 0 \,, \\
+-\frac{1}{2\pi} \log{|\bx-\by|} &\quad \omega = 0.
+\end{cases}
+\eeqn
+Here $H_{0}$ is the Hankel 
+function of the first kind of order $0$. 
+Similarly, the double-layer potential is defined via the formula
+\beqn
+\cD_{\omega}[\sigma](\by) =\int_{\Gamma} \bnu(\bx) \cdot \nabla_{\bx} G_{\omega}(\bx,\by) \sigma(\bx) dS_{\bx},
+\eeqn
+where with some abuse of notation we denote the normal to $\Gamma$ at $\bx$ by $\bnu(\bx).$
+\end{definition}
+\begin{remark}
+The layer potentials $\cS_{0}[\sigma]$ and $\cD_{0}[\omega]$ are the layer potentials for Laplace's equation.
+\end{remark}
+\begin{definition}
+For $\bx \in \Gamma$ we define the kernel $K_{\omega}(\bx,\by)$ by
+\begin{equation}
+K_{\omega}(\bx,\by) =\bnu(\bx) \cdot \nabla_{\bx} G_{\omega}(\bx,\by),
+\end{equation}
+where $\nu(\bx)$ is the normal to $\Gamma$ at $\bx.$ It is often convenient to work instead with the parametrization of $K_{\omega}$ which we will denote by $k_{\omega}:[0,L]\times k[0,L] \to \mathbb{R}$ and is defined by
+\begin{align}
+k_{\omega}(s,t) = K_{\omega}(\gamma(s),\gamma(t)).
+\end{align}
+\end{definition}
+
+The following theorems describe the behaviour of the single and double layer potentials in the vicinity of the boundary curve $\Gamma.$
+
+\begin{theorem}\label{thm:potlim}
+Suppose the point $\bx$ approaches a point $\bx_0 = \gamma(t_0)$ from the inside along a path such that 
+\begin{align}
+-1+\alpha<\frac{\bx-\bx_0}{\|\bx-\bx_0\|} \cdot \gamma'(t_0) <1-\alpha
+\end{align}
+for some $\alpha >0.$ Then 
+\begin{align}
+&\lim_{\bx \to \bx_0} \cS_{\omega}[\sigma](\bx) = \cS_{\omega}[\sigma](\bx_0)\\
+&\lim_{\bx \to \bx_0} \cD_{\omega}[\rho](\bx) = \cD_{\omega}[\rho](\bx_0)- \rho(\bx_0)\\
+&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS_{\omega}[\rho](\bx+\tau \bnu(t_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS_{\omega}[\rho](\bx_0+\tau \bnu(t_0))+ \rho(\bx_0).
+\end{align}
+Similarly, if $\bx$ approaches a point $\bx_0 = \gamma(t_0)$ from the outside then
+\begin{align}
+&\lim_{\bx \to \bx_0} \cS_{\omega}[\sigma](\bx) = \cS_{\omega}[\sigma](\bx_0)\\
+&\lim_{\bx \to \bx_0} \cD_{\omega}[\rho](\bx) = \cD_{\omega}[\rho](\bx_0)+ \rho(\bx_0)\\
+&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS_{\omega}[\rho](\bx+\tau \bnu(t_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS_{\omega}[\rho](\bx_0+\tau \bnu(t_0))- \rho(\bx_0).
+\end{align}
+\end{theorem}
+
+We define the following operator which arises in the study of Neumann boundary value problems.
+\begin{definition}
+Let $\cS_{\omega}$ be the single-layer potential operator. Let $\bnu\cdot \nabla \cS_{\omega}$  denote its normal derivative restricted to $\Gamma.$ In particular, for $\by \in \Gamma,$
+\begin{align}
+\bnu(\by)\cdot \nabla \cS_{\omega}[\rho] (\by) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau = 0} \cS_{\omega}[\rho](\by + \tau \bnu(t_0)),
+\end{align}
+where $\gamma(t_0) = \by.$
+\end{definition}
+
+The following proposition relates the normal derivative of the single-layer operator to the double-layer operator. Its proof follows directly from the definitions.
+\begin{proposition}
+Let $\cS_{\omega},\cD_{\omega}:L^2(\Gamma) \to L^2(\Gamma)$ be defined as above. Let $\bnu \cdot \nabla \cS_{\omega}$ denote the normal derivative of $\cS_{\omega}$ in the sense of the previous definition. Then $\bnu \cdot \nabla \cS _{\omega}= \cD_{\omega}^{T}$ where $T$ denotes the adjoint operator with respect to the inner product
+\beqn
+< f,g > = \int_{0}^{L} f(\gamma(t)) g(\gamma(t)) dt\,.
+\eeqn
+In particular, for all $\rho,\sigma \in L^2(\Gamma)$
+\begin{align}
+\cD_{\omega}[\sigma](\gamma(t)] = \int_0^L k_{\omega}(s,t)\,\sigma(\gamma(s))\, {\rm d}s
+\end{align}
+and
+\begin{align}
+\bnu(\gamma(t))\cdot \nabla\cS_{\omega}[\rho](\gamma(t)] = \int_0^L k_{\omega}(t,s)\,\rho(\gamma(s))\, {\rm d}s.
+\end{align}
+\end{proposition}
+
+\subsection{Reduction of boundary value problems}
+In this section we describe the conversion of the Laplace boundary value problems (interior Dirichlet, exterior  Dirichlet, interior Neumann, and exterior Neumann) to second-kind integral equations.
+
+\begin{theorem} [Interior Dirichlet problem for the Laplace and Helmholtz equations]
+Let $f:[0,L] \rightarrow \mathbb{C}$ be in $L^{2}[0,L]$. If $\omega$ is not an Dirichlet resonance of $\Omega$, then 
+there exists a unique $\sigma \in L^{2}[0,L]$ which satisfies
+\begin{align}
+f(s)= - \sigma(s)+ \int_0^L k_{\omega}(t,s)\,\sigma(t)\,{\rm d}t,
+\label{bie_intd}
+\end{align}
+Moreover, the solution to the interior Dirichlet problem for Laplace/Helmeholtz equation with boundary data $f$ is given by $u(\by) = \cD_{\omega}[\sigma](\by)$ for all $\by \in \Omega.$
+\end{theorem}
+
+\begin{theorem} [Exterior Dirichlet problem for the Laplace equation]
+Let $f:[0,L] \rightarrow \mathbb{C}$ be in $L^{2}[0,L]$. Then there exists a unique $\sigma \in L^{2}[0,L]$ which
+satisfies
+\begin{align}
+f(s)=  \sigma(s)+ \int_0^L (k_{0}(t,s) + 1)\,\sigma(t)\,{\rm d}t,
+\end{align}
+for all $s \in [0,L].$ 
+Moreover, the solution to the exterior Dirichlet problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cD_{0}[\sigma](\by) + \int_{0}^{L} \sigma(t) dt$
+for all $\by \in \mathbb{R}^2 \setminus \Omega.$
+\end{theorem}
+
+\begin{theorem} [Exterior Dirichlet problem for the Helmholtz equation]
+Let $f:[0,L] \rightarrow \mathbb{C}$ be in $L^{2}[0,L]$. Suppose $\omega$ is not an interior Neumann resonance of $\Omega$. Then there exists a unique $\sigma \in L^{2}[0,L]$ which
+satisfies
+\begin{align}
+f(s)=  \sigma(s)+ \int_0^L k_{\omega}(t,s) \,\sigma(t)\,{\rm d}t,
+\end{align}
+for all $s \in [0,L].$ 
+Moreover, the solution to the exterior Dirichlet problem for Helmholtz's equation with boundary data $f$ is given by $u(\by) = \cD_{\omega}[\sigma](\by)$
+for all $\by \in \mathbb{R}^2 \setminus \Omega.$
+\end{theorem}
+
+
+\begin{theorem}[Interior Neumann problem for the Laplace equation]
+Let $f:[0,L] \rightarrow \mathbb{C}$ be in $L^{2}[0,L]$ and satisfy $\int_{0}^{L} f(t) = 0$ \, .
+Then there exists a unique $\rho \in L^{2}[0,L]$ which satisfies
+\begin{align}
+f(s)=  \rho(s)+ \int_0^L (k_{0}(s,t) + 1)\,\sigma(t)\,{\rm d}t,
+\label{bie_intd}
+\end{align}
+Moreover, the solution to the interior Neumann problem for Laplace equation with boundary data $f$ is given by $u(\by) = \cS_{0}[\rho](\by)$ for all $\by \in \Omega.$
+\end{theorem}
+
+\begin{theorem}[Interior Neumann problem for the Helmholtz equation]
+Let $f:[0,L] \rightarrow \mathbb{C}$ be in $L^{2}[0,L]$. Suppose that $\omega$ is not an interior Neumann resonance for 
+$\Omega$. 
+Then there exists a unique $\rho \in L^{2}[0,L]$ which satisfies
+\begin{align}
+f(s)=  \rho(s)+ \int_0^L k_{\omega}(s,t) \,\sigma(t)\,{\rm d}t,
+\label{bie_intd}
+\end{align}
+Moreover, the solution to the interior Neumann problem for the Helmholtz equation with boundary data $f$ is given by $u(\by) = \cS_{\omega}[\rho](\by)$ for all $\by \in \Omega.$
+\end{theorem}
+
+
+
+\begin{theorem}[Exterior Neumann problem for the Laplace and Helmholtz equations]
+Let $f:[0,L] \rightarrow \mathbb{C}$ be in $L^{2}[0,L]$. Suppose that $\omega$ is not an interior Dirichlet resonance for 
+$\Omega$. 
+Then there exists a unique $\rho \in L^{2}[0,L]$ which satisfies
+\begin{align}
+f(s)=  \rho(s)+ \int_0^L k_{\omega}(s,t) \,\sigma(t)\,{\rm d}t,
+\label{bie_intd}
+\end{align}
+Moreover, the solution to the interior Neumann problem for the Laplace ($\omega =0$) and Helmholtz equation with boundary data $f$ is given by $u(\by) = \cS_{\omega}[\rho](\by)$ for all $\by \in \Omega.$
+\end{theorem}
+
+\begin{remark}
+Even though the exterior Dirichlet and Neumann problems for Helmholtz equations are well-posed partial differential equations, the corresponding integral equations obtained by setting $u = \cD_{\omega}[\sigma](\by)$ for the Dirichlet problem and
+$u = \cS_{\omega}[\rho](\by)$ are known to have a countable set of spurious resonances at the interior Neumann and Dirichlet resonances respectively. These spurious resonances can be eliminated by using a combined field integral representation 
+for $u$ instead. We defer the extension of our method to the combined field representation to section (ENTER section number here).
+\end{remark}
+
+\subsection{Corner expansions}
+
+In the remainder of this section we assume $\Gamma$ is an open wedge with sides of length one and interior angle $\pi \alpha$ with $0 <\alpha<2.$ Let $\gamma:[-1,1] \rightarrow \Gamma$ be an arc length parametrization of $\Gamma$ and $\nu:[-1,1] \rightarrow \mathbb{R}^2$ be the inward-pointing normal to $\Gamma.$ 
+The following theorem  gives an explicit representation of solutions near corners.
+
+\begin{theorem}[\cite{serkhacha}]\label{thm_cord}
+Suppose that $0<\alpha<2$ and that $N$ is a positive integer. Let 
+$\lceil \cdot \rceil$ and $\lfloor \cdot \rfloor$ denote the ceiling and floor functions,
+respectively, and define $\overline{L},$ $\underline{L},$ $\overline{M},$ and 
+$\underline{M}$ by the following formulas
+\begin{align}
+&\overline{L} = \left\lceil\frac{\alpha N}{2} \right \rceil, \\
+&\underline{L} = \left\lfloor\frac{\alpha N}{2} \right \rfloor,\\
+&\overline{M} = \left\lceil\frac{(2-\alpha) N}{2} \right \rceil, \\
+&\underline{M} = \left\lfloor\frac{(2-\alpha) N}{2} \right \rfloor.
+\end{align}
+Suppose further that $\rho$ is defined via the formula
+\begin{align}
+\rho(t) =& b_0+\sum_{i=1}^{\overline{L}} b_i |t|^{\frac{2i-1}{\alpha}}+\sum_{i=1}^{\underline{M}} b_{\overline{L}+i} |t|^\frac{2i}{2-\alpha}\left(\log|t|\right)^{\sigma_{N,\alpha}(i)}\nonumber\\
+&+\sum_{i=1}^{\overline{M}}c_i \sgn(t) |t|^\frac{2i-1}{2-\alpha}+\sum_{i=1}^{\underline{L}}c_{\overline{M}+i} \sgn(t) |t|^\frac{2i}{\alpha}\left(\log|t|\right)^{\nu_{N,\alpha}(i)}\label{eqn_rhfm}
+\end{align}
+where $b_0,b_1,\dots,b_N$ and $c_1,c_2,\dots,c_N$ are arbitrary real numbers and the functions $\sigma_{\alpha,N}(i)$ and $\nu_{\alpha,N}(i)$ are defined as follows
+\begin{align}
+\sigma_{N,\alpha}(i) = \begin{cases}
+1 \quad\quad & \,\text{if}\,\, \frac{2i}{2-\alpha} = \frac{2j-1}{\alpha}\,\,\text{for some}\,\, j \in \mathbb{Z},\, 1\le j \le \left\lceil \frac{\alpha N}{2} \right\rceil\\
+0 \quad\quad & \,\text{otherwise},
+\end{cases}
+\end{align}
+\begin{align}
+\nu_{N,\alpha}(i) = \begin{cases}
+1 \quad\quad & \,\text{if}\,\, \frac{2i}{\alpha} = \frac{2j-1}{2-\alpha}\,\,\text{for some}\,\, j \in \mathbb{Z},\, 1\le j \le \left\lceil \frac{(2-\alpha) N}{2} \right\rceil\\
+0 \quad\quad & \,\text{otherwise}.
+\end{cases}
+\end{align}
+\noindent If $g$ is defined by
+\begin{align}
+f(t) = \rho(s) +\int_{-1}^1 k(t,s)  \rho(t)\,{\rm d}t.
+\label{eqn_grho}
+\end{align}
+then there exist sequences of real numbers $\beta_0$, $\beta_1,\,\dots$ and $\gamma_0,$ $\gamma_1,\,\dots$ such that
+\begin{align}
+f(t) = \sum_{n=0}^\infty\beta_n |t|^n + \sum_{n=0}^\infty \gamma_n \sgn(t) |t|^n,
+\label{eqn_gfrm}
+\end{align}
+for all $-1 \le t \le 1.$ Conversely, suppose that $f$ has the form (\ref{eqn_gfrm}). Suppose further that $N$ is an arbitrary positive integer. Then, for all angles $\pi \alpha$ there exist unique real numbers $b_0,\,b_1,\,\dots,\,b_N$ and $c_0,\,c_1,\,\dots,\,c_N$ such that $\rho,$ defined by (\ref{eqn_rhfm}), solves equation  (\ref{eqn_grho}) to within an error ${\rm O}(t^{N+1}).$ 
+\end{theorem}
+\begin{remark1}
+A similar result holds for the case where the identity term in (\ref{eqn_grho}) is replaced by its negative; the change in sign corresponds to replacing the boundary integral equation for the exterior Dirichlet problem with the boundary integral equation corresponding to interior Dirichlet problem. Similar expansions also hold for both the exterior and interior Neumann problems, in which case the singular powers are obtained by subtracting one from the singular powers arising in the Dirichlet problem.
+\end{remark1}
+
+
+The following Corollary characterizes of the solutions to the Dirichlet and Neumann boundary integral equations in the vicinity of a corner.
+
+\begin{corollary}
+Let $\Gamma$ be the boundary of a polygonal region and suppose one of its corners has interior angle $\pi \alpha$ where $\alpha \in (0,2).$ Let $\gamma:(-\delta,\delta) \rightarrow \mathbb{R}^2$ be an arclength parametrization of $\Gamma$ in the vicinity of the corner, with $\gamma(0)$ coinciding with the corner. If the boundary data, $f,$ is analytic on either side of the corner then there exist unique real numbers $b_0,\,b_1,\,\dots,\,b_N$ and $c_0,\,c_1,\,\dots,\,c_N$ such that the density, $\rho,$ defined by (\ref{eqn_rhfm}) satisfies the interior Dirichlet boundary integral equation to within an error ${\rm O}(t^{N+1})$ for $t$ within $\delta$ of the corner. For the Neumann problems the representation is the same with the powers in the expansion reduced by one.
+\end{corollary}

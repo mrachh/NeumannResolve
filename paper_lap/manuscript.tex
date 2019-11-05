@@ -1,0 +1,99 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath,amsthm,amssymb,amscd,fancybox,epsfig,float,subfigure}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphics}
+\usepackage{epstopdf}
+\usepackage{multirow}
+\usepackage{hhline}
+\usepackage{cleveref}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows,automata}
+\usepackage[nocompress]{cite}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{remark}{Remark}[section]
+\newtheorem{conjecture}{Conjecture}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{corollary}{Corollary}[section]
+\newtheorem{remark1}{Remark}[section]
+\newcommand{\beqn}{\begin{equation}}
+\newcommand{\eeqn}{\end{equation}}
+\newcommand{\psub}{\mbox{$\ddot{-}$}}
+\newcommand{\cS}{\mathcal{S}}
+\newcommand{\sgn}{{\rm sgn}}
+\newcommand{\cN}{\mathcal{N}}
+\newcommand{\cD}{\mathcal{D}}
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\cB}{\mathcal{B}}
+\newcommand{\bS}{\mathbb{S}}
+\newcommand{\bR}{\mathbb{R}}
+\newcommand{\cR}{\mathcal{R}}
+\newcommand{\cI}{\mathcal{I}}
+\newcommand{\cG}{\mathcal{G}}
+\newcommand{\cH}{\mathcal{H}}
+\newcommand{\cF}{\overline{\bf F}}
+\newcommand{\cU}{\overline{\bf U}}
+\newcommand{\cT}{\mathcal{T}}
+\newcommand{\bP}{{\bf P}}
+\newcommand{\bT}{\mathbb{T}}
+\newcommand{\bq}{{\bf q}}
+\newcommand{\bv}{{\bf v}}
+\newcommand{\bu}{{\bf u}}
+\newcommand{\boldf}{{\bf f}}
+\newcommand{\bphi}{{\boldsymbol \phi}}
+\newcommand{\bmu}{{\boldsymbol \mu}}
+\newcommand{\brho}{{\boldsymbol \rho}}
+\newcommand{\bC}{{\bf C}}
+\newcommand{\bV}{{\bf V}}
+\newcommand{\bU}{{\bf U}}
+\newcommand{\bF}{{\bf F}}
+\newcommand{\bRes}{{\bf R}}
+\newcommand{\bM}{{\bf M}}
+\newcommand{\bI}{\mathbb{I}}
+\newcommand{\bN}{\mathbb{N}}
+\newcommand{\bL}{\mathbb{L}}
+\newcommand{\bX}{\mathbb{X}}
+\newcommand{\bx}{\boldsymbol{x}}
+\newcommand{\bnu}{\boldsymbol{\nu}}
+\newcommand{\bn}{\boldsymbol{n}}
+\newcommand{\by}{\boldsymbol{y}}
+\newcommand{\cL}{\mathcal{L}}
+\newcommand{\bub}{\underbar{b}}
+\newcommand{\xmyo}{\sqrt{x^2 + y^2 - 2xy\cos{\pi \alpha}}}
+\newcommand{\sina}{\sin{(\pi \alpha)}}
+\newcommand{\sqsina}{\sin^{2}{(\pi \alpha)}}
+\newcommand{\cosa}{\cos{(\pi \alpha)}}
+\newcommand{\sinna}{\sin{(\pi \nu (1-\alpha))}}
+\newcommand{\cosna}{\cos{(\pi \nu (1-\alpha))}}
+\newcommand{\sinn}{\sin{(\pi \nu)}}
+\newcommand{\cosn}{\cos{(\pi \nu)}}
+\newcommand{\bbmat}{\begin{bmatrix}}
+\newcommand{\ebmat}{\end{bmatrix}}
+\newcommand{\dudn}[1]{\frac{\partial u_{#1}}{\partial n}}
+
+\usepackage{boxit}
+%\newcommand{\boxit}[1]{#1}
+%\newcommand{\dashboxit}[1]{#1}
+
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{thm}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{lem}{Lemma}
+\newtheorem{rem}{Remark}
+\newtheorem{comment}{Remark}
+
+\begin{document}
+ \title{Dirichlet discretization of Neumann problems}
+ \author{Jeremy Hoskins and Manas Rachh}
+ \maketitle
+
+\input{01intro}
+\input{02mprelim}
+\input{03bvp}
+\input{04nprelim}
+\input{05apparatus}
+\input{06num}
+\input{07conc}
+\end{document}
+
