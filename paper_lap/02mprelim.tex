@@ -28,16 +28,10 @@ u(\bx) &= O(1) , \hspace{0.4cm} |\bx| \to \infty.
 \item The exterior Neumann problem for Laplace's equation:
 \begin{align}\label{eqn:BVPEDL}
 \Delta u(\bx) &= 0, \hspace{1 cm} \bx \in \mathbb{R}^2\setminus\Omega,\\
-\nabla u(\gamma(t))\cdot \bnu(t)  &= f(t), \hspace{0.43 cm} t \in[0,L], \\
-\left|u(\bx) + \left(\frac{1}{2\pi} \int_{0}^{L} f(t) dt\right) \log{|\bx|}\right| &\to 0 , \hspace{0.4cm} |\bx| \to \infty.
+\nabla u(\bx)\cdot \bnu(\bx)  &= f(\bx), \hspace{0.43 cm} \bx \in \Gamma, \\
+&\hspace{-2 cm}\left|u(\bx) + \left(\frac{1}{2\pi} \int_\Gamma f(\bx) {\rm d}s\right) \log{|\bx|}\right| \to 0 , \hspace{0.4cm} |\bx| \to \infty.
 \end{align}
 
-\item The exterior Neumann problem for Helmholtz's equation:
-\begin{align}\label{eqn:BVPEDH}
-\Delta u(\bx) &= 0, \hspace{1 cm} x \in \mathbb{R}^2\setminus\Omega,\\
-\nabla u(\bx)\cdot \bnu(\bx)  &= f(\bx), \hspace{0.43 cm} t \in[0,L], \\
-\sqrt{|\bx|} \left|\partial_{|\bx|} u - i\omega u(\bx)\right| &\to 0 , \hspace{0.86cm} |\bx| \to \infty.
-\end{align}
 
 \end{enumerate}
 
