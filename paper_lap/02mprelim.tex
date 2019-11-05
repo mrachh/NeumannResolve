@@ -1,49 +1,28 @@
 \section{Mathematical preliminaries}
 \subsection{Boundary value problems}
-Consider a polygonal domain $\Omega \subset \mathbb{R}^2$ with boundary $\Gamma.$ 
-Let $\gamma:[0,L] \to \Gamma$ be an arclength parametrization, and $\nu(t)$ denote the 
-outward-pointing normal to $\Gamma$ at $\gamma(t).$  
-Let $\omega \in \mathbb{C} \setminus \{ 0 \}$ in the first quadrant of the complex plane denote the 
-Helmholtz wave number.
+Given a polygonal domain  $\Omega \subset \mathbb{R}^2$ with boundary $\Gamma$ and a function
+$f: \Gamma \to \mathbb{R},$ we consider 
+the following four boundary value problems. 
+
 \begin{enumerate}
 \item The interior Dirichlet problem for Laplace's equation:
 \begin{align}\label{eqn:BVPIDL}
 \Delta u(\bx) &= 0, \hspace{1 cm} \bx \in \Omega,\\
-u(\gamma(t)) &= f(t), \hspace{0.43 cm} t \in [0,L].
+u(\bx) &= f(\bx), \hspace{0.43 cm} \bx \in \Gamma.
 \end{align}
-
-\item The interior Dirichlet problem for Helmholtz's equation:
-\begin{align}\label{eqn:BVPIDH}
-(\Delta + \omega^2) u(\bx) &= 0, \hspace{1 cm} \bx \in \Omega,\\
-u(\gamma(t)) &= f(t), \hspace{0.43 cm} t \in [0,L].
-\end{align}
-
 
 \item The exterior Dirichlet problem for Laplace's equation:
 \begin{align}\label{eqn:BVPEDL}
 \Delta u(\bx) &= 0, \hspace{1 cm} \bx \in \mathbb{R}^2\setminus\Omega,\\
-u(\gamma(t)) &= f(t), \hspace{0.43 cm} t \in[0,L], \\
+u(\bx) &= f(\bx), \hspace{0.43 cm}\bx \in \Gamma, \\
 u(\bx) &= O(1) , \hspace{0.4cm} |\bx| \to \infty.
-\end{align}
-
-\item The exterior Dirichlet problem for Helmholtz's equation:
-\begin{align}\label{eqn:BVPEDH}
-\Delta u(\bx) &= 0, \hspace{1 cm} x \in \mathbb{R}^2\setminus\Omega,\\
-u(\gamma(t)) &= f(t), \hspace{0.43 cm} t \in[0,L], \\
-\sqrt{|\bx|} \left|\partial_{|\bx|} u - i\omega u(\bx)\right| &\to 0 , \hspace{0.86cm} |\bx| \to \infty.
 \end{align}
 
 \item The interior Neumann problem for Laplace's equation:
 \begin{align}\label{eqn:BVPINL}
 \Delta u(\bx) &= 0, \hspace{1 cm} \bx \in \Omega,\\
-\nabla u(\gamma(t))\cdot \bnu(t)  &= f(t), \hspace{0.45 cm} t\in [0,L],\\
-\int_{0}^{L} f(t) dt &= 0.
-\end{align}
-
-\item The interior Neumann problem for Helmholtz's equation:
-\begin{align}\label{eqn:BVPINH}
-(\Delta + \omega^2) u(\bx) &= 0, \hspace{1 cm} \bx \in \Omega,\\
-\nabla u(\gamma(t))\cdot \bnu(t)  &= f(t), \hspace{0.45 cm} t\in [0,L].
+\nabla u(\bx)\cdot \bnu(\bx)  &= f(\bx), \hspace{0.45 cm} \bx \in \Gamma,\\
+\int_\Gamma f(\bx) {\rm d}s &= 0.
 \end{align}
 
 \item The exterior Neumann problem for Laplace's equation:
@@ -56,7 +35,7 @@ u(\gamma(t)) &= f(t), \hspace{0.43 cm} t \in[0,L], \\
 \item The exterior Neumann problem for Helmholtz's equation:
 \begin{align}\label{eqn:BVPEDH}
 \Delta u(\bx) &= 0, \hspace{1 cm} x \in \mathbb{R}^2\setminus\Omega,\\
-\nabla u(\gamma(t))\cdot \bnu(t)  &= f(t), \hspace{0.43 cm} t \in[0,L], \\
+\nabla u(\bx)\cdot \bnu(\bx)  &= f(\bx), \hspace{0.43 cm} t \in[0,L], \\
 \sqrt{|\bx|} \left|\partial_{|\bx|} u - i\omega u(\bx)\right| &\to 0 , \hspace{0.86cm} |\bx| \to \infty.
 \end{align}
 
