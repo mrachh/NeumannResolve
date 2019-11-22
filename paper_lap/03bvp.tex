@@ -2,7 +2,7 @@
 A classical technique for solving the four Laplace boundary value problems given above is to reduce them to boundary integral equations. Before describing this procedure we first define the single and double layer potential operators and summarize their relevant properties.
  \subsection{Layer potentials}
 \begin{definition}\label{def_layerpots}
-Given a density $\sigma:\Gamma \to \mathbb{R}$ the single-layer potential is defined by
+Given a function $\sigma:\Gamma \to \mathbb{R}$, the single-layer potential is defined by
 \beqn
 \cS[\sigma](\by) =  \int_{\Gamma} G (\bx,\by)\sigma(\bx) {\rm d}S_{\bx} \, ,
 \eeqn
@@ -15,7 +15,7 @@ Similarly, the double-layer potential is defined via the formula
 \cD[\sigma](\by) =\int_{\Gamma} \bnu(\bx) \cdot \nabla_{\bx} G(\bx,\by) \sigma(\bx) {\rm d}S_{\bx}.
 \eeqn
 \end{definition}
-
+In the following we will often refer to the function $\sigma$ as the {\it density} which generates the corresponding potential.
 \begin{definition}
 For $\bx \in \Gamma$ we define the kernel $K(\bx,\by)$ by
 \begin{equation}
@@ -37,21 +37,21 @@ Suppose the point $\bx$ approaches a point $\bx_0 = \gamma(t_0)$ from the inside
 \begin{align}
 -1+\alpha<\frac{\bx-\bx_0}{\|\bx-\bx_0\|} \cdot \gamma'(t_0) <1-\alpha
 \end{align}
-for some $\alpha >0.$ Then 
+for some $\alpha >0.$ Then {\color{red}for any continuous function $\sigma:\Gamma \to \mathbb{R},$}
 \begin{align}
 &\lim_{\bx \to \bx_0} \cS[\sigma](\bx) = \cS[\sigma](\bx_0)\\
-&\lim_{\bx \to \bx_0} \cD[\rho](\bx) = \cD[\rho](\bx_0)- \rho(\bx_0)\\
-&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\rho](\bx+\tau \bnu(\bx_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\rho](\bx_0+\tau \bnu(\bx_0))+ \rho(\bx_0).
+&\lim_{\bx \to \bx_0} \cD[\sigma](\bx) = \cD[\sigma](\bx_0)- \sigma(\bx_0)\\
+&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx+\tau \bnu(\bx_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx_0+\tau \bnu(\bx_0))+ \sigma(\bx_0).
 \end{align}
-Similarly, if $\bx$ approaches a point $\bx_0 = \gamma(t_0)$ from the outside then
+Similarly, if $\bx$ approaches a point $\bx_0 = \gamma(t_0)$ from the outside then for any continuous function $\sigma:\Gamma \to \mathbb{R},$
 \begin{align}
 &\lim_{\bx \to \bx_0} \cS[\sigma](\bx) = \cS[\sigma](\bx_0)\\
-&\lim_{\bx \to \bx_0} \cD[\rho](\bx) = \cD[\rho](\bx_0)+ \rho(\bx_0)\\
-&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\rho](\bx+\tau \bnu(\bx_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\rho](\bx_0+\tau \bnu(\bx_0))- \rho(\bx_0).
+&\lim_{\bx \to \bx_0} \cD[\sigma](\bx) = \cD[\sigma](\bx_0)+ \sigma(\bx_0)\\
+&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx+\tau \bnu(\bx_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx_0+\tau \bnu(\bx_0))- \sigma(\bx_0).
 \end{align}
 \end{theorem}
 
-We define the following operator which arises in the study of Neumann boundary value problems.
+Next we define the following operator which arises in the study of Neumann boundary value problems.
 \begin{definition}\label{def_singder}
 Let $\cS$ be the single-layer potential operator and $\bnu\cdot \nabla \cS$  denote its normal derivative restricted to $\Gamma.$ In particular, for $\bx_0 \in \Gamma,$
 \begin{align}
@@ -86,7 +86,7 @@ For every $f:[0,L] \rightarrow \mathbb{R}$ in $L^{2}[0,L],$ there exists a uniqu
 f(s)= - \sigma(s)+ \int_0^L k(t,s)\,\sigma(t)\,{\rm d}t,
 \label{bie_intd}
 \end{align}
-Moreover, the solution to the interior Dirichlet problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cD_{\omega}[\sigma](\by)$ for all $\by \in \Omega.$
+Moreover, the solution to the interior Dirichlet problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cD[\sigma](\by)$ for all $\by \in \Omega.$
 \end{theorem}
 
 \begin{theorem} [Exterior Dirichlet problem for Laplace's equation]
@@ -94,37 +94,37 @@ For every $f:[0,L] \rightarrow \mathbb{R}$ in $L^{2}[0,L]$ there exists a unique
 satisfies
 \begin{align}
 f(s)=  \sigma(s)+ \int_0^L (k(t,s) + 1)\,\sigma(t)\,{\rm d}t,
-\end{align}
+\end{align}\label{bie_extd}
 for all $s \in [0,L].$ 
-Moreover, the solution to the exterior Dirichlet problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cD_{0}[\sigma](\by) + \int_{0}^{L} \sigma(t) dt$
+Moreover, the solution to the exterior Dirichlet problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cD[\sigma](\by) + \int_{0}^{L} \sigma(t) dt$
 for all $\by \in \mathbb{R}^2 \setminus \Omega.$
 \end{theorem}
 
 
 
 \begin{theorem}[Interior Neumann problem for Laplace's equation]
-For every  $f:[0,L] \rightarrow \mathbb{C}$ in $L^{2}[0,L]$ such that $\int_{0}^{L} f(t) = 0,$ \, there exists a unique $\rho \in L^{2}[0,L]$ which satisfies
+For every  $f:[0,L] \rightarrow \mathbb{C}$ in $L^{2}[0,L]$ such that $\int_{0}^{L} f(t) = 0,$ there exists a unique $\sigma \in L^{2}[0,L]$ which satisfies
 \begin{align}
-f(s)=  \rho(s)+ \int_0^L (k(s,t) + 1)\,\sigma(t)\,{\rm d}t,
+f(s)=  \sigma(s)+ \int_0^L (k(s,t) + 1)\,\sigma(t)\,{\rm d}t,
 \label{bie_intn}
 \end{align}
-Moreover, the solution to the interior Neumann problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cS_{0}[\rho](\by)$ for all $\by \in \Omega.$
+Moreover, the solution to the interior Neumann problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cS[\sigma](\by)$ for all $\by \in \Omega.$
 \end{theorem}
 
 
 \begin{theorem}[Exterior Neumann problem for Laplace's equation]
-For every $f:[0,L] \rightarrow \mathbb{C}$ in $L^{2}[0,L]$ there exists a unique $\rho \in L^{2}[0,L]$ which satisfies
+For every $f:[0,L] \rightarrow \mathbb{C}$ in $L^{2}[0,L]$ there exists a unique $\sigma \in L^{2}[0,L]$ which satisfies
 \begin{align}
-f(s)=  \rho(s)+ \int_0^L k_{\omega}(s,t) \,\sigma(t)\,{\rm d}t,
+f(s)=  \sigma(s)+ \int_0^L k(s,t) \,\sigma(t)\,{\rm d}t,
 \label{bie_extn}
 \end{align}
-Moreover, the solution to the interior Neumann problem for Laplace'sequation with boundary data $f$ is given by $u(\by) = \cS_{\omega}[\rho](\by)$ for all $\by \in \Omega.$
+Moreover, the solution to the interior Neumann problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cS[\sigma](\by)$ for all $\by \in \Omega.$
 \end{theorem}
 
 \subsection{Corner expansions}
 
 In the remainder of this section we assume $\Gamma$ is an open wedge with sides of length one and interior angle $\pi \alpha$ with $0 <\alpha<2.$ Let $\gamma:[-1,1] \rightarrow \Gamma$ be an arc length parametrization of $\Gamma$ and $\nu:[-1,1] \rightarrow \mathbb{R}^2$ be the inward-pointing normal to $\Gamma.$ 
-The following theorem  gives an explicit representation of solutions near corners.
+The following theorem  gives an explicit representation of the solutions of the boundary integral equation (\ref{bie_intd}) in this geometry.
 
 \begin{theorem}[\cite{serkhacha}]\label{thm_cord}
 Suppose that $0<\alpha<2$ and that $N$ is a positive integer. Let 
@@ -137,9 +137,9 @@ $\underline{M}$ by the following formulas
 &\overline{M} = \left\lceil\frac{(2-\alpha) N}{2} \right \rceil, \\
 &\underline{M} = \left\lfloor\frac{(2-\alpha) N}{2} \right \rfloor.
 \end{align}
-Suppose further that $\rho$ is defined via the formula
+Suppose further that $\sigma$ is defined via the formula
 \begin{align}
-\rho(t) =& b_0+\sum_{i=1}^{\overline{L}} b_i |t|^{\frac{2i-1}{\alpha}}+\sum_{i=1}^{\underline{M}} b_{\overline{L}+i} |t|^\frac{2i}{2-\alpha}\left(\log|t|\right)^{\sigma_{N,\alpha}(i)}\nonumber\\
+\sigma(t) =& b_0+\sum_{i=1}^{\overline{L}} b_i |t|^{\frac{2i-1}{\alpha}}+\sum_{i=1}^{\underline{M}} b_{\overline{L}+i} |t|^\frac{2i}{2-\alpha}\left(\log|t|\right)^{\sigma_{N,\alpha}(i)}\nonumber\\
 &+\sum_{i=1}^{\overline{M}}c_i \sgn(t) |t|^\frac{2i-1}{2-\alpha}+\sum_{i=1}^{\underline{L}}c_{\overline{M}+i} \sgn(t) |t|^\frac{2i}{\alpha}\left(\log|t|\right)^{\nu_{N,\alpha}(i)}\label{eqn_rhfm}
 \end{align}
 where $b_0,b_1,\dots,b_N$ and $c_1,c_2,\dots,c_N$ are arbitrary real numbers and the functions $\sigma_{\alpha,N}(i)$ and $\nu_{\alpha,N}(i)$ are defined as follows
@@ -155,20 +155,22 @@ where $b_0,b_1,\dots,b_N$ and $c_1,c_2,\dots,c_N$ are arbitrary real numbers and
 0 \quad\quad & \,\text{otherwise}.
 \end{cases}
 \end{align}
-\noindent If $g$ is defined by
+\noindent If $f$ is defined by
 \begin{align}
-f(t) = \rho(s) +\int_{-1}^1 k(t,s)  \rho(t)\,{\rm d}t.
+f(t) = -\sigma(s) +\int_{-1}^1 k(t,s)  \sigma(t)\,{\rm d}t.
 \label{eqn_grho}
 \end{align}
-then there exist sequences of real numbers $\beta_0$, $\beta_1,\,\dots$ and $\gamma_0,$ $\gamma_1,\,\dots$ such that
+and $\sigma$ is defined by (\ref{eqn_rhfm}) then there exist two sequences of real numbers $\beta_0$, $\beta_1,\,\dots$ and $\gamma_0,$ $\gamma_1,\,\dots$ such that
 \begin{align}
 f(t) = \sum_{n=0}^\infty\beta_n |t|^n + \sum_{n=0}^\infty \gamma_n \sgn(t) |t|^n,
 \label{eqn_gfrm}
 \end{align}
 for all $-1 \le t \le 1.$ Conversely, suppose that $f$ has the form (\ref{eqn_gfrm}). Suppose further that $N$ is an arbitrary positive integer. Then, for all angles $\pi \alpha$ there exist unique real numbers $b_0,\,b_1,\,\dots,\,b_N$ and $c_0,\,c_1,\,\dots,\,c_N$ such that $\rho,$ defined by (\ref{eqn_rhfm}), solves equation  (\ref{eqn_grho}) to within an error ${\rm O}(t^{N+1}).$ 
 \end{theorem}
+{\color{red}CHECK THE POWERS}
+
 \begin{remark1}
-A similar result holds for the case where the identity term in (\ref{eqn_grho}) is replaced by its negative; the change in sign corresponds to replacing the boundary integral equation for the exterior Dirichlet problem with the boundary integral equation corresponding to interior Dirichlet problem. Similar expansions also hold for both the exterior and interior Neumann problems, in which case the singular powers are obtained by subtracting one from the singular powers arising in the Dirichlet problem.
+A similar result holds for the case where the identity term in (\ref{eqn_grho}) is replaced by its negative; the change in sign corresponds to replacing the boundary integral equation for the interior Dirichlet problem with the boundary integral equation corresponding to exterior Dirichlet problem. Similar expansions also hold for both the exterior and interior Neumann problems, in which case the singular powers are obtained by subtracting one from the singular powers arising in the Dirichlet problem.
 \end{remark1}
 
 
