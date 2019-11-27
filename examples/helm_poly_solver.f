@@ -349,7 +349,8 @@ c
        allocate(ts(ncorner),wts(ncorner),umatt(ncorner,ncorner))
        allocate(vmatt(ncorner,ncorner))
 
-       itype = 1
+
+       itype = 2
        call lapdisc(ts,wts,umatt,vmatt,ncorner,itype)
 
        ipan = 0
@@ -680,7 +681,6 @@ c
  1500 format(i8)
         
         read(isvd,1500) keep
-        call prinf('keep = *',keep,1)
         call laparrread(isvd,coefs,keep)
 
         ifirst = 0
@@ -11894,7 +11894,7 @@ c
         implicit real *8 (a-h,o-z)
         real *8, allocatable :: rquads(:),wquads(:),work(:)
         real *8 x0s(nr0),w0s(nr0),u(nr0,nr0),v(nr0,nr0)
-        real *8 akern(nr0,nr0),coefs(ncoefs)
+        real *8 akern(nr0,nr0),coefs(lcoefs)
 
         allocate(work(20000),rquads(1000),wquads(1000))
 
