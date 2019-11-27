@@ -1,6 +1,7 @@
 \section{Mathematical preliminaries}
 \subsection{Boundary value problems}
-Given a polygonal domain  $\Omega \subset \mathbb{R}^2$ with boundary $\Gamma$ and a function
+Given a polygonal domain  $\Omega \subset \mathbb{R}^2$ with boundary $\Gamma$ and outward-pointing 
+unit normal $\bnu: \Gamma \to S^1,$ as well as a function 
 $f: \Gamma \to \mathbb{R},$ we consider 
 the following four boundary value problems. 
 
@@ -22,27 +23,19 @@ u(\bx) &= O(1) , \hspace{0.4cm} |\bx| \to \infty.
 \begin{align}\label{eqn:BVPINL}
 \Delta u(\bx) &= 0, \hspace{1 cm} \bx \in \Omega,\\
 \nabla u(\bx)\cdot \bnu(\bx)  &= f(\bx), \hspace{0.45 cm} \bx \in \Gamma,\\
-\int_\Gamma f(\bx) {\rm d}s &= 0.
+\int_\Gamma f(\bx) {\rm d}S_{\bx} &= 0.
 \end{align}
 
 \item The exterior Neumann problem for Laplace's equation:
 \begin{align}\label{eqn:BVPEDL}
 \Delta u(\bx) &= 0, \hspace{1 cm} \bx \in \mathbb{R}^2\setminus\Omega,\\
-\nabla u(\gamma(t))\cdot \bnu(t)  &= f(t), \hspace{0.43 cm} t \in[0,L], \\
-\left|u(\bx) + \left(\frac{1}{2\pi} \int_{0}^{L} f(t) dt\right) \log{|\bx|}\right| &\to 0 , \hspace{0.4cm} |\bx| \to \infty.
+\nabla u(\bx)\cdot \bnu(\bx)  &= f(\bx), \hspace{0.43 cm} \bx \in \Gamma, \\
+&\hspace{-2 cm}\left|u(\bx) + \left(\frac{1}{2\pi} \int_\Gamma f(\bx) {\rm d}S_{\bx}\right) \log{|\bx|}\right| \to 0 , \hspace{0.4cm} |\bx| \to \infty.
 \end{align}
 
-\item The exterior Neumann problem for Helmholtz's equation:
-\begin{align}\label{eqn:BVPEDH}
-\Delta u(\bx) &= 0, \hspace{1 cm} x \in \mathbb{R}^2\setminus\Omega,\\
-\nabla u(\bx)\cdot \bnu(\bx)  &= f(\bx), \hspace{0.43 cm} t \in[0,L], \\
-\sqrt{|\bx|} \left|\partial_{|\bx|} u - i\omega u(\bx)\right| &\to 0 , \hspace{0.86cm} |\bx| \to \infty.
-\end{align}
 
 \end{enumerate}
 
 \begin{remark}
-The existence and uniqueness of solutions to the above equations is a classical result. 
-The interior Dirichlet and Neumann problems for Helmholtz equation have a countable set of
-real $\omega$'s (which only accumulate at $\infty$)  for which the PDE has a non-unique solution. 
+The existence and uniqueness of the solutions to the above equations is a well-known result (see \cite{} for example). 
 \end{remark}
