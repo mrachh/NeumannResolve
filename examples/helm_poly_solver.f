@@ -2,6 +2,10 @@
       real *8, allocatable :: verts(:,:)
       real *8 xyin(2),xyout(2),dpars(2)
       real *8 xysrc(2),xytarg(2)
+      real *8, allocatable :: targ(:,:)
+      complex *16, allocatable :: pottargex(:)
+      integer, allocatable :: isin(:)
+      
       complex *16 zpars,zk,pot,potex
 
       character *100 fname
@@ -46,11 +50,12 @@ c      line 2: n - number of discretization points
 c      line 3: nch - number of panels
 c      line 4: ntarg - targets for plotting in interior/exterior
 c          (auto generated and potential computed to 13 digits)
-c      line 4-3+nverts- xy locations of vertices
-c      line 4+nverts-3+n+nverts: 
+c      line 5-4+nverts- xy locations of vertices
+c      line 5+nverts-4+n+nverts: 
 c        y1,y2, dy1/dt,dy2/dt,real(rhs),imag(rhs),real(soln),imag(soln)
-c      line 4+n+nverts-3+n+nverts+nch: ixyzs,ks,iscorn
-c      line 4+n+nverts+nch -3+n+nverts+nch+ntarg:
+c      line 5+n+nverts-5+n+nverts+nch: ixyzs,ks,iscorn
+c      line 5+n+nverts+nch - xylim info
+c      line 5+n+nverts+nch -4+n+nverts+nch+ntarg:
 c         targ1,targ2,real(pot),imag(pot)
 c
 c       ifdn = dirichlet/Neumann flag
@@ -67,11 +72,11 @@ c          iffast = 1 => iterative solver using blas for matvec
 c          iffast = 2 => iterative solver using fmm for matvec
 c          
  
-      ifdn = 1 
-      ifinout = 0
+      ifdn = 0 
+      ifinout = 1
       iffast = 2
 
-      zk = 1.1d0
+      zk = 1.2d0
 
       ifwrite = 1
       fname = 'equi_interior_test.dat'
@@ -108,6 +113,24 @@ c
       
       erra = abs(pot-potex)/abs(potex)
       call prin2('error in potential=*',erra,1)
+
+      nlat = 300
+      ntargv = nlat*nlat
+      
+      rfud = 1.2d0
+
+
+      allocate(targ(2,ntargv),isin(ntargv),pottargex(ntargv))
+      call gentarg(nverts,verts,rfud,nlat,ntargv,targ,isin,xylim)
+
+
+      do i=1,ntargv
+        pottargex(i) = 0
+        call helm_slp(xysrc,targ(1,i),zk,ipars,pottargex(i))
+        write(48,*) targ(1,i),targ(2,i),
+     1     real(pottargex(i)),imag(pottargex(i))
+      enddo
+      
       
       stop
       end
@@ -247,9 +270,18 @@ c
       real *8, allocatable :: errs(:)
       complex *16, allocatable :: work(:)
 
-
       integer ifexpon
+
+c
+c
+c       volume target related stuff
+c
+      real *8, allocatable :: targ(:,:)
+      integer, allocatable :: isin(:)
+      complex *16, allocatable :: pottarg(:)
+      real *8 xylim(2,2)
       
+
       data ima/(0.0d0,1.0d0)/
       data imainv4/(0.0d0,0.25d0)/
       
@@ -282,6 +314,7 @@ c
         rr = (vtmp(1,i+1) - vtmp(1,i))**2 + (vtmp(2,i+1)-vtmp(2,i))**2
         rpan(i) = sqrt(rr)
       enddo
+      
 
       allocate(pl(nverts+1),pr(nverts+1))
 
@@ -391,7 +424,7 @@ c
 c        get rhs
 c
 c
-      allocate(rhs(npts),soln(npts),solntmp(npts))
+      allocate(rhs(npts),soln(npts))
       
       do i=1,npts
         xtmp(1) = xys(1,i)
@@ -404,6 +437,7 @@ c
 
       
 
+      ifexpon = 1
 
 
 
@@ -412,14 +446,13 @@ c        compute matrix if not using fmm to solve
 c
 c
 
-      if(iffast.eq.0.or.iffast.eq.1.or.iffast.eq.2) then
+      if(iffast.eq.0.or.iffast.eq.1) then
         allocate(xmat(npts,npts))
         do i=1,npts
           do j=1,npts
             xmat(j,i) = 0
           enddo
         enddo
-        ifexpon = 1
         istart = 0
         do iedge=1,nedges
           do ii=1,nepts(iedge)
@@ -502,6 +535,8 @@ c
      1      soln,niter,errs,ngmrec,work)
           call prinf('niter in gmres=*',niter,1)
 
+          call prin2('soln=*',soln,24)
+
         endif
       endif
 
@@ -519,44 +554,46 @@ c
      1      xmatcsub(1,1,i))
         enddo
 
-
-c
-c
-c         compare multa_blas and multa_fmm
-c
-
-        call multa_blas(xmat,rhs,soln,npts,ifdn)
-        
-        call multa_fmm(zk,rhs,solntmp,npts,ifdn,ifinout,xys,dxys,qwts,
-     1   nedges,
-     1   ncint,lns,rns,icl,icr,icsgnl,icsgnr,xsgnl,xsgnr,ncorner,
-     2   xmatc,xmatcsub)
-
-
-        ra = 0
-        erra = 0
-        do i=1,npts
-          ra = ra + abs(soln(i))**2
-          erra = erra + abs(soln(i)-solntmp(i))**2
-
-        enddo
-
-        erra = sqrt(erra/ra)
-        call prin2('error in two matvec routines=*',erra,1)
-
-       
-
         
         call cgmres_fmm(ier,npts,multa_fmm,zk,ifdn,ifinout,
      1    xys,dxys,qwts,nedges,ncint,lns,rns,icl,icr,icsgnl,icsgnr,
      2    xsgnl,xsgnr,ncorner,xmatc,xmatcsub,rhs,eps,numit,
      3    soln,niter,errs,
      3    ngmrec,work)
+        
       endif
+
+c
+c
+c      generate targets on a grid
+c
+      nlat = 300
+      ntargv = nlat*nlat
+
+      allocate(targ(2,ntargv),pottarg(ntargv),isin(ntargv))
+      rfud = 1.2d0
+      call gentarg(nverts,verts,rfud,nlat,ntargv,targ,isin,xylim)
+
+      
+
+      call comppottarg_fmm(zk,npts,xys,dxys,qwts,ifdn,soln,ntargv,
+     1    targ,pottarg)
+      
+cc      open(unit=47,file=trim(fname))
+
+      do i=1,ntargv
+        if(ifinout.eq.0.and.isin(i).eq.-1) pottarg(i) = 1.0d20
+        if(ifinout.eq.1.and.isin(i).eq.1) pottarg(i) = 1.0d20
+        if(isin(i).eq.0) pottarg(i) = 0
+        write(47,*) targ(1,i),targ(2,i),real(pottarg(i)),
+     1     imag(pottarg(i))
+      enddo
+      close(47)
+
 
 
 c
-c        compute potential at target point
+c        compute potential at user specified target point
 c 
 
       if(ifdn.eq.0) then
@@ -790,10 +827,172 @@ c
       return
       end
 
+c
+c
+c
+c
+c
+      subroutine gentarg(nverts,verts,rfud,nlat,ntarg,targ,isin,xylim)
+      implicit real *8 (a-h,o-z)
+      real *8 verts(2,nverts),targ(2,ntarg),xylim(2,2)
+      real *8, allocatable :: xverts(:),yverts(:)
+      integer isin(ntarg)
+
+
+      xmin = verts(1,1)
+      xmax = verts(1,1)
+
+      ymin = verts(2,1)
+      ymax = verts(2,1)
+
+      allocate(xverts(nverts),yverts(nverts))
+
+      do i=1,nverts
+        xverts(i) = verts(1,i)
+        yverts(i) = verts(2,i)
+        if(verts(1,i).lt.xmin) xmin = verts(1,i)
+        if(verts(1,i).gt.xmax) xmax = verts(1,i)
+
+        if(verts(2,i).lt.ymin) ymin = verts(2,i)
+        if(verts(2,i).gt.ymax) ymax = verts(2,i)
+
+      enddo
+
+      xc = (xmin+xmax)*0.5d0
+      yc = (ymin+ymax)*0.5d0
+
+      bs = xmax-xmin
+      bs2 = ymax-ymin
+      if(bs2.gt.bs) bs = bs2
+
+
+      bs = rfud*bs
+
+      xylim(1,1) = xc - bs/2
+      xylim(1,2) = xc + bs/2
+      
+      xylim(2,1) = yc - bs/2
+      xylim(2,2) = yc + bs/2
+
+      
+      do i=1,nlat
+        do j=1,nlat
+          itarg = (i-1)*nlat + j
+          x = xylim(1,1) + 
+     1       (i-1.0d0)/(nlat-1.0d0)*(xylim(1,2)-xylim(1,1))
+          y = xylim(2,2) + 
+     1       (j-1.0d0)/(nlat-1.0d0)*(xylim(2,1)-xylim(2,2))
+          targ(1,itarg) = x
+          targ(2,itarg) = y
+
+          isin(itarg) = 0
+
+          call pnpoly(x,y,xverts,yverts,nverts,isin(itarg))
+        enddo
+      enddo
+
+
+
+      return
+      end
+
 
 c
 c
 c
+c
+c
+c
+c
+
+      subroutine comppottarg_fmm(zk,n,xys,dxys,qwts,ifdn,sig,ntarg,
+     1   targ,pottarg)
+      implicit real *8 (a-h,o-z)
+
+
+      complex *16 sig(n)
+      real *8 xys(2,n),dxys(2,n),qwts(n)
+
+      complex *16 zk
+
+      complex *16, allocatable :: charges(:),dipstr(:)
+      real *8, allocatable :: dipvec(:,:)
+      complex *16 pot,grad(2)
+      complex *16 pottarg(ntarg),gradtarg(2),hess(3),hesstarg(3)
+
+      real *8 targ(2,ntarg)
+      integer ifpgh,ifpghtarg
+
+
+
+      if(ifdn.eq.0) then
+        ifdipole = 1
+        ifcharge = 0
+      endif
+
+      if(ifdn.eq.1) then
+        ifcharge = 1
+        ifdipole = 0
+      endif
+
+      ifpgh = 0
+      ifpghtarg = 1
+
+      allocate(charges(n),dipstr(n),dipvec(2,n))
+
+
+      do i=1,n
+        charges(i) = sig(i)*sqrt(qwts(i))
+        dipstr(i) = sig(i)*sqrt(qwts(i))
+        
+        dst = sqrt(dxys(1,i)**2 + dxys(2,i)**2)
+        dipvec(1,i) = dxys(2,i)/dst
+        dipvec(2,i) = -dxys(1,i)/dst
+      enddo
+
+      call prin2('charges=*',charges,24)
+      call prin2('dipstr=*',dipstr,24)
+      call prin2('dipvec=*',dipvec,24)
+
+      do i=1,ntarg
+        pottarg(i) = 0
+      enddo
+
+
+      nd = 1
+      eps = 1.0d-15
+
+      call prinf('ifpghtarg=*',ifpghtarg,1)
+      call prinf('ifdn=*',ifdn,1)
+ 
+      call prin2('xys=*',xys,24)
+      call prinf('n=*',n,1)
+      call prinf('ifcharge=*',ifcharge,1)
+      call prinf('ifdipole=*',ifdipole,1)
+      call prinf('ntarg=*',ntarg,1)
+      call prin2('targ=*',targ,24)
+      call prinf('ifpgh=*',ifpgh,1)
+      call prinf('ifpghtarg=*',ifpghtarg,1)
+
+
+      call hfmm2dpart(nd,eps,zk,n,xys,ifcharge,charges,ifdipole,dipstr,
+     1   dipvec,ifpgh,pot,grad,hess,ntarg,targ,ifpghtarg,pottarg,
+     2   gradtarg,hesstarg)
+      
+      call prin2('pottarg=*',pottarg,24)
+
+      return
+      end
+
+c
+c
+c
+c
+c
+c
+c
+c
+
 
        subroutine getcornstruct(nr0,ts,wts,u,v)
        implicit real *8 (a-h,o-z)
