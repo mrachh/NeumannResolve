@@ -171,7 +171,7 @@ c
 
        k = 16
        zk = 33.1d0
-cc        zk = 1.1d0
+        zk = 1.1d0
 c
 c        read svd coefs
 c
@@ -213,11 +213,11 @@ c
        verts(1,1) = 0
        verts(2,1) = 0
 
-       verts(1,2) = sqrt(done*3)/2 + 0.1d0
-       verts(2,2) = -done/2
+       verts(1,2) = 0.5d0
+       verts(2,2) = -sqrt(3.0d0)/2-0.1d0
 
-       verts(1,3) = sqrt(done*3)/2
-       verts(2,3) = done/2-0.19d0
+       verts(1,3) = 0.57d0
+       verts(2,3) = sqrt(3.0d0)/2.0d0 
 
 c
 ccc     declare edges
@@ -291,6 +291,20 @@ c             panels
          n = n + imid(i)*kmid + 2*ncorner
          n2 = n2 + imid(i)*kmid + 2*ncorner2
        enddo
+
+       call prinf('imid=*',imid,1)
+
+cc       imid(1) = 3
+cc       imid(2) = 5
+cc       imid(3) = 3
+
+       pl(1) = 0.155516076339393d0
+       pl(3) = pl(1)
+       pl(2) = 0.163162846006773d0
+
+       pr(1) = pl(2)
+       pr(2) = pl(1)
+       pr(3) = pl(1)
 
        allocate(xs_ref(nref),ys_ref(nref),rnx_ref(nref))
        allocate(rny_ref(nref),rkappa_ref(nref),qwts_ref(nref))
@@ -454,19 +468,19 @@ c
       allocate(alpha(ncint),xsgnl(ncint),xsgnr(ncint))
       allocate(ixmatc(ncint))
       icl(1) = 1
-      icr(1) = 3
-      icsgnl(1) = 0
-      icsgnr(1) = 1
+      icr(1) = 2
+      icsgnl(1) = 1
+      icsgnr(1) = 0
 
 
-      icl(2) = 1
-      icr(2) = 2
+      icl(2) = 2
+      icr(2) = 3
       icsgnl(2) = 1
       icsgnr(2) = 0
 
 
-      icl(3) = 2
-      icr(3) = 3
+      icl(3) = 3
+      icr(3) = 1
       icsgnl(3) = 1
       icsgnr(3) = 0
 
@@ -539,22 +553,30 @@ c
         drp = drp/(dr1*dr2)
         alpha(icint) = acos(drp)
 
+        rr1 = atan2(dy2,dx2)
+        rr2 = atan2(dy1,dx1)
+
+        print *, ivert1,ivert2,ivert3
+        print *, xvert1,xvert2,xvert3
+        print *, yvert1,yvert2,yvert3
+
+        print *, rr1,rr2
+
         alpha(icint) = atan2(dy2,dx2) - atan2(dy1,dx1)
 
         thet = alpha(icint)
 
-        call gethelmcornermat(thet,nc_ref,zk,rtmp,ts_ref,wts_ref,
+        call gethelmcornermat(thet,nc_ref,zk,pr(icint),ts_ref,wts_ref,
      1          xmatc_ref(1,1,icint))
 
         thet = alpha(icint)/pi
         if(thet<0) thet = thet+2
 
-cc         call helmcornmat2(alpha(icint),zk,rtmp,ncorner2,ts2,wts2,umat,
-cc     1     svdcoefs,xmatc2(1,1,icint))
-
-        call helmcornmat(thet,zk,rtmp,xmatc2(1,1,icint),ncorner2)
+        call helmcornmat(thet,zk,pr(icint),xmatc2(1,1,icint),ncorner2)
 
       enddo
+
+      call prin2('alpha=*',alpha,3)
 c
 c
 c        CONTINUE FROM HERE
@@ -633,33 +655,20 @@ cc       set up sources for the rhs
 c
 
 
-      ncharges = 3
+      ncharges = 1
       allocate(xsrc_ext(ncharges),ysrc_ext(ncharges),charges(ncharges))
       allocate(xsrc_in(ncharges),ysrc_in(ncharges))
 
 
-      xsrc_ext(1) = 1.1d0
-      ysrc_ext(1) = 0.7d0
+      xsrc_ext(1) = 1.0d0
+      ysrc_ext(1) = 0.1d0
       charges(1) = 1
 
-      xsrc_ext(2) = -3.71d0
-      ysrc_ext(2) = 0.11d0
-      charges(2) = 1
-
-      xsrc_ext(3) = -0.01d0
-      ysrc_ext(3) = 3.0d0
-      charges(3) = 1
 
 
       xsrc_in(1) = sqrt(3.0d0)/4 + 0.07d0
       ysrc_in(1) = 0.11d0
 
-      xsrc_in(2) = sqrt(3.0d0)/4 - 0.12d0
-      ysrc_in(2) = -0.03d0
-
-      xsrc_in(3) = 1.0d0/sqrt(3.0d0)
-      ysrc_in(3) = -0.01d0
-      
 
       allocate(rhs_ref(nref),soln_ref(nref))
       allocate(rhs_ref_px(nref),soln_ref_px(nref))
@@ -763,6 +772,17 @@ c
         soln2_rand(i) = rhs2_rand(i)
       enddo
 
+
+      do j=1,n2
+        do i=1,n2
+          write(43,*) real(xmat2(i,j)),imag(xmat2(i,j))
+        enddo
+        write(45,*) real(rhs2(j)),imag(rhs2(j))
+      enddo
+
+
+      stop
+
        call prinf('end of building rhs*',i,0)
 
 cc       goto 1000
@@ -820,8 +840,8 @@ c
 cc      test solution 
 c
 
-      trg(1) = 0.7d0
-      trg(2) = -0.01d0
+      trg(1) = 0.3d0
+      trg(2) = 0.2d0
 
       call getrhs(zk,ncharges,xsrc_ext,ysrc_ext,charges,trg(1),trg(2),
      1    potex_1,gradex)
@@ -870,6 +890,8 @@ c
 
       write(*,*) " "
       write(*,*) " "
+
+      stop
 
       
 
@@ -3059,6 +3081,8 @@ ccC$OMP$PRIVATE(z,h0,h1,rrn)
        
 
        xmat(ii,jj) = imainv4*h1*rrn/rrr*zk*sqrt(qwts(j)*qwts(i))
+
+       if(j.eq.153.and.i.eq.154) print *, rrn
 
  1000  continue
  1100  continue

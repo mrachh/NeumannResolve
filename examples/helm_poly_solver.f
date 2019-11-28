@@ -67,7 +67,7 @@ c          iffast = 1 => iterative solver using blas for matvec
 c          iffast = 2 => iterative solver using fmm for matvec
 c          
  
-      ifdn = 0 
+      ifdn = 1 
       ifinout = 0
       iffast = 2
 
@@ -513,14 +513,10 @@ c
         allocate(errs(numit+10),work((ngmrec*10+4)*npts))
         allocate(xmatcsub(ncorner,ncorner,ncint))
 
-        call prin2('tsc=*',tsc,ncorner)
-        call prin2('wtsc=*',wtsc,ncorner)
 
         do i=1,ncint
           call helmcornmatsub(angs(i),zk,pl(i),tsc,wtsc,ncorner,
      1      xmatcsub(1,1,i))
-          call prin2('xmatcsub=*',xmatcsub(1,1,i),24)
-          call prin2('xmatc=*',xmatc(1,1,i),24)
         enddo
 
 
@@ -536,8 +532,6 @@ c
      1   ncint,lns,rns,icl,icr,icsgnl,icsgnr,xsgnl,xsgnr,ncorner,
      2   xmatc,xmatcsub)
 
-        call prin2('soln=*',soln,24)
-        call prin2('solntmp=*',solntmp,24)
 
         ra = 0
         erra = 0
@@ -549,6 +543,7 @@ c
 
         erra = sqrt(erra/ra)
         call prin2('error in two matvec routines=*',erra,1)
+
        
 
         
@@ -686,13 +681,6 @@ c
         grad(2,i) = 0
       enddo
 
-      call prin2('charges=*',charges,24)
-      call prin2('dipstr=*',dipstr,24)
-      call prin2('dipvec=*',dipvec,24)
-
-
-
-
       nd = 1
       eps = 1.0d-15
       nt = 0
@@ -710,8 +698,6 @@ c
         do i=1,n
           pot(i) = pot(i)*sqrt(qwts(i))
         enddo
-
-        call prin2('pot=*',pot,2*n)
 
         do icint=1,ncint
           
@@ -747,7 +733,6 @@ c
             pot(ipts2+i-1) = pot(ipts2+i-1) + pottmp*xsgnr(icint)
           enddo
         enddo
-cc        call prin2('pot=*',pot,2*n)
 
         do i=1,n
           y(i) = pot(i) -0.5d0*(-1)**(ifdn+ifinout)*x(i) 
@@ -756,8 +741,47 @@ cc        call prin2('pot=*',pot,2*n)
 
       if(ifdn.eq.1) then
         do i=1,n
-          y(i) = (grad(1,i)*dipvec(1,i) + grad(2,i)*dipvec(2,i))*
-     1       sqrt(qwts(i)) - 0.5d0*(-1)**(ifdn+ifinout)
+          pot(i) = (grad(1,i)*dipvec(1,i) + grad(2,i)*dipvec(2,i))*
+     1       sqrt(qwts(i)) 
+        enddo
+
+        do icint=1,ncint
+          
+          if(icsgnl(icint).eq.0) ipts1 = lns(icl(icint))
+          if(icsgnl(icint).eq.1) ipts1 = rns(icl(icint))
+        
+          if(icsgnr(icint).eq.0) ipts2 = lns(icr(icint))
+          if(icsgnr(icint).eq.1) ipts2 = rns(icr(icint))
+
+          do i=1,ncorner
+            pottmp = 0
+            do j=1,ncorner
+              pottmp  = pottmp + xmatc(j,i,icint)*x(ipts2+j-1)
+            enddo
+            pot(ipts1+i-1) = pot(ipts1+i-1) + pottmp*xsgnl(icint)
+
+            pottmp = 0
+            do j=1,ncorner
+              pottmp = pottmp - xmatcsub(j,i,icint)*x(ipts2+j-1)
+            enddo
+            pot(ipts1+i-1) = pot(ipts1+i-1) + pottmp*xsgnl(icint)
+
+            pottmp = 0
+            do j=1,ncorner
+              pottmp  = pottmp + xmatc(j,i,icint)*x(ipts1+j-1)
+            enddo
+            pot(ipts2+i-1) = pot(ipts2+i-1) + pottmp*xsgnr(icint)
+
+            pottmp = 0
+            do j=1,ncorner
+              pottmp = pottmp - xmatcsub(j,i,icint)*x(ipts1+j-1)
+            enddo
+            pot(ipts2+i-1) = pot(ipts2+i-1) + pottmp*xsgnr(icint)
+          enddo
+        enddo
+
+        do i=1,n
+          y(i) = pot(i) -0.5d0*(-1)**(ifdn+ifinout)*x(i) 
         enddo
       endif
 
