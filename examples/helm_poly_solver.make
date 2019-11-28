@@ -27,13 +27,27 @@ SOURCES =  helm_poly_solver.f \
   $(SRC)/second_f90.f \
   $(SRC)/pplot2.f \
   $(SRC)/hkrand.f \
-  $(SRC)/hank103.f \
+  $(SRC)/hank103cc.f \
   $(SRC)/dlaran.f \
   $(SRC)/adapgaus_new.f \
+  $(SRC)/cgmres_blas.f \
+  $(SRC)/cgmres_fmm.f \
   $(SRC)/cadapgaum.f \
   $(SRC)/cadapgau.f \
   $(SRC)/orthom.f \
   $(SRC)/pnpoly.f \
+  $(SRC)/levrtree2d.f \
+  $(SRC)/hfmm2dmain.f \
+  $(SRC)/hfmm2dpart.f \
+  $(SRC)/fmmcommon2d.f \
+  $(SRC)/helmrouts2d.f \
+  $(SRC)/helmrouts2d_dir.f \
+  $(SRC)/cdjseval2d.f \
+  $(SRC)/h2dterms.f \
+  $(SRC)/h2dcommon.f \
+  $(SRC)/wideband2d.f \
+  $(SRC)/next235.f \
+  $(SRC)/dfft.f \
 
 
 

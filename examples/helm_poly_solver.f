@@ -1,11 +1,14 @@
       implicit real *8 (a-h,o-z)
       real *8, allocatable :: verts(:,:)
       real *8 xyin(2),xyout(2),dpars(2)
-      complex *16 zpars,zk
+      real *8 xysrc(2),xytarg(2)
+      complex *16 zpars,zk,pot,potex
 
       character *100 fname
 
-      external helm_slp
+      procedure (), pointer :: fker
+
+      external helm_slp,helm_dlp
 
       call prini(6,13)
 
@@ -64,21 +67,99 @@ c          iffast = 1 => iterative solver using blas for matvec
 c          iffast = 2 => iterative solver using fmm for matvec
 c          
  
-      ifdn = 1 
+      ifdn = 0 
       ifinout = 0
-      iffast = 0
+      iffast = 2
 
-      zk = 2.1d0
+      zk = 1.1d0
 
       ifwrite = 1
       fname = 'equi_interior_test.dat'
 
-      call helm_solver(zk,nverts,verts,ifdn,ifinout,iffast,fker,
-     1   dpars,zpars,ipars,ntarg,xyin,pot,ifwrite,fname)
+      if(ifinout.eq.0) then
+        xysrc(1) = xyout(1)
+        xysrc(2) = xyout(2)
 
+        xytarg(1) = xyin(1)
+        xytarg(2) = xyin(2)
+      endif
+
+      if(ifinout.eq.1) then
+        xysrc(1) = xyin(1)
+        xysrc(2) = xyin(2)
+        
+        xytarg(1) = xyout(1)
+        xytarg(2) = xyout(2)
+      endif
+
+
+
+      if(ifdn.eq.0) fker => helm_slp
+      if(ifdn.eq.1) fker => helm_dlp
+
+      
+
+      ntarg = 1
+
+      call helm_solver(zk,nverts,verts,ifdn,ifinout,iffast,fker,
+     1   xysrc,zk,ipars,ntarg,xytarg,pot,ifwrite,fname)
+
+      call helm_slp(xysrc,xytarg,zk,ipars,potex)
+      
+      erra = abs(pot-potex)/abs(potex)
+      call prin2('error in potential=*',erra,1)
       
       stop
       end
+
+c
+c
+c 
+c
+      subroutine helm_slp(y,x,zk,ipars,f)
+      implicit real *8 (a-h,o-z)
+      real *8 y(*),x(*)
+      complex *16 zk,f,h0,h1,z
+
+      ifexpon = 1
+      dx = y(1) - x(1)
+      dy = y(2) - x(2)
+      r = sqrt(dx**2 + dy**2)
+      z = zk*r
+      call hank103(z,h0,h1,ifexpon)
+      
+      f = h0
+
+      return
+      end
+
+c
+c
+c
+c
+      subroutine helm_dlp(y,x,zk,ipars,f)
+      implicit real *8 (a-h,o-z)
+      real *8 y(*),x(*)
+      complex *16 zk,f,h0,h1,z
+
+      ifexpon = 1
+      dx = y(1) - x(1)
+      dy = y(2) - x(2)
+      r = sqrt(dx**2 + dy**2)
+      dst = sqrt(y(3)**2 + y(4)**2)
+      rnx = y(4)/dst
+      rny = -y(3)/dst
+      z = zk*r
+      call hank103(z,h0,h1,ifexpon)
+       
+      f = -(dx*rnx + dy*rny)/r*h1*zk
+
+      return
+      end
+
+      
+
+      
 c
 c
 c
@@ -147,11 +228,43 @@ c
       integer, allocatable :: lns(:),rns(:)
 
       real *8, allocatable :: vtmp(:,:),rpan(:),rmid(:),angs(:)
+
+      integer, allocatable :: icl(:),icr(:)
+      real *8, allocatable :: xsgnl(:),xsgnr(:)
+      integer, allocatable :: icsgnl(:),icsgnr(:)
       
-      external fker
+      complex *16, allocatable :: xmatc(:,:,:),xmatcsub(:,:,:)
+      real *8, allocatable :: tsc(:),wtsc(:),umatc(:,:),vmatc(:,:)
+      real *8, allocatable :: coefs(:)
+
+      real *8 xtmp(4)
+
+      complex *16 h0,h1,z,ima,imainv4
+
+      complex *16, allocatable :: rhs(:),soln(:),xmat(:,:)
+      complex *16, allocatable :: solntmp(:)
+      integer, allocatable :: ipiv(:)
+      real *8, allocatable :: errs(:)
+      complex *16, allocatable :: work(:)
+
+
+      integer ifexpon
+      
+      data ima/(0.0d0,1.0d0)/
+      data imainv4/(0.0d0,0.25d0)/
+      
+      external fker,multa_blas,multa_fmm
 
       done = 1
       pi = atan(done)*4
+
+      read(32,*) lcoefs
+
+      allocate(coefs(lcoefs))
+      do i=1,lcoefs
+        read(32,*) coefs(i)
+      enddo
+      close(32)
 
 c
 c      find lenght of each of the edges
@@ -203,21 +316,19 @@ c
       npts = 0
       kmid = 16
 
-      call prin2('angs=*',angs,nverts+1)
-
 
       do i=1,nverts
         rmid(i) = rpan(i) -pl(i)-pr(i)
         hmid = 2.0d0*min(pl(i),pr(i))
         hmida = 2.0d0*min(pl(i)*abs(tan(angs(i))),
      1      pr(i)*abs(tan(angs(i+1))))
-        print *, i,hmid,hmida
         if(hmid.gt.hmida) hmid = hmida
         imid(i) = rmid(i)/hmid + 1
 
         nch = nch + imid(i)
         npts = npts  + imid(i)*kmid
       enddo
+
 
       allocate(el(nverts),er(nverts))
       do i=1,nverts
@@ -237,30 +348,424 @@ c
 
       call getedgedis(nverts,verts,nedges,el,er,pl,pr,imid,kmid,
      1       npts,xys,dxys,qwts,lns,rns,nepts,nch,ixys,ks,iscorn)
-      
-      allocate(xs(npts),ys(npts))
-      do i=1,npts
-        xs(i) = xys(1,i)
-        ys(i) = xys(2,i)
+
+c
+c
+c       set up corner interactions
+c
+      ncint = nverts
+      allocate(icl(ncint),icr(ncint),icsgnl(ncint),icsgnr(ncint))
+      allocate(xsgnl(ncint),xsgnr(ncint))
+
+      do i=1,ncint
+        icl(i) = i-1
+        icr(i) = i
+        icsgnl(i) = 1
+        icsgnr(i) = 0
+        xsgnl(i) = -1.0d0
+        xsgnr(i) = -1.0d0
+      enddo
+      icl(1) = nedges
+
+c
+c      get corner correction matrices
+c
+
+      ncorner = 36
+
+      allocate(xmatc(ncorner,ncorner,ncint))
+
+      allocate(tsc(ncorner),wtsc(ncorner),umatc(ncorner,ncorner),
+     1   vmatc(ncorner,ncorner))
+      call getcornstruct(ncorner,tsc,wtsc,umatc,vmatc)
+
+      do i=1,ncint
+        call helmcornmat(angs(i),zk,pl(i),tsc,wtsc,umatc,vmatc,ncorner,
+     1    coefs,lcoefs,xmatc(1,1,i))
       enddo
 
+      call prin2('done generating corner correction matrices*',i,0)
 
-      call pyplot2(12,xverts,yverts,nverts,3,xs,ys,npts,
-     1    1,'a*')
 
-      call prin2('verts=*',verts,2*nverts)
-      call prinf('el=*',el,nverts)
-      call prinf('er=*',er,nverts)
-      call prin2('pl=*',pl,nverts)
-      call prin2('pr=*',pr,nverts)
-      call prinf('imid=*',imid,nverts)
-      call prinf('kmid=*',kmid,1)
-      call prinf('npts=*',npts,1)
-      call prinf('ixys=*',ixys,nch)
-      call prinf('ks=*',ks,nch)
-      call prinf('iscorn=*',iscorn,nch)
+c
+c        get rhs
+c
+c
+      allocate(rhs(npts),soln(npts),solntmp(npts))
+      
+      do i=1,npts
+        xtmp(1) = xys(1,i)
+        xtmp(2) = xys(2,i)
+        xtmp(3) = dxys(1,i)
+        xtmp(4) = dxys(2,i)
+        call fker(xtmp,dpars,zpars,ipars,rhs(i))
+        rhs(i) = rhs(i)*sqrt(qwts(i))
+      enddo
+
+      
+
+
+
+
+c
+c        compute matrix if not using fmm to solve
+c
+c
+
+      if(iffast.eq.0.or.iffast.eq.1.or.iffast.eq.2) then
+        allocate(xmat(npts,npts))
+        do i=1,npts
+          do j=1,npts
+            xmat(j,i) = 0
+          enddo
+        enddo
+        ifexpon = 1
+        istart = 0
+        do iedge=1,nedges
+          do ii=1,nepts(iedge)
+            i = istart+ii
+            dst = sqrt(dxys(1,i)**2 + dxys(2,i)**2)
+            rnx = dxys(2,i)
+            rny = -dxys(1,i)
+
+            jstart = 0
+            do jedge=1,nedges
+              if(jedge.eq.iedge) goto 1000
+              do jj=1,nepts(jedge)
+                j = jj+jstart
+                rrr = sqrt((xys(1,i)-xys(1,j))**2 + 
+     1            (xys(2,i)-xys(2,j))**2)
+                z = rrr*zk
+                call hank103(z,h0,h1,ifexpon)
+                rrn = ((xys(1,j)-xys(1,i))*rnx+
+     1              (xys(2,j)-xys(2,i))*rny)/dst
+
+                xmat(j,i) = imainv4*h1*rrn/rrr*
+     1              zk*sqrt(qwts(j)*qwts(i))
+              enddo
+ 1000         continue              
+              jstart = jstart + nepts(jedge)
+            enddo
+          enddo
+          istart = istart + nepts(iedge)
+        enddo
+
+c
+c       fix correction matrices
+c
+        do icint=1,ncint
+          if(icsgnl(icint).eq.0) ipts1 = lns(icl(icint))
+          if(icsgnl(icint).eq.1) ipts1 = rns(icl(icint))
+        
+          if(icsgnr(icint).eq.0) ipts2 = lns(icr(icint))
+          if(icsgnr(icint).eq.1) ipts2 = rns(icr(icint))
+
+          do i=1,ncorner
+            do j=1,ncorner
+              xmat(j+ipts1-1,i+ipts2-1) = xmatc(j,i,icint)*xsgnl(icint)
+              xmat(j+ipts2-1,i+ipts1-1) = xmatc(j,i,icint)*xsgnr(icint)
+            enddo
+          enddo
+        enddo
+
+        do i=1,npts
+          xmat(i,i) = -0.5d0*(-1)**(ifdn+ifinout)
+        enddo
+
+
+
+        if(iffast.eq.0) then
+          do i=1,npts
+            soln(i) = rhs(i)
+          enddo
+
+          allocate(ipiv(npts))
+          call zgetrf(npts,npts,xmat,npts,ipiv,info)
+
+          
+
+          
+          if(ifdn.eq.0) call zgetrs('n',npts,1,xmat,npts,ipiv,
+     1        soln,npts,info)
+
+          if(ifdn.eq.1) call zgetrs('t',npts,1,xmat,npts,ipiv,
+     1        soln,npts,info)
+        endif
+        
+        if(iffast.eq.1) then
+          eps = 1.0d-15
+          numit = 200
+          ngmrec = 200
+          allocate(errs(numit+10),work((ngmrec*10+4)*npts))
+          
+          call cgmres_blas(ier,npts,xmat,multa_blas,ifdn,rhs,eps,numit,
+     1      soln,niter,errs,ngmrec,work)
+          call prinf('niter in gmres=*',niter,1)
+
+        endif
+      endif
+
+
+      if(iffast.eq.2) then
+        eps = 1.0d-15
+        numit = 200
+        ngmrec = 200
+        allocate(errs(numit+10),work((ngmrec*10+4)*npts))
+        allocate(xmatcsub(ncorner,ncorner,ncint))
+
+        call prin2('tsc=*',tsc,ncorner)
+        call prin2('wtsc=*',wtsc,ncorner)
+
+        do i=1,ncint
+          call helmcornmatsub(angs(i),zk,pl(i),tsc,wtsc,ncorner,
+     1      xmatcsub(1,1,i))
+          call prin2('xmatcsub=*',xmatcsub(1,1,i),24)
+          call prin2('xmatc=*',xmatc(1,1,i),24)
+        enddo
+
+
+c
+c
+c         compare multa_blas and multa_fmm
+c
+
+        call multa_blas(xmat,rhs,soln,npts,ifdn)
+        
+        call multa_fmm(zk,rhs,solntmp,npts,ifdn,ifinout,xys,dxys,qwts,
+     1   nedges,
+     1   ncint,lns,rns,icl,icr,icsgnl,icsgnr,xsgnl,xsgnr,ncorner,
+     2   xmatc,xmatcsub)
+
+        call prin2('soln=*',soln,24)
+        call prin2('solntmp=*',solntmp,24)
+
+        ra = 0
+        erra = 0
+        do i=1,npts
+          ra = ra + abs(soln(i))**2
+          erra = erra + abs(soln(i)-solntmp(i))**2
+
+        enddo
+
+        erra = sqrt(erra/ra)
+        call prin2('error in two matvec routines=*',erra,1)
+       
+
+        
+        call cgmres_fmm(ier,npts,multa_fmm,zk,ifdn,ifinout,
+     1    xys,dxys,qwts,nedges,ncint,lns,rns,icl,icr,icsgnl,icsgnr,
+     2    xsgnl,xsgnr,ncorner,xmatc,xmatcsub,rhs,eps,numit,
+     3    soln,niter,errs,
+     3    ngmrec,work)
+      endif
+
+
+c
+c        compute potential at target point
+c 
+
+      if(ifdn.eq.0) then
+        do i=1,ntarg
+          pot(i) = 0
+          do j=1,npts
+            rr = sqrt((xytarg(1,i)-xys(1,j))**2 +
+     1          (xytarg(2,i)-xys(2,j))**2)
+            z = zk*rr
+            call hank103(z,h0,h1,ifexpon)
+            dst = sqrt(dxys(1,j)**2 + dxys(2,j)**2)
+            rnx = dxys(2,j)/dst
+            rny = -dxys(1,j)/dst
+            rrn = (xytarg(1,i)-xys(1,j))*rnx +
+     1         (xytarg(2,i)-xys(2,j))*rny
+            pot(i) = pot(i) + imainv4*h1*rrn/rr*zk*soln(j)*
+     1          sqrt(qwts(j))
+          enddo
+        enddo
+      endif
+
+      if(ifdn.eq.1) then
+        do i=1,ntarg
+          pot(i) = 0
+          do j=1,npts
+            rr = sqrt((xytarg(1,i)-xys(1,j))**2 +
+     1          (xytarg(2,i)-xys(2,j))**2)
+            z = zk*rr
+            call hank103(z,h0,h1,ifexpon)
+            pot(i) = pot(i) + imainv4*h0*soln(j)*sqrt(qwts(j))
+          enddo
+        enddo
+      endif
+
+
+
       return
       end
+c
+c
+c    
+c
+      subroutine multa_blas(xmat,x,y,n,ift)
+      implicit real *8 (a-h,o-z)
+      character *1 transa
+      
+      complex *16 xmat(n,n),x(n),y(n)
+      complex *16 alpha,beta
+      integer ift
+
+      if(ift.eq.0) transa = 'n'
+      if(ift.eq.1) transa = 't'
+      alpha = 1.0d0
+      beta = 0.0d0
+
+      call zgemv(transa,n,n,alpha,xmat,n,x,1,beta,y,1) 
+      
+
+      return
+      end
+c
+c
+c
+c
+c
+      subroutine multa_fmm(zk,x,y,n,ifdn,ifinout,xys,dxys,qwts,nedges,
+     1   ncint,lns,rns,icl,icr,icsgnl,icsgnr,xsgnl,xsgnr,ncorner,
+     2   xmatc,xmatcsub)
+      implicit real *8 (a-h,o-z)
+      complex *16 x(n),y(n)
+      real *8 xys(2,n),dxys(2,n),qwts(n)
+      integer ncint,nedges
+      integer lns(nedges),rns(nedges),icl(ncint),icr(ncint)
+      integer icsgnl(ncint),icsgnr(ncint)
+      integer ncorner
+      real *8 xsgnl(ncint),xsgnr(ncint)
+      complex *16 xmatc(ncorner,ncorner,ncint)
+      complex *16 xmatcsub(ncorner,ncorner,ncint)
+
+      complex *16 zk
+
+      complex *16, allocatable :: charges(:),dipstr(:)
+      real *8, allocatable :: dipvec(:,:)
+      complex *16, allocatable :: pot(:),grad(:,:)
+      complex *16 pottarg,gradtarg(2),hess(3),hesstarg(3),pottmp
+
+      real *8 targ(2)
+      integer ifpgh,ifpghtarg
+
+      complex *16 z,h0,h1
+
+
+
+      if(ifdn.eq.0) then
+        ifdipole = 1
+        ifcharge = 0
+        ifpgh = 1
+      endif
+
+      if(ifdn.eq.1) then
+        ifcharge = 1
+        ifdipole = 0
+        ifpgh = 2
+      endif
+
+      ifpghtarg = 0
+
+      allocate(charges(n),dipstr(n),dipvec(2,n))
+      allocate(pot(n),grad(2,n))
+
+
+      do i=1,n
+        charges(i) = x(i)*sqrt(qwts(i))
+        dipstr(i) = x(i)*sqrt(qwts(i))
+        
+        dst = sqrt(dxys(1,i)**2 + dxys(2,i)**2)
+        dipvec(1,i) = dxys(2,i)/dst
+        dipvec(2,i) = -dxys(1,i)/dst
+
+        pot(i) = 0
+        grad(1,i) = 0
+        grad(2,i) = 0
+      enddo
+
+      call prin2('charges=*',charges,24)
+      call prin2('dipstr=*',dipstr,24)
+      call prin2('dipvec=*',dipvec,24)
+
+
+
+
+      nd = 1
+      eps = 1.0d-15
+      nt = 0
+
+      call hfmm2dpart(nd,eps,zk,n,xys,ifcharge,charges,ifdipole,dipstr,
+     1   dipvec,ifpgh,pot,grad,hess,nt,targ,ifpghtarg,pottarg,gradtarg,
+     2   hesstarg)
+
+
+c
+c
+c       take care of all corrections now
+c
+      if(ifdn.eq.0) then
+        do i=1,n
+          pot(i) = pot(i)*sqrt(qwts(i))
+        enddo
+
+        call prin2('pot=*',pot,2*n)
+
+        do icint=1,ncint
+          
+          if(icsgnl(icint).eq.0) ipts1 = lns(icl(icint))
+          if(icsgnl(icint).eq.1) ipts1 = rns(icl(icint))
+        
+          if(icsgnr(icint).eq.0) ipts2 = lns(icr(icint))
+          if(icsgnr(icint).eq.1) ipts2 = rns(icr(icint))
+
+          do i=1,ncorner
+            pottmp = 0
+            do j=1,ncorner
+              pottmp  = pottmp + xmatc(i,j,icint)*x(ipts2+j-1)
+            enddo
+            pot(ipts1+i-1) = pot(ipts1+i-1) + pottmp*xsgnl(icint)
+
+            pottmp = 0
+            do j=1,ncorner
+              pottmp = pottmp - xmatcsub(i,j,icint)*x(ipts2+j-1)
+            enddo
+            pot(ipts1+i-1) = pot(ipts1+i-1) + pottmp*xsgnl(icint)
+
+            pottmp = 0
+            do j=1,ncorner
+              pottmp  = pottmp + xmatc(i,j,icint)*x(ipts1+j-1)
+            enddo
+            pot(ipts2+i-1) = pot(ipts2+i-1) + pottmp*xsgnr(icint)
+
+            pottmp = 0
+            do j=1,ncorner
+              pottmp = pottmp - xmatcsub(i,j,icint)*x(ipts1+j-1)
+            enddo
+            pot(ipts2+i-1) = pot(ipts2+i-1) + pottmp*xsgnr(icint)
+          enddo
+        enddo
+cc        call prin2('pot=*',pot,2*n)
+
+        do i=1,n
+          y(i) = pot(i) -0.5d0*(-1)**(ifdn+ifinout)*x(i) 
+        enddo
+      endif
+
+      if(ifdn.eq.1) then
+        do i=1,n
+          y(i) = (grad(1,i)*dipvec(1,i) + grad(2,i)*dipvec(2,i))*
+     1       sqrt(qwts(i)) - 0.5d0*(-1)**(ifdn+ifinout)
+        enddo
+      endif
+
+
+
+      return
+      end
+
 
 c
 c
@@ -434,6 +939,34 @@ c
 
 c
 c
+c
+c
+c
+
+        subroutine helmcornmatsub(alpha,zk,rpan,x0s,w0s,nr0,
+     1      akern)
+        implicit real *8 (a-h,o-z)
+        real *8 x0s(nr0),w0s(nr0),alpha,rpan
+        complex *16 akern(nr0,nr0),zk,z,h0,h1,imainv4
+        data imainv4/(0.0d0,0.25d0)/
+
+
+        ifexpon = 1
+        do i=1,nr0
+          top = x0s(i)*sin(alpha)*rpan
+          do j=1,nr0
+            bottom = sqrt( (cos(alpha)*x0s(i) - x0s(j))**2 +
+     1          (x0s(i)*sin(alpha))**2)*rpan
+            z = zk*bottom
+            call hank103(z,h0,h1,ifexpon)
+            akern(i,j) =
+     1         -imainv4*h1*zk*top/bottom*sqrt(w0s(i)*w0s(j))*rpan
+          enddo
+        enddo
+
+        return
+        end
+
 c
 c
 c
