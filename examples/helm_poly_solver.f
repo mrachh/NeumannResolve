@@ -1,9 +1,10 @@
       implicit real *8 (a-h,o-z)
       real *8, allocatable :: verts(:,:)
       real *8 xyin(2),xyout(2),dpars(2)
-      real *8 xysrc(2),xytarg(2)
+      real *8 xysrc(2),xytarg(2),xylim(2,2)
       real *8, allocatable :: targ(:,:)
       complex *16, allocatable :: pottargex(:)
+      complex *16 pp
       integer, allocatable :: isin(:)
       
       complex *16 zpars,zk,pot,potex
@@ -72,7 +73,7 @@ c          iffast = 1 => iterative solver using blas for matvec
 c          iffast = 2 => iterative solver using fmm for matvec
 c          
  
-      ifdn = 0 
+      ifdn = 1 
       ifinout = 1
       iffast = 2
 
@@ -109,13 +110,16 @@ c
       call helm_solver(zk,nverts,verts,ifdn,ifinout,iffast,fker,
      1   xysrc,zk,ipars,ntarg,xytarg,pot,ifwrite,fname)
 
+
       call helm_slp(xysrc,xytarg,zk,ipars,potex)
       
       erra = abs(pot-potex)/abs(potex)
       call prin2('error in potential=*',erra,1)
 
+
       nlat = 300
       ntargv = nlat*nlat
+
       
       rfud = 1.2d0
 
@@ -123,14 +127,16 @@ c
       allocate(targ(2,ntargv),isin(ntargv),pottargex(ntargv))
       call gentarg(nverts,verts,rfud,nlat,ntargv,targ,isin,xylim)
 
+cc      ntargv = 1
+cc      targ(1,1) = 0.05d0
+cc      targ(2,1) = -0.09d0
 
       do i=1,ntargv
         pottargex(i) = 0
         call helm_slp(xysrc,targ(1,i),zk,ipars,pottargex(i))
-        write(48,*) targ(1,i),targ(2,i),
-     1     real(pottargex(i)),imag(pottargex(i))
+        write(48,*) real(pottargex(i)),imag(pottargex(i))
       enddo
-      
+
       
       stop
       end
@@ -142,16 +148,19 @@ c
       subroutine helm_slp(y,x,zk,ipars,f)
       implicit real *8 (a-h,o-z)
       real *8 y(*),x(*)
-      complex *16 zk,f,h0,h1,z
+      complex *16 zk,f,h0,h1,z,imainv4
+      data imainv4/(0.0d0,0.25d0)/
+
 
       ifexpon = 1
       dx = y(1) - x(1)
       dy = y(2) - x(2)
+
       r = sqrt(dx**2 + dy**2)
       z = zk*r
       call hank103(z,h0,h1,ifexpon)
       
-      f = h0
+      f = h0*imainv4
 
       return
       end
@@ -163,7 +172,8 @@ c
       subroutine helm_dlp(y,x,zk,ipars,f)
       implicit real *8 (a-h,o-z)
       real *8 y(*),x(*)
-      complex *16 zk,f,h0,h1,z
+      complex *16 zk,f,h0,h1,z,imainv4
+      data imainv4/(0.0d0,0.25d0)/
 
       ifexpon = 1
       dx = y(1) - x(1)
@@ -175,7 +185,7 @@ c
       z = zk*r
       call hank103(z,h0,h1,ifexpon)
        
-      f = -(dx*rnx + dy*rny)/r*h1*zk
+      f = -(dx*rnx + dy*rny)/r*h1*zk*imainv4
 
       return
       end
@@ -184,6 +194,193 @@ c
 
       
 c
+c
+c 
+c
+      subroutine hslp_gau(x,par1,par2,f)
+      implicit real *8 (a-h,o-z)
+      real *8 par1(*),par2(*)
+      real *8 pols(100)
+      complex *16 val,ima,h0,h1,z,zk,imainv4,f
+      data ima/(0.0d0,1.0d0)/
+      data imainv4/(0.0d0,0.25d0)/
+
+      dd = 0
+      ddi = 0
+      xx = 0
+      yy = 0
+      k = par1(1)
+      xt = par1(2)
+      yt = par1(3)
+      rlen = par1(4)
+      zk = par1(5) + ima*par1(6)
+
+      call legepols(x,k-1,pols)
+
+     
+      do i=1,k
+        xx = xx + par2(i)*pols(i)
+        yy = yy + par2(i+k)*pols(i)
+        dd = dd + par2(i+2*k)*pols(i)
+        ddi = ddi + par2(i+3*k)*pols(i)
+      enddo
+      
+      r = sqrt((xx-xt)**2 + (yy-yt)**2)
+      z = zk*r
+      ifexpon = 1
+
+      call hank103(z,h0,h1,ifexpon)
+      f = imainv4*h0*(dd+ima*ddi)*rlen/2.0d0
+
+      
+
+
+      return
+      end
+c
+c
+c 
+c
+      subroutine hdlp_gau(x,par1,par2,f)
+      implicit real *8 (a-h,o-z)
+      real *8 par1(*),par2(*)
+      real *8 pols(100)
+      complex *16 val,ima,h0,h1,z,zk,imainv4,f
+      data ima/(0.0d0,1.0d0)/
+      data imainv4/(0.0d0,0.25d0)/
+
+      dd = 0
+      ddi = 0
+      xx = 0
+      yy = 0
+      k = par1(1)
+      xt = par1(2)
+      yt = par1(3)
+      rlen = par1(4)
+      zk = par1(5) + ima*par1(6)
+      rnxe = par1(7)
+      rnye = par1(8)
+
+      call legepols(x,k-1,pols)
+
+     
+      do i=1,k
+        xx = xx + par2(i)*pols(i)
+        yy = yy + par2(i+k)*pols(i)
+        dd = dd + par2(i+2*k)*pols(i)
+        ddi = ddi + par2(i+3*k)*pols(i)
+      enddo
+      
+      r = sqrt((xx-xt)**2 + (yy-yt)**2)
+      rrn = (xx-xt)*rnxe + (yy-yt)*rnye
+      z = zk*r
+      ifexpon = 1
+
+      call hank103(z,h0,h1,ifexpon)
+      f = -imainv4*h1*(dd+ima*ddi)*rlen/2.0d0*zk*rrn/r
+
+
+      return
+      end
+c
+c
+c
+c
+c 
+c
+      subroutine hslp_jer(x,par1,par2,f)
+      implicit real *8 (a-h,o-z)
+      real *8 par1(*),par2(*)
+      real *8 pols(100)
+      complex *16 val,ima,h0,h1,z,zk,imainv4,f
+      data ima/(0.0d0,1.0d0)/
+      data imainv4/(0.0d0,0.25d0)/
+
+      dd = 0
+      ddi = 0
+      xx = 0
+      yy = 0
+      k = par1(1)
+      xt = par1(2)
+      yt = par1(3)
+      rlen = par1(4)
+      zk = par1(5) + ima*par1(6)
+      
+      t = abs(x)
+
+      do i=1,k
+        call lapnestev2(ier,par1(9),t,i,pols(i))
+      enddo
+     
+      do i=1,k
+        xx = xx + par2(i)*pols(i)
+        yy = yy + par2(i+k)*pols(i)
+        dd = dd + par2(i+2*k)*pols(i)
+        ddi = ddi + par2(i+3*k)*pols(i)
+      enddo
+      
+      r = sqrt((xx-xt)**2 + (yy-yt)**2)
+      z = zk*r
+      ifexpon = 1
+
+      call hank103(z,h0,h1,ifexpon)
+      f = imainv4*h0*(dd+ima*ddi)*rlen
+
+      
+
+
+      return
+      end
+c
+c
+c 
+c
+      subroutine hdlp_jer(x,par1,par2,f)
+      implicit real *8 (a-h,o-z)
+      real *8 par1(*),par2(*)
+      real *8 pols(100)
+      complex *16 val,ima,h0,h1,z,zk,imainv4,f
+      data ima/(0.0d0,1.0d0)/
+      data imainv4/(0.0d0,0.25d0)/
+
+      dd = 0
+      ddi = 0
+      xx = 0
+      yy = 0
+      k = par1(1)
+      xt = par1(2)
+      yt = par1(3)
+      rlen = par1(4)
+      zk = par1(5) + ima*par1(6)
+      rnxe = par1(7)
+      rnye = par1(8)
+
+      t = abs(x)
+
+
+      do i=1,k
+        call lapnestev2(ier,par1(9),t,i,pols(i))
+      enddo
+
+     
+      do i=1,k
+        xx = xx + par2(i)*pols(i)
+        yy = yy + par2(i+k)*pols(i)
+        dd = dd + par2(i+2*k)*pols(i)
+        ddi = ddi + par2(i+3*k)*pols(i)
+      enddo
+      
+      r = sqrt((xx-xt)**2 + (yy-yt)**2)
+      rrn = (xx-xt)*rnxe + (yy-yt)*rnye
+      z = zk*r
+      ifexpon = 1
+
+      call hank103(z,h0,h1,ifexpon)
+      f = -imainv4*h1*(dd+ima*ddi)*sqrt(rlen)*zk*rrn/r
+
+
+      return
+      end
 c
 c
 c
@@ -215,11 +412,11 @@ c
 
       return
       end
-c
+c****************************
 c
 c
 c       main subroutine
-c
+c*******************************
 
 
       subroutine helm_solver(zk,nverts,verts,ifdn,ifinout,iffast,fker,
@@ -249,6 +446,7 @@ c
       integer, allocatable :: el(:),er(:),imid(:)
       integer, allocatable :: iscorn(:),ixys(:),ks(:),nepts(:)
       integer, allocatable :: lns(:),rns(:)
+      integer, allocatable :: ichl(:),ichr(:)
 
       real *8, allocatable :: vtmp(:,:),rpan(:),rmid(:),angs(:)
 
@@ -347,7 +545,7 @@ c
 
       nch = 0
       npts = 0
-      kmid = 16
+      kmid = 24
 
 
       do i=1,nverts
@@ -382,13 +580,16 @@ c
       call getedgedis(nverts,verts,nedges,el,er,pl,pr,imid,kmid,
      1       npts,xys,dxys,qwts,lns,rns,nepts,nch,ixys,ks,iscorn)
 
+cc      call prinf('iscorn=*',iscorn,nch)
+
+
 c
 c
 c       set up corner interactions
 c
       ncint = nverts
       allocate(icl(ncint),icr(ncint),icsgnl(ncint),icsgnr(ncint))
-      allocate(xsgnl(ncint),xsgnr(ncint))
+      allocate(xsgnl(ncint),xsgnr(ncint),ichl(ncint),ichr(ncint))
 
       do i=1,ncint
         icl(i) = i-1
@@ -399,6 +600,19 @@ c
         xsgnr(i) = -1.0d0
       enddo
       icl(1) = nedges
+
+      do ich=1,nch
+        if(iscorn(ich).gt.0) then
+          ichr(iscorn(ich)) = ich
+        endif
+
+        if(iscorn(ich).lt.0) then
+          ichl(-iscorn(ich)) = ich
+        endif
+      enddo
+
+cc      call prinf('ichl=*',ichl,ncint)
+cc      call prinf('ichr=*',ichr,ncint)
 
 c
 c      get corner correction matrices
@@ -446,6 +660,8 @@ c        compute matrix if not using fmm to solve
 c
 c
 
+
+      call cpu_time(t1)
       if(iffast.eq.0.or.iffast.eq.1) then
         allocate(xmat(npts,npts))
         do i=1,npts
@@ -515,9 +731,6 @@ c
           allocate(ipiv(npts))
           call zgetrf(npts,npts,xmat,npts,ipiv,info)
 
-          
-
-          
           if(ifdn.eq.0) call zgetrs('n',npts,1,xmat,npts,ipiv,
      1        soln,npts,info)
 
@@ -554,7 +767,6 @@ c
      1      xmatcsub(1,1,i))
         enddo
 
-        
         call cgmres_fmm(ier,npts,multa_fmm,zk,ifdn,ifinout,
      1    xys,dxys,qwts,nedges,ncint,lns,rns,icl,icr,icsgnl,icsgnr,
      2    xsgnl,xsgnr,ncorner,xmatc,xmatcsub,rhs,eps,numit,
@@ -562,6 +774,9 @@ c
      3    ngmrec,work)
         
       endif
+
+      call cpu_time(t2)
+      call prin2('linear system solve time=*',t2-t1,1)
 
 c
 c
@@ -574,21 +789,36 @@ c
       rfud = 1.2d0
       call gentarg(nverts,verts,rfud,nlat,ntargv,targ,isin,xylim)
 
-      
+cc      ntargv = 1
+cc      targ(1,1) = 0.05d0
+cc      targ(2,1) = -0.09d0
 
+      call cpu_time(t1)
       call comppottarg_fmm(zk,npts,xys,dxys,qwts,ifdn,soln,ntargv,
      1    targ,pottarg)
+
+      call cpu_time(t2)
+      call prin2('fmm for volume targets time=*',t2-t1,1)
+
+      
+      call cpu_time(t1)
+      call comppottarg_corr(zk,npts,nch,xys,dxys,qwts,ixys,ks,kmid,
+     1   iscorn,ifdn,ifinout,soln,coefs,lcoefs,ncorner,
+     2   tsc,wtsc,umatc,vmatc,ncint,angs,xsgnl,xsgnr,ichl,ichr,
+     3   nverts,verts,ntargv,targ,isin,pottarg)
+      call cpu_time(t2)
+      call prin2('quadrature correction for volume targets time=*',
+     1       t2-t1,1)
+
+
       
 cc      open(unit=47,file=trim(fname))
 
       do i=1,ntargv
-        if(ifinout.eq.0.and.isin(i).eq.-1) pottarg(i) = 1.0d20
-        if(ifinout.eq.1.and.isin(i).eq.1) pottarg(i) = 1.0d20
-        if(isin(i).eq.0) pottarg(i) = 0
-        write(47,*) targ(1,i),targ(2,i),real(pottarg(i)),
-     1     imag(pottarg(i))
+        write(47,*) real(pottarg(i)),imag(pottarg(i))
       enddo
       close(47)
+
 
 
 
@@ -879,9 +1109,9 @@ c
         do j=1,nlat
           itarg = (i-1)*nlat + j
           x = xylim(1,1) + 
-     1       (i-1.0d0)/(nlat-1.0d0)*(xylim(1,2)-xylim(1,1))
+     1       (j-1.0d0)/(nlat-1.0d0)*(xylim(1,2)-xylim(1,1))
           y = xylim(2,2) + 
-     1       (j-1.0d0)/(nlat-1.0d0)*(xylim(2,1)-xylim(2,2))
+     1       (i-1.0d0)/(nlat-1.0d0)*(xylim(2,1)-xylim(2,2))
           targ(1,itarg) = x
           targ(2,itarg) = y
 
@@ -905,22 +1135,25 @@ c
 c
 c
 
-      subroutine comppottarg_fmm(zk,n,xys,dxys,qwts,ifdn,sig,ntarg,
+      subroutine comppottarg_fmm(zk,n,xys,dxys,qwts,ifdn,x,ntarg,
      1   targ,pottarg)
       implicit real *8 (a-h,o-z)
 
 
-      complex *16 sig(n)
+      complex *16 x(n)
       real *8 xys(2,n),dxys(2,n),qwts(n)
 
       complex *16 zk
 
       complex *16, allocatable :: charges(:),dipstr(:)
       real *8, allocatable :: dipvec(:,:)
-      complex *16 pot,grad(2)
-      complex *16 pottarg(ntarg),gradtarg(2),hess(3),hesstarg(3)
 
       real *8 targ(2,ntarg)
+      complex *16 pottarg(ntarg)
+
+      complex *16 pot,grad(2)
+      complex *16 gradtarg(2),hess(3),hesstarg(3)
+
       integer ifpgh,ifpghtarg
 
 
@@ -942,17 +1175,14 @@ c
 
 
       do i=1,n
-        charges(i) = sig(i)*sqrt(qwts(i))
-        dipstr(i) = sig(i)*sqrt(qwts(i))
+        charges(i) = x(i)*sqrt(qwts(i))
+        dipstr(i) = x(i)*sqrt(qwts(i))
         
         dst = sqrt(dxys(1,i)**2 + dxys(2,i)**2)
         dipvec(1,i) = dxys(2,i)/dst
         dipvec(2,i) = -dxys(1,i)/dst
       enddo
 
-      call prin2('charges=*',charges,24)
-      call prin2('dipstr=*',dipstr,24)
-      call prin2('dipvec=*',dipvec,24)
 
       do i=1,ntarg
         pottarg(i) = 0
@@ -962,24 +1192,13 @@ c
       nd = 1
       eps = 1.0d-15
 
-      call prinf('ifpghtarg=*',ifpghtarg,1)
-      call prinf('ifdn=*',ifdn,1)
- 
-      call prin2('xys=*',xys,24)
-      call prinf('n=*',n,1)
-      call prinf('ifcharge=*',ifcharge,1)
-      call prinf('ifdipole=*',ifdipole,1)
-      call prinf('ntarg=*',ntarg,1)
-      call prin2('targ=*',targ,24)
-      call prinf('ifpgh=*',ifpgh,1)
-      call prinf('ifpghtarg=*',ifpghtarg,1)
-
 
       call hfmm2dpart(nd,eps,zk,n,xys,ifcharge,charges,ifdipole,dipstr,
      1   dipvec,ifpgh,pot,grad,hess,ntarg,targ,ifpghtarg,pottarg,
      2   gradtarg,hesstarg)
       
-      call prin2('pottarg=*',pottarg,24)
+
+
 
       return
       end
@@ -991,8 +1210,811 @@ c
 c
 c
 c
+      subroutine comppottarg_corr(zk,n,nch,xys,dxys,qwts,ixys,ks,
+     1   kmid,iscorn,ifdn,ifinout,soln,coefs,lcoefs,nc,tsc,wtsc,
+     2   umatc,vmatc,ncint,angs,xsgnl,xsgnr,ichl,ichr,
+     3   nverts,verts,ntarg,targ,isin,pottarg)
+
+
+      implicit real *8 (a-h,o-z)
+      complex *16 zk
+      integer n,nc,lcoefs,ncint,nedges
+      real *8 verts(2,nverts)
+      real *8 xsgnl(ncint),xsgnr(ncint),angs(ncint)
+      integer ichl(ncint),ichr(ncint)
+      real *8 xys(2,n),dxys(2,n),qwts(n)
+      real *8 coefs(lcoefs)
+      real *8 umatc(nc,nc),vmatc(nc,nc),wtsc(nc),tsc(nc)
+      integer nch,ixys(nch),iscorn(nch),ifdn,ifinout
+      complex *16 soln(n)
+      integer ntarg
+      real *8 targ(2,ntarg)
+      integer isin(ntarg)
+      complex *16 pottarg(ntarg)
+
+      real *8, allocatable :: vtmp(:,:)
+
+
+      real *8, allocatable :: cm(:,:),rads(:),radtmp(:)
+      real *8, allocatable :: ts(:),wts(:),umat(:,:),vmat(:,:)
+
+      integer, allocatable :: row_ptr(:),col_ind(:),col_ptr(:)
+      integer, allocatable :: row_ind(:),iarr(:)
+      real *8, allocatable :: xcoefs(:),ycoefs(:),tpack(:)
+      real *8 par1(100)
+      real *8, allocatable :: xstmp(:),ystmp(:),par1m(:)
+
+      complex *16, allocatable :: soln_tmp(:),soln_coefs(:)
+
+      real *8, allocatable :: tsquad(:),wquad(:)
+      real *8 xtmp(4),targtmp(2)
+      complex *16 pottmp,ff
+
+      complex *16, allocatable :: vals(:)
+      complex *16, allocatable :: soln_resolve(:)
+      real *8, allocatable :: xs_resolve(:),ys_resolve(:)
+      real *8, allocatable :: ts_resolve(:),qwts_resolve(:)
+      real *8, allocatable :: ts_ref(:),wts_ref(:)
+
+
+
+      real *8, allocatable :: stack(:,:)
+
+      procedure (), pointer :: fker_gau,fker_jer,f_rem
+
+      external hslp_gau,hslp_jer,hdlp_gau,hdlp_jer
+      external helm_slp,helm_dlp
+
+      allocate(ts(kmid),wts(kmid),umat(kmid,kmid),vmat(kmid,kmid))
+
+      itype = 2
+      call legeexps(itype,kmid,ts,umat,vmat,wts)
+
+      m = 20
+      allocate(tsquad(m),wquad(m))
+      ifwhts = 1
+      call legewhts(m,tsquad,wquad,ifwhts)
+
+      if(ifdn.eq.1) then
+        fker_gau => hslp_gau
+        fker_jer => hslp_jer
+        f_rem => helm_slp
+      endif
+
+      if(ifdn.eq.0) then
+        fker_gau => hdlp_gau
+        fker_jer => hdlp_jer
+        f_rem => helm_dlp
+      endif
+
+c
+c
+c        note there is a slight hack to determine the centroid 
+c        and radii - things might break if kmid = 2
+      
+      allocate(cm(2,nch),rads(nch),radtmp(nch))
+      call get_cm_rad(nch,ixys,ks,xys,cm,rads)
+
+      rfac = 1.5d0
+      do i=1,nch
+        radtmp(i) = rads(i)*rfac
+      enddo
+
+      call findnearslowmem(cm,nch,radtmp,targ,ntarg,nnz)
+cc      call prinf('nnz=*',nnz,1)
+
+
+      allocate(row_ptr(ntarg+1),col_ptr(nch+1))
+      allocate(row_ind(nnz),col_ind(nnz))
+      allocate(iarr(nnz))
+
+
+      
+      call findnearslow(cm,nch,radtmp,targ,ntarg,row_ptr,col_ind)
+
+      call rsc_to_csc(nch,ntarg,nnz,row_ptr,col_ind,col_ptr,row_ind,
+     1         iarr)
+
+
+
+      maxdepth = 200
+
+      allocate(stack(2,maxdepth),vals(maxdepth))
+      nnmax = 100000
+      eps = 1.0d-13
+      allocate(par1m(lcoefs+10))
+
+      do i=1,lcoefs
+        par1m(8+i) = coefs(i)
+      enddo
+
+     
+      do ich=1,nch
+        istart = ixys(ich)
+
+
+
+        if(iscorn(ich).eq.0) then
+
+          rpan = 0
+          do i=1,kmid
+            rpan = rpan + qwts(ixys(ich)+i-1)
+          enddo
+
+          dst = sqrt(dxys(1,ixys(ich))**2 + dxys(2,ixys(ich))**2)
+          rnxe = dxys(2,ixys(ich))/dst
+          rnye = -dxys(1,ixys(ich))/dst
+          allocate(xcoefs(kmid),ycoefs(kmid),soln_tmp(kmid),
+     1       soln_coefs(kmid),tpack(4*kmid))
+          
+          do i=1,kmid
+            soln_tmp(i) = soln(istart + i-1)/sqrt(qwts(istart+i-1))
+          enddo
+
+          do i=1,kmid
+            xcoefs(i) = 0
+            ycoefs(i) = 0
+            soln_coefs(i) = 0
+            do j=1,kmid
+              xcoefs(i) = xcoefs(i) + umat(i,j)*xys(1,istart+j-1)
+              ycoefs(i) = ycoefs(i) + umat(i,j)*xys(2,istart+j-1)
+              soln_coefs(i) = soln_coefs(i) + umat(i,j)*soln_tmp(j)
+            enddo
+          enddo
+
+          do i=1,kmid
+            tpack(i) = xcoefs(i)
+            tpack(i+kmid) = ycoefs(i)
+            tpack(i+2*kmid) = real(soln_coefs(i))
+            tpack(i+3*kmid) = imag(soln_coefs(i))
+          enddo
+
+          do ii = col_ptr(ich),col_ptr(ich+1)-1
+            itarg = row_ind(ii)
+            par1(1) = kmid+0.1d0
+            par1(2) = targ(1,itarg)
+            par1(3) = targ(2,itarg)
+            par1(4) = rpan
+            par1(5) = real(zk)
+            par1(6) = imag(zk)
+            par1(7) = rnxe
+            par1(8) = rnye
+
+c
+c             remove contribution of current patch
+c
+            do i=1,kmid
+              xtmp(1) = xys(1,istart+i-1)
+              xtmp(2) = xys(2,istart+i-1)
+              xtmp(3) = dxys(1,istart+i-1)
+              xtmp(4) = dxys(2,istart+i-1)
+
+              
+              call f_rem(xtmp,targ(1,itarg),zk,ipars,ff)
+              pottarg(itarg) = pottarg(itarg) - 
+     1             ff*sqrt(qwts(istart+i-1))*soln(istart+i-1)                
+            enddo
+
+            a = -1.0d0
+            b = 1.0d0
+
+            pottmp = 0
+            ier = 0
+            maxrec = 0
+            numit = 0
+
+            do j=1,maxdepth
+              stack(1,j) = 0
+              stack(2,j) = 0
+              vals(j) = 0
+            enddo
+            
+            ier = 0
+
+            call cadinrec(ier,stack,a,b,fker_gau,par1,tpack,tsquad,
+     1        wquad,m,vals,nnmax,eps,pottmp,maxdepth,maxrec,
+     2        numint)
+
+            pottarg(itarg) = pottarg(itarg) +  pottmp
+
+          enddo
+          deallocate(xcoefs,ycoefs,soln_tmp,soln_coefs,tpack)
+        endif
+
+c
+c
+c        fix corner panels for dirichlet case
+c
+        if(ifdn.eq.0.and.iscorn(ich).ne.0) then
+
+          rpan = 0
+          do i=1,nc
+            rpan = rpan + qwts(ixys(ich)+i-1)
+          enddo
+
+          dst = sqrt(dxys(1,ixys(ich))**2 + dxys(2,ixys(ich))**2)
+          rnxe = dxys(2,ixys(ich))/dst
+          rnye = -dxys(1,ixys(ich))/dst
+          allocate(xcoefs(nc),ycoefs(nc),
+     1       soln_coefs(nc),tpack(4*nc),xstmp(nc),ystmp(nc))
+          
+          do i=1,nc
+            xstmp(i) = xys(1,istart + i-1)*sqrt(wtsc(i))
+            ystmp(i) = xys(2,istart + i-1)*sqrt(wtsc(i))
+          enddo
+
+          do i=1,nc
+            xcoefs(i) = 0
+            ycoefs(i) = 0
+            soln_coefs(i) = 0
+            do j=1,nc
+              xcoefs(i) = xcoefs(i) + vmatc(i,j)*xstmp(j)
+              ycoefs(i) = ycoefs(i) + vmatc(i,j)*ystmp(j)
+              soln_coefs(i) = soln_coefs(i)+vmatc(i,j)*soln(istart+j-1)
+            enddo
+          enddo
+
+
+          do i=1,nc
+            tpack(i) = xcoefs(i)
+            tpack(i+nc) = ycoefs(i)
+            tpack(i+2*nc) = real(soln_coefs(i))
+            tpack(i+3*nc) = imag(soln_coefs(i))
+          enddo
+
+
+
+          do ii = col_ptr(ich),col_ptr(ich+1)-1
+            itarg = row_ind(ii)
+            par1m(1) = nc+0.1d0
+            par1m(2) = targ(1,itarg)
+            par1m(3) = targ(2,itarg)
+            par1m(4) = rpan
+            par1m(5) = real(zk)
+            par1m(6) = imag(zk)
+            par1m(7) = rnxe
+            par1m(8) = rnye
+
+
+cc            call prin2('par1m=*',par1m,24)
+
+c
+c             remove contribution of current patch
 c
 
+            do i=1,nc
+              xtmp(1) = xys(1,istart+i-1)
+              xtmp(2) = xys(2,istart+i-1)
+              xtmp(3) = dxys(1,istart+i-1)
+              xtmp(4) = dxys(2,istart+i-1)
+
+              
+              call f_rem(xtmp,targ(1,itarg),zk,ipars,ff)
+              pottarg(itarg) = pottarg(itarg) - 
+     1             ff*sqrt(qwts(istart+i-1))*soln(istart+i-1)                
+            enddo
+
+
+            a=0.0d0
+            b=1.0d0
+
+            pottmp = 0
+            ier = 0
+            maxrec = 0
+            numit = 0
+
+            do j=1,maxdepth
+              stack(1,j) = 0
+              stack(2,j) = 0
+              vals(j) = 0
+            enddo
+            
+            ier = 0
+
+            call cadinrec(ier,stack,a,b,fker_jer,par1m,tpack,tsquad,
+     1        wquad,m,vals,nnmax,eps,pottmp,maxdepth,maxrec,
+     2        numint)
+            pottarg(itarg) = pottarg(itarg) +  pottmp
+
+          enddo
+          deallocate(xcoefs,ycoefs,xstmp,ystmp,soln_coefs,tpack)
+        endif
+      enddo
+
+c
+c
+c     only things remaining are targets close to the boundary
+c     for the case of neumann boundary conditions
+c
+c     in this case, we abandon are previous approach and go 
+c     over all existing corner interactions
+c 
+c     identify the closest target for each of these corner
+c     interactions
+c
+c     do the necessary levels of resolve
+c
+c     compute the potential using adaptive integration
+c     on the smooth panels on the resolved grid
+c
+c     and use far-field quadrature on the last panel
+c
+c
+c     note: for accuracy considerations, we will recenter
+c     the vertex of the corner at the origin
+c
+    
+      if(ifdn.eq.1) then
+        allocate(vtmp(2,nverts+2))
+
+        do i=1,nverts+2
+          ii = i
+          if(ii.gt.nverts) ii = ii-nverts
+          vtmp(1,i) = verts(1,ii)
+          vtmp(2,i) = verts(2,ii)
+        enddo
+
+      
+    
+        do icint=1,ncint
+          ivert = icint
+
+
+c
+c       determine rpan through ichr, could do it
+c        via ichl too 
+c
+          rpan = 0
+          do i=1,nc
+            rpan = rpan + qwts(ixys(ichr(icint))+i-1)
+          enddo
+
+
+c
+c      step 0+1: find if this corner interaction
+c        is relevant and if it is relevant
+c        determine number of resolve levels needed
+c
+          rmin = rpan**2
+
+          ntrel = col_ptr(ichr(icint)+1) - col_ptr(ichr(icint))
+          ntrel = ntrel+col_ptr(ichl(icint)+1) - col_ptr(ichl(icint))
+
+          if(ntrel.le.0) goto 1123
+  
+          do ii=col_ptr(ichr(icint)),col_ptr(ichr(icint)+1)-1
+             itarg = row_ind(ii)
+
+             dx = verts(1,ivert)-targ(1,itarg)
+             dy = verts(2,ivert)-targ(2,itarg)
+             rr = dx**2 + dy**2
+             if(rr.lt.rmin) rmin = rr
+          enddo
+
+  
+          do ii=col_ptr(ichl(icint)),col_ptr(ichl(icint)+1)-1
+            itarg = row_ind(ii)
+ 
+            dx = verts(1,ivert)-targ(1,itarg)
+            dy = verts(2,ivert)-targ(2,itarg)
+            rr = dx**2 + dy**2
+            if(rr.lt.rmin) rmin = rr
+          enddo
+
+          rmin = sqrt(rmin)
+          nlev = log(rpan*8.0d0/rmin)/log(2.0d0) + 1
+        
+c
+c        allocate appropriate memory for
+c        resolved solutions, and x,y coordinates
+c        which will be later needed in the adaptive
+c        integration routines
+c
+           nresolve = (nlev*kmid + nc)*2
+
+           allocate(xs_resolve(nresolve),ys_resolve(nresolve),
+     1       soln_resolve(nresolve),ts_resolve(nresolve),
+     2       qwts_resolve(nresolve))
+           do i=1,nresolve
+             xs_resolve(i) = 0
+             ys_resolve(i) = 0
+           enddo
+
+c
+c        compute xs_resolve, ys_resolve, qwts_resolve
+c        ts_resolve
+c
+           ii = icint-1
+           if(ii.le.0) ii = ii + nverts
+           dx1 = vtmp(1,ii) - vtmp(1,icint)
+           dy1 = vtmp(2,ii) - vtmp(2,icint)
+
+           ds = sqrt(dx1**2 + dy1**2)
+           dx1 = dx1/ds
+           dy1 = dy1/ds
+
+         
+           dx2 = vtmp(1,icint+1)-vtmp(1,icint)
+           dy2 = vtmp(2,icint+1)-vtmp(2,icint)
+           ds = sqrt(dx2**2 + dy2**2)
+           dx2 = dx2/ds
+           dy2 = dy2/ds
+
+           nhalf = nlev*kmid + nc
+           nc_ref = (nlev+2)*kmid
+           allocate(ts_ref(nc_ref),wts_ref(nc_ref))
+           call getcornerdis(kmid,nlev+2,ts_ref,wts_ref)
+
+           do i=1,nlev*kmid
+             xs_resolve(i) = ts_ref(i)*rpan*dx1
+             ys_resolve(i) = ts_ref(i)*rpan*dy1
+           
+             qwts_resolve(i) = rpan*wts_ref(i)
+ 
+             xs_resolve(nhalf+i) = ts_ref(i)*rpan*dx2
+             ys_resolve(nhalf+i) = ts_ref(i)*rpan*dy2
+           
+             qwts_resolve(nhalf+i) = rpan*wts_ref(i)
+           enddo
+
+           do i=1,nc
+             xs_resolve(kmid*nlev+i) = tsc(i)*rpan/2.0d0**nlev*dx1
+             ys_resolve(kmid*nlev+i) = tsc(i)*rpan/2.0d0**nlev*dy1
+             
+             qwts_resolve(kmid*nlev+i) = rpan/2.0d0**nlev*wtsc(i)
+
+             xs_resolve(nhalf+kmid*nlev+i)=tsc(i)*rpan/2.0d0**nlev*dx2
+             ys_resolve(nhalf+kmid*nlev+i)=tsc(i)*rpan/2.0d0**nlev*dy2
+           
+             qwts_resolve(nhalf+kmid*nlev+i) = rpan/2.0d0**nlev*wtsc(i)
+           enddo
+
+
+c
+           call resolve_dens(zk,kmid,nc,tsc,wtsc,vmatc,rpan,angs(icint),
+     1       soln(ixys(ichl(icint))),soln(ixys(ichr(icint))),
+     2       xsgnl(icint),xsgnr(icint),nlev,nresolve,coefs,lcoefs,
+     3       ifinout,soln_resolve)
+
+
+           
+c
+c
+c         now given this resolved solution, compute the potential
+c         at targets in the volume using adaptive integration
+c
+
+c
+c          remove contributions of the left patch at corner
+c
+         ich = ichl(icint) 
+         istart = ixys(ich)
+
+         do ii=col_ptr(ich),col_ptr(ich+1)-1
+           itarg = row_ind(ii)
+
+           do i=1,nc
+             xtmp(1) = xys(1,istart+i-1)
+             xtmp(2) = xys(2,istart+i-1)
+             xtmp(3) = dxys(1,istart+i-1)
+             xtmp(4) = dxys(2,istart+i-1)
+
+              
+             call f_rem(xtmp,targ(1,itarg),zk,ipars,ff)
+             pottarg(itarg) = pottarg(itarg) - 
+     1             ff*sqrt(qwts(istart+i-1))*soln(istart+i-1)                
+           enddo
+         enddo
+
+
+
+c
+c          remove contributions of the right patch at corner
+c
+         ich = ichr(icint) 
+         istart = ixys(ich)
+         do ii=col_ptr(ich),col_ptr(ich+1)-1
+           itarg = row_ind(ii)
+
+           do i=1,nc
+             xtmp(1) = xys(1,istart+i-1)
+             xtmp(2) = xys(2,istart+i-1)
+             xtmp(3) = dxys(1,istart+i-1)
+             xtmp(4) = dxys(2,istart+i-1)
+
+              
+             call f_rem(xtmp,targ(1,itarg),zk,ipars,ff)
+             pottarg(itarg) = pottarg(itarg) - 
+     1             ff*sqrt(qwts(istart+i-1))*soln(istart+i-1)                
+           enddo
+         enddo
+
+c
+c
+c            now use resolved grid to update potential
+c            for targets close to left patch
+c            
+c    
+c
+           
+            istart0 = 1
+
+c
+c            compute rnxe
+c
+         ich = ichl(icint)
+         dst = sqrt(dxys(1,ixys(ich))**2 + dxys(2,ixys(ich))**2)
+         rnxe = dxys(2,ixys(ich))/dst
+         rnye = -dxys(1,ixys(ich))/dst
+            
+         do ich0 = 1,nlev
+ 
+           istart = istart0 + (ich0-1)*kmid
+           rpan0 = 0
+           do i=1,kmid
+             rpan0 = rpan0 + qwts_resolve(istart+i-1)
+           enddo
+
+           allocate(xcoefs(kmid),ycoefs(kmid),soln_tmp(kmid),
+     1           soln_coefs(kmid),tpack(4*kmid))
+          
+           do i=1,kmid
+             soln_tmp(i) = soln_resolve(istart + i-1)/
+     1           sqrt(qwts_resolve(istart+i-1))
+           enddo
+
+           do i=1,kmid
+             xcoefs(i) = 0
+             ycoefs(i) = 0
+             soln_coefs(i) = 0
+             do j=1,kmid
+               xcoefs(i) = xcoefs(i) + umat(i,j)*xs_resolve(istart+j-1)
+               ycoefs(i) = ycoefs(i) + umat(i,j)*ys_resolve(istart+j-1)
+               soln_coefs(i) = soln_coefs(i) + umat(i,j)*soln_tmp(j)
+             enddo
+           enddo
+
+cc           print *, "ich0=",ich0
+cc           print *, "istart=",istart
+cc           call prin2('xcoefs=*',xcoefs,kmid)
+cc           call prin2('ycoefs=*',ycoefs,kmid)
+cc           call prin2('soln_coefs=*',soln_coefs,2*kmid)
+
+           do i=1,kmid
+             tpack(i) = xcoefs(i)
+             tpack(i+kmid) = ycoefs(i)
+             tpack(i+2*kmid) = real(soln_coefs(i))
+             tpack(i+3*kmid) = imag(soln_coefs(i))
+           enddo
+           
+           do ii=col_ptr(ich),col_ptr(ich+1)-1
+             itarg = row_ind(ii)
+             par1(1) = kmid+0.1d0
+             par1(2) = targ(1,itarg)-verts(1,icint)
+             par1(3) = targ(2,itarg)-verts(2,icint)
+             par1(4) = rpan0
+             par1(5) = real(zk)
+             par1(6) = imag(zk)
+             par1(7) = rnxe
+             par1(8) = rnye
+
+c
+             a = -1.0d0
+             b = 1.0d0
+
+             pottmp = 0
+             ier = 0
+             maxrec = 0
+             numit = 0
+
+             do j=1,maxdepth
+               stack(1,j) = 0
+               stack(2,j) = 0
+               vals(j) = 0
+             enddo
+            
+             ier = 0
+
+             call cadinrec(ier,stack,a,b,fker_gau,par1,tpack,tsquad,
+     1         wquad,m,vals,nnmax,eps,pottmp,maxdepth,maxrec,
+     2         numint)
+
+             pottarg(itarg) = pottarg(itarg) +  pottmp
+           enddo
+           deallocate(xcoefs,ycoefs,soln_tmp,soln_coefs,tpack)
+         enddo
+
+c
+c        add contribution of last panel on left side
+c
+         istart = nlev*kmid+1
+         do ii=col_ptr(ich),col_ptr(ich+1)-1
+           itarg = row_ind(ii)
+
+           do i=1,nc
+             xtmp(1) = xs_resolve(istart+i-1)
+             xtmp(2) = ys_resolve(istart+i-1)
+
+             targtmp(1) = targ(1,itarg)-verts(1,icint)
+             targtmp(2) = targ(2,itarg)-verts(2,icint)
+
+              
+             call f_rem(xtmp,targtmp,zk,ipars,ff)
+             pottarg(itarg) = pottarg(itarg) + 
+     1             ff*sqrt(qwts_resolve(istart+i-1))*
+     2             soln_resolve(istart+i-1)                
+           enddo
+         enddo
+c
+c
+c        end of handling left panel
+c
+
+c
+c            now use resolved grid to update potential
+c            for targets close to left patch
+c            
+c    
+c
+           
+         istart0 = nhalf+1
+
+c
+c            compute rnxe
+c
+         ich = ichr(icint)
+         dst = sqrt(dxys(1,ixys(ich))**2 + dxys(2,ixys(ich))**2)
+         rnxe = dxys(2,ixys(ich))/dst
+         rnye = -dxys(1,ixys(ich))/dst
+            
+         do ich0 = 1,nlev
+ 
+           istart = istart0 + (ich0-1)*kmid
+           rpan0 = 0
+           do i=1,kmid
+             rpan0 = rpan0 + qwts_resolve(istart+i-1)
+           enddo
+
+           allocate(xcoefs(kmid),ycoefs(kmid),soln_tmp(kmid),
+     1           soln_coefs(kmid),tpack(4*kmid))
+          
+           do i=1,kmid
+             soln_tmp(i) = soln_resolve(istart + i-1)/
+     1           sqrt(qwts_resolve(istart+i-1))
+           enddo
+
+           do i=1,kmid
+             xcoefs(i) = 0
+             ycoefs(i) = 0
+             soln_coefs(i) = 0
+             do j=1,kmid
+               xcoefs(i) = xcoefs(i) + umat(i,j)*xs_resolve(istart+j-1)
+               ycoefs(i) = ycoefs(i) + umat(i,j)*ys_resolve(istart+j-1)
+               soln_coefs(i) = soln_coefs(i) + umat(i,j)*soln_tmp(j)
+             enddo
+           enddo
+
+           do i=1,kmid
+             tpack(i) = xcoefs(i)
+             tpack(i+kmid) = ycoefs(i)
+             tpack(i+2*kmid) = real(soln_coefs(i))
+             tpack(i+3*kmid) = imag(soln_coefs(i))
+           enddo
+           
+           do ii=col_ptr(ich),col_ptr(ich+1)-1
+             itarg = row_ind(ii)
+             par1(1) = kmid+0.1d0
+             par1(2) = targ(1,itarg)-verts(1,icint)
+             par1(3) = targ(2,itarg)-verts(2,icint)
+             par1(4) = rpan0
+             par1(5) = real(zk)
+             par1(6) = imag(zk)
+             par1(7) = rnxe
+             par1(8) = rnye
+
+c
+             a = -1.0d0
+             b = 1.0d0
+
+             pottmp = 0
+             ier = 0
+             maxrec = 0
+             numit = 0
+
+             do j=1,maxdepth
+               stack(1,j) = 0
+               stack(2,j) = 0
+               vals(j) = 0
+             enddo
+            
+             ier = 0
+
+             call cadinrec(ier,stack,a,b,fker_gau,par1,tpack,tsquad,
+     1         wquad,m,vals,nnmax,eps,pottmp,maxdepth,maxrec,
+     2         numint)
+
+             pottarg(itarg) = pottarg(itarg) +  pottmp
+           enddo
+           deallocate(xcoefs,ycoefs,soln_tmp,soln_coefs,tpack)
+         enddo
+
+c
+c        add contribution of last panel on right side
+c
+         istart = nlev*kmid+1+nhalf
+         do ii=col_ptr(ich),col_ptr(ich+1)-1
+           itarg = row_ind(ii)
+
+           do i=1,nc
+             xtmp(1) = xs_resolve(istart+i-1)
+             xtmp(2) = ys_resolve(istart+i-1)
+
+             targtmp(1) = targ(1,itarg)-verts(1,icint)
+             targtmp(2) = targ(2,itarg)-verts(2,icint)
+
+              
+             call f_rem(xtmp,targtmp,zk,ipars,ff)
+             pottarg(itarg) = pottarg(itarg) + 
+     1             ff*sqrt(qwts_resolve(istart+i-1))*
+     2             soln_resolve(istart+i-1)                
+           enddo
+         enddo
+c
+c
+c        end of handling right panel
+c
+
+
+         
+         deallocate(xs_resolve,ys_resolve,soln_resolve)
+         deallocate(ts_resolve,qwts_resolve,ts_ref,wts_ref)
+    
+ 1123   continue         
+
+        enddo
+      endif
+
+      
+      
+
+      return
+      end
+      
+c
+c
+c
+c
+c
+       subroutine get_cm_rad(nch,ixys,ks,xys,cm,rads)
+       implicit real *8 (a-h,o-z)
+       integer ixys(*),ks(*)
+       real *8 xys(2,*),cm(2,*),rads(*)
+
+       do i=1,nch
+         cm(1,i) = 0
+         cm(2,i) = 0
+         istart = ixys(i) -1
+         do j=1,ks(i)
+           cm(1,i) = cm(1,i) + xys(1,istart+j)
+           cm(2,i) = cm(2,i) + xys(2,istart+j)
+         enddo
+         cm(1,i) = cm(1,i)/ks(i)
+         cm(2,i) = cm(2,i)/ks(i)
+
+         rmax = 0
+         do j=1,ks(i)
+           dx = cm(1,i) - xys(1,istart+j)
+           dy = cm(2,i) - xys(2,istart+j)
+           rr = dx**2 + dy**2
+           if(rr.gt.rmax) rmax = rr
+         enddo
+         rads(i) = sqrt(rmax)
+       enddo
+
+
+       return
+       end
+      
 
        subroutine getcornstruct(nr0,ts,wts,u,v)
        implicit real *8 (a-h,o-z)
@@ -1089,7 +2111,7 @@ c
          ipan = ipan + 1
          ichstart(ipan) = n+1
          ks(ipan) = ncorner
-         iscorn(ipan) = 1
+         iscorn(ipan) = el(ie)
 
          dxt = verts(1,er(ie))-verts(1,el(ie))
          dyt = verts(2,er(ie))-verts(2,el(ie))
@@ -1142,7 +2164,7 @@ c
          rns(ie) = n+1
          ichstart(ipan) = n+1
          ks(ipan) = ncorner
-         iscorn(ipan) = 1
+         iscorn(ipan) = -er(ie)
 
          do i=1,ncorner
            xys(1,n+i) = verts(1,er(ie)) - dxt*ts(i)*pr(ie)
@@ -1189,6 +2211,450 @@ c
 
         return
         end
+
+c
+c
+c
+c
+      subroutine resolve_dens(zk,k,ncorner,ts,wts,vmat,rtmp,thet,solnl,
+     1   solnr,xsgnl,xsgnr,nlev,nres,svdcoefs,lcoefs,ifinout,
+     2   solncomp)
+c
+c
+c         this subroutine resolves the density in the vicinity
+c         of a corner whose angle is given by
+c         thet
+c
+c         input arguments:
+c           zk - Helmholtz parameter
+c           k - number of discretization nodes on the smooth panel
+c           ncorner - number of discretization nodes on corner panel
+c           ts,wts - real *8 (ncorner)
+c             nodes and discretization weights for corner panel
+c           vmat - vals (scaled by sqrt of weights) to coeffs matrix
+c              for corner panel
+c           rtmp - panel length on input at corner
+c           thet - angle at corner
+c           solnl(ncorner) - soln on left hand side of the corner
+c           solnr(ncorner) - soln on right hand side of the corner
+c           xsgnl - sign for corner matrix with sources on left, 
+c              and targets on right
+c           xsgnr - sign for corner matrix with sources on right, 
+c              and targets on left
+c           nlev - number of levels of re - solved solution
+c           nres - total number of discretization nodes for re-solved grid
+c                  = (nlev*k + ncorner)*2
+c
+c           ifinout - flag for interior or exterior problem 
+c           
+c           
+c         output argument:
+c          solncomp - real *8(nres)
+c               resolved solution
+c
+
+      implicit real *8 (a-h,o-z)
+      integer k,ncorner,nres,nn,nlev
+      real *8 ts(ncorner),wts(ncorner),vmat(ncorner,ncorner),rtmp,thet
+      real *8 svdcoefs(lcoefs)
+      complex *16 zk
+      complex *16, allocatable :: xmatc2tmp(:,:)
+      complex *16 solnl(ncorner),solnr(ncorner),solncomp(nres)
+      real *8 tsloc(300),wtsloc(300),qwtstmp(300)
+      real *8, allocatable :: ts3(:),wts3(:)
+      real *8, allocatable :: ttt(:),www(:),uuu(:,:),vvv(:,:)
+      complex *16, allocatable :: xmatcnew(:,:),xmatnew(:,:),
+     1    xmatnewcopy(:,:)
+      complex *16, allocatable :: rhsnew(:),rmutmp(:),solnnew(:)
+      complex *16, allocatable :: rhstmp(:),rhstmp2(:),rhscoeffs(:)
+      complex *16, allocatable :: xmatsub(:,:),xmatsub0(:,:),
+     1   xmatsub1(:,:)
+      complex *16 alpha,beta
+      integer, allocatable :: ipiv(:)
+      character *1 tt
+
+      done = 1
+      pi = atan(done)*4
+      
+      allocate(ts3(k),wts3(k))
+
+      itype = 2
+      allocate(ttt(ncorner),www(ncorner),uuu(ncorner,ncorner))
+      allocate(vvv(ncorner,ncorner))
+      allocate(xmatc2tmp(ncorner,ncorner))
+      call lapdisc(ttt,www,uuu,vvv,ncorner,itype)
+      
+      rpan = rtmp
+      nc2 = k + ncorner
+      itype = 1
+      call legeexps(itype,k,ts3,utmp,vtmp,wts3)
+
+      xstart = 1.0d0/2.0d0
+      xend = rpan
+      do i=1,k
+        tsloc(i) = 0.5d0 + (ts3(i)+1)/4.0d0
+        wtsloc(i) = wts3(i)/4.0d0
+      enddo
+
+      do i=1,ncorner
+        tsloc(k+i) = ts(i)/2
+        wtsloc(k+i) = wts(i)/2
+      enddo
+
+
+      do i=1,nc2
+        qwtstmp(i) = wtsloc(i)*rtmp
+        qwtstmp(i+nc2) = wtsloc(i)*rtmp
+      enddo
+
+      nn = 2*nc2
+
+      allocate(xmatcnew(nc2,nc2))
+
+      call gethelmcornermat(thet,nc2,zk,rtmp,tsloc,wtsloc,xmatcnew)
+
+      allocate(xmatnew(nn,nn))
+      allocate(xmatnewcopy(nn,nn))
+      nnn = 2*ncorner
+      allocate(xmatsub(nnn,nnn))
+
+
+      do i=1,nn
+        do j=1,nn
+          xmatnew(i,j) = 0
+        enddo
+      enddo
+
+c
+cc      set off-diagnal blocks
+c
+c      unknowns 1-nc2 are the unknowns
+c      on edge 1 at vertex 1,
+c      and unknowns nc2+1,nn are the unknowns
+c      on edge 3 at vertex 1
+c
+       call zreplmat(nc2,nc2,nn,0,nc2,xmatcnew,xmatnew,xsgnl)
+       call zreplmat(nc2,nc2,nn,nc2,0,xmatcnew,xmatnew,xsgnr)
+
+c
+c        setup xmatsub
+c
+       do i=1,nnn
+         do j=1,nnn
+             xmatsub(j,i) = 0 
+         enddo
+       enddo
+
+
+       call helmcornmat(thet,zk,rtmp,ttt,www,uuu,vvv,
+     1      ncorner,svdcoefs,lcoefs,xmatc2tmp)
+
+       call zreplmat(ncorner,ncorner,nnn,ncorner,0,xmatc2tmp,xmatsub,
+     1       xsgnl) 
+       call zreplmat(ncorner,ncorner,nnn,0,ncorner,xmatc2tmp,xmatsub,
+     1       xsgnr) 
+
+       do i=1,nnn
+         xmatsub(i,i) = 0.5d0*(-1)**(ifinout)
+       enddo
+
+       
+       rrr = rtmp/2.0d0
+
+       
+       call helmcornmat(thet,zk,rrr,ttt,www,uuu,vvv,
+     1      ncorner,svdcoefs,lcoefs,xmatc2tmp)
+
+       call zreplmat(ncorner,ncorner,nn,k,nc2+k,xmatc2tmp,
+     1           xmatnew,xsgnl)
+
+       call zreplmat(ncorner,ncorner,nn,nc2+k,k,xmatc2tmp,
+     1           xmatnew,xsgnr)
+c
+cc        the matrix that has been set up are the dirichlet 
+c         matrices. Now take the transposes to compute the 
+c         neumann matrices
+c
+      ra = 0
+      do i=1,nn
+        xmatnew(i,i) = 0.5d0*(-1)**(ifinout)
+      enddo
+
+      do i=1,nn
+        do j=1,nn
+          xmatnewcopy(j,i) = xmatnew(j,i) 
+        enddo
+      enddo
+
+      allocate(ipiv(nn))
+
+       
+      allocate(rhsnew(nn),solnnew(nn))
+      allocate(rmutmp(2*ncorner))
+c
+cc     now set up the right hand side for the linear system
+c
+
+      do i=1,ncorner
+        rmutmp(i) = solnl(i)
+      enddo
+
+      do i=1,ncorner
+        rmutmp(ncorner+i) = solnr(i)
+      enddo
+
+
+
+
+
+c
+cc        start iterative solve loop
+c
+      nhalf = nlev*k + ncorner
+
+      allocate(rhstmp(nnn),rhstmp2(ncorner),rhscoeffs(ncorner))
+
+      rtmp0 = rtmp
+
+      alpha = 1.0d0
+      beta = 0.0d0
+      do ilev = 1,nlev
+         do i=1,nnn
+           rhstmp(i) = 0
+         enddo
+
+
+         call zgemv('t',nnn,nnn,alpha,xmatsub,nnn,rmutmp,1,beta,
+     1      rhstmp,1)
+
+ccc         call prin2('rhstmp=*',rhstmp,2*nnn)
+
+c
+cc       extract out the relevant pieces of rhs
+c
+         do i=1,ncorner
+           rhstmp2(i) = rhstmp(i)
+           rhscoeffs(i) = 0
+        enddo
+       
+c
+cc       smear this function onto the rest of the grid
+
+
+        do i=1,ncorner
+          rhscoeffs(i) = 0
+          do j=1,ncorner
+             rhscoeffs(i) = rhscoeffs(i) + vmat(i,j)*rhstmp2(j)
+          enddo
+        enddo
+
+cc        call prinf('ilev=*',ilev,1)
+cc
+cc        call prin2('rhscoeffs=*',rhscoeffs,ncorner*2)
+         
+
+        do ipt = 1,nc2
+          x = tsloc(ipt)
+          rhsnew(ipt) = 0
+          do j=1,ncorner
+            val = 0
+            call lapeval(x,j,val)
+            rhsnew(ipt) = rhsnew(ipt) + rhscoeffs(j)*val
+          enddo
+          rhsnew(ipt) = rhsnew(ipt)*sqrt(qwtstmp(ipt))/sqrt(rtmp)
+        enddo
+
+
+        do i=1,ncorner
+          rhstmp2(i) = rhstmp(ncorner+i)
+          rhscoeffs(i) = 0
+        enddo
+       
+c
+cc       smear this function onto the rest of the grid
+        do i=1,ncorner
+          rhscoeffs(i) = 0
+          do j=1,ncorner
+             rhscoeffs(i) = rhscoeffs(i) + vmat(i,j)*rhstmp2(j)
+          enddo
+        enddo
+         
+
+        do ipt = 1,nc2
+          ii = nc2 + ipt
+          x = tsloc(ipt)
+          rhsnew(ii) = 0
+          do j=1,ncorner
+            val = 0
+            call lapeval(x,j,val)
+            rhsnew(ii) = rhsnew(ii) + rhscoeffs(j)*val
+          enddo
+          rhsnew(ii) = rhsnew(ii)*sqrt(qwtstmp(ii))/
+     1       sqrt(rtmp)
+        enddo
+
+        do i=1,nn
+          solnnew(i) = rhsnew(i)
+        enddo
+
+cc        call prin2('rhsnew=*',rhsnew,2*nn)
+
+        do i=1,nn
+          do j=1,nn
+            xmatnew(j,i) = xmatnewcopy(j,i)  
+          enddo
+        enddo
+        call zgetrf(nn,nn,xmatnew,nn,ipiv,info)
+        
+        call zgetrs('t',nn,1,xmatnew,nn,ipiv,solnnew,nn,info)
+
+        istart = (ilev-1)*k
+
+        do i=1,k
+          solncomp(istart+i) = solnnew(i)
+          solncomp(nhalf+i+istart) = solnnew(nc2+i)
+        enddo
+
+        if(ilev.eq.nlev) then
+          do i=1,ncorner
+            solncomp(nlev*k+i) = solnnew(k+i)
+            solncomp(nhalf+nlev*k+i) = solnnew(nc2+k+i)
+          enddo
+        endif
+
+c
+cc        reinitialize rmutmp
+c
+        do i=1,ncorner
+          rmutmp(i) = solnnew(i+k)
+        enddo
+        do i=1,ncorner
+          rmutmp(ncorner+i) = solnnew(i+k+nc2)
+        enddo
+c
+c
+c       update xmatnewcopy, and xmatc2tmp
+c
+        rtmp0 = rtmp/2.0d0**ilev
+c
+c        setup xmatsub
+c
+        do i=1,nnn
+          do j=1,nnn
+            xmatsub(j,i) = 0 
+          enddo
+        enddo
+
+        call zreplmat(ncorner,ncorner,nnn,ncorner,0,xmatc2tmp,xmatsub,
+     1         xsgnl) 
+        call zreplmat(ncorner,ncorner,nnn,0,ncorner,xmatc2tmp,xmatsub,
+     1         xsgnr) 
+
+        do i=1,nnn
+          xmatsub(i,i) = 0.5d0*(-1)**(ifinout)
+        enddo
+
+
+        rrr = rtmp0/2.0d0
+       call helmcornmat(thet,zk,rrr,ttt,www,uuu,vvv,
+     1      ncorner,svdcoefs,lcoefs,xmatc2tmp)
+
+        call gethelmcornermat(thet,nc2,zk,rtmp0,tsloc,wtsloc,xmatcnew)
+
+        do i=1,nn
+          do j=1,nn
+            xmatnewcopy(j,i) = 0
+          enddo
+        enddo
+
+        call zreplmat(nc2,nc2,nn,0,nc2,xmatcnew,xmatnewcopy,xsgnl)
+        call zreplmat(nc2,nc2,nn,nc2,0,xmatcnew,xmatnewcopy,xsgnr)
+
+        call zreplmat(ncorner,ncorner,nn,k,nc2+k,xmatc2tmp,
+     1           xmatnewcopy,xsgnl)
+
+        call zreplmat(ncorner,ncorner,nn,nc2+k,k,xmatc2tmp,
+     1           xmatnewcopy,xsgnr)
+        do i=1,nn
+          xmatnewcopy(i,i) = 0.5d0*(-1)**(ifinout)
+        enddo
+      enddo
+
+cc      call prin2('solncomp=*',solncomp,2*nres)
+
+
+
+
+      return
+      end
+
+c
+c
+c---------------------------------------------      
+      subroutine zreplmat(nts,nss,n,its,iss,xmatc,xmat,rfac)
+c
+cc      this subroutine replaces the subblock of the matrix
+c       xmat assoicated with corner interactions at
+c       edge ie by the corresponding corner matrix xmatc
+c
+c       input:
+c       ie - edge number
+c       nc - size of matrix block to be replaced
+c       n - size of full system matrix
+c       its - target start point
+c       iss - source start point
+c       rfac - scaling factor
+c
+
+
+      implicit real *8 (a-h,o-z)
+      complex *16 xmatc(nts,*),xmat(n,*)
+
+      
+      do i=1,nts
+        do j=1,nss
+          xmat(its+i,iss+j) = rfac*xmatc(i,j)
+        enddo
+      enddo
+
+      return
+      end
+c-----------------------------------------
+c
+c
+c
+
+
+
+       subroutine gethelmcornermat(thet,n,zk,rlen,ts,wts,xmat)
+       implicit real *8 (a-h,o-z)
+       real *8 ts(*),wts(*)
+       complex *16 zk,xmat(n,*),z,imainv4,h0,h1
+       integer ifexpon
+       data imainv4/(0.0d0,0.25d0)/
+
+       done = 1
+       pi = atan(done)*4
+
+       sint = sin(thet)
+       cost = cos(thet)
+
+       ifexpon = 1
+
+       do i=1,n
+       do j=1,n
+         rr = sqrt(ts(i)**2 + ts(j)**2 - 2*ts(i)*ts(j)*cost)*rlen
+         z = zk*rr
+         call hank103(z,h0,h1,ifexpon)
+         xmat(i,j) =  -imainv4*h1*zk*ts(i)*rlen/rr*sint*
+     1      sqrt(wts(i)*wts(j))*rlen
+
+       enddo
+       enddo
+
+       return
+       end
+c--------------------------------------------
 
 c
 c
@@ -1325,6 +2791,59 @@ c
 c
 c
 c
+c-----------------------------------------
+      subroutine getcornerdis(k,nlev,ts,wts)
+      implicit real *8 (a-h,o-z)
+c
+cc       this subroutine computes a diadyically refined
+c        mesh on [0,1], with nlev number of panels of
+c        k Gauss-legendre nodes each
+c
+c        input:
+c        k - Number of gauss legendre points per panel
+c        nlev - number of dyadically refined intervals
+c
+c        output
+c        ts(nlev*k) - location of nodes
+c        wts(nlev*k) - quadrature weights at nodes
+ 
+
+      real *8 ts(*), wts(*), ts0(k),wts0(k)
+
+      itype = 1
+      call legeexps(itype,k,ts0,u,v,wts0)
+
+       hcur = 0.5d0
+
+       tstart = 0.5d0
+       tend = 1.0d0
+
+       hcur = 1.0d0
+
+       ii = 1
+       do i=1,nlev
+
+       if(i.ne.nlev) tstart = hcur/2
+       if(i.eq.nlev) tstart = 0
+       tend = hcur
+
+       do j=1,k
+
+       ts(ii) = tstart + (tend-tstart)*(ts0(j)+1)/2
+       wts(ii) = (tend-tstart)*wts0(j)/2
+
+       ii = ii+1
+
+       enddo
+       hcur = hcur/2
+
+       enddo
+
+      
+
+      return
+      end
+c-------------------------------------------------    
 c
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c
