@@ -20,7 +20,12 @@
       nvmax = 100000
       allocate(verts(2,nvmax))
 
+c
+c       igeom =1, skew triangle
+c       igeom =2, jeremy's magnetron
+
       igeom = 1
+      igeom = 2
 
       call loadverts_demos(igeom,nverts,verts,xyin,xyout)
 
@@ -53,7 +58,7 @@ c      line 4: ntarg - targets for plotting in interior/exterior
 c          (auto generated and potential computed to 13 digits)
 c      line 5-4+nverts- xy locations of vertices
 c      line 5+nverts-4+n+nverts: 
-c        y1,y2, dy1/dt,dy2/dt,real(rhs),imag(rhs),real(soln),imag(soln)
+c        y1,y2, dy1/dt,dy2/dt,qwts,real(rhs),imag(rhs),real(soln),imag(soln)
 c      line 5+n+nverts-5+n+nverts+nch: ixyzs,ks,iscorn
 c      line 5+n+nverts+nch - xylim info
 c      line 5+n+nverts+nch -4+n+nverts+nch+ntarg:
@@ -71,16 +76,19 @@ c       iffast = flag for solving linear system
 c          iffast = 0 => direct inversion using blas
 c          iffast = 1 => iterative solver using blas for matvec
 c          iffast = 2 => iterative solver using fmm for matvec
+c
+c
+c       if exact solution is known, store it in 'fort.48'
 c          
  
       ifdn = 1 
-      ifinout = 1
+      ifinout = 0
       iffast = 2
 
       zk = 1.2d0
 
       ifwrite = 1
-      fname = 'equi_interior_test.dat'
+      fname = 'equi_interior_neu.dat'
 
       if(ifinout.eq.0) then
         xysrc(1) = xyout(1)
@@ -388,6 +396,8 @@ c
       subroutine loadverts_demos(igeom,nverts,verts,xyin,xyout)
       implicit real *8 (a-h,o-z)
       real *8 verts(2,*),xyin(2),xyout(2)
+      real *8, allocatable :: xverts(:),yverts(:)
+
 
       if(igeom.eq.1) then
 
@@ -407,6 +417,25 @@ c
         xyin(1) = 0.3d0
         xyin(2) = 0.2d0
       endif
+
+      if(igeom.eq.2) then
+        allocate(xverts(108),yverts(108))
+        call getmagnetroncorner(xverts,yverts,nverts)
+
+        do i=1,nverts
+          verts(1,i) = xverts(i)/100.0d0
+          verts(2,i) = yverts(i)/100.0d0
+        enddo
+
+        xyin(1) = 1.2d0
+        xyin(2) = 0.75d0
+
+        xyout(1) = 3.0d0
+        xyout(2) = 1.0d0
+
+      endif
+
+
       
 
 
@@ -805,60 +834,56 @@ cc      targ(2,1) = -0.09d0
       call comppottarg_corr(zk,npts,nch,xys,dxys,qwts,ixys,ks,kmid,
      1   iscorn,ifdn,ifinout,soln,coefs,lcoefs,ncorner,
      2   tsc,wtsc,umatc,vmatc,ncint,angs,xsgnl,xsgnr,ichl,ichr,
-     3   nverts,verts,ntargv,targ,isin,pottarg)
+     3   nverts,verts,ntargv,targ,pottarg)
       call cpu_time(t2)
       call prin2('quadrature correction for volume targets time=*',
      1       t2-t1,1)
 
+      call cpu_time(t1)
+      call comppottarg_fmm(zk,npts,xys,dxys,qwts,ifdn,soln,ntarg,
+     1    xytarg,pot)
+
+      call cpu_time(t2)
+      call prin2('fmm for user targets time=*',t2-t1,1)
 
       
-cc      open(unit=47,file=trim(fname))
+      call cpu_time(t1)
+      call comppottarg_corr(zk,npts,nch,xys,dxys,qwts,ixys,ks,kmid,
+     1   iscorn,ifdn,ifinout,soln,coefs,lcoefs,ncorner,
+     2   tsc,wtsc,umatc,vmatc,ncint,angs,xsgnl,xsgnr,ichl,ichr,
+     3   nverts,verts,ntarg,xytarg,pot)
+      call cpu_time(t2)
+      call prin2('quadrature correction for user targets time=*',
+     1       t2-t1,1)
 
+
+      
+      open(unit=47,file=trim(fname))
+      write(47,*) nverts
+      write(47,*) npts
+      write(47,*) nch
+      write(47,*) nlat,ntargv
+      do i=1,nverts
+        write(47,*) verts(1,i),verts(2,i)
+      enddo
+
+      do i=1,npts
+        ss = sqrt(qwts(i))
+        write(47,*) xys(1,i),xys(2,i),dxys(1,i),dxys(2,i),qwts(i),
+     1    real(rhs(i))/ss,imag(rhs(i))/ss,real(soln(i))/ss,
+     2    imag(soln(i))/ss
+      enddo
+
+      do i=1,nch
+        write(47,*) ixys(i),ks(i),iscorn(i)
+      enddo
+
+      write(47,*) xylim(1,1),xylim(2,1),xylim(1,2),xylim(2,2)
       do i=1,ntargv
-        write(47,*) real(pottarg(i)),imag(pottarg(i))
+        write(47,*) targ(1,i),targ(2,i),real(pottarg(i)),
+     1     imag(pottarg(i))
       enddo
       close(47)
-
-
-
-
-c
-c        compute potential at user specified target point
-c 
-
-      if(ifdn.eq.0) then
-        do i=1,ntarg
-          pot(i) = 0
-          do j=1,npts
-            rr = sqrt((xytarg(1,i)-xys(1,j))**2 +
-     1          (xytarg(2,i)-xys(2,j))**2)
-            z = zk*rr
-            call hank103(z,h0,h1,ifexpon)
-            dst = sqrt(dxys(1,j)**2 + dxys(2,j)**2)
-            rnx = dxys(2,j)/dst
-            rny = -dxys(1,j)/dst
-            rrn = (xytarg(1,i)-xys(1,j))*rnx +
-     1         (xytarg(2,i)-xys(2,j))*rny
-            pot(i) = pot(i) + imainv4*h1*rrn/rr*zk*soln(j)*
-     1          sqrt(qwts(j))
-          enddo
-        enddo
-      endif
-
-      if(ifdn.eq.1) then
-        do i=1,ntarg
-          pot(i) = 0
-          do j=1,npts
-            rr = sqrt((xytarg(1,i)-xys(1,j))**2 +
-     1          (xytarg(2,i)-xys(2,j))**2)
-            z = zk*rr
-            call hank103(z,h0,h1,ifexpon)
-            pot(i) = pot(i) + imainv4*h0*soln(j)*sqrt(qwts(j))
-          enddo
-        enddo
-      endif
-
-
 
       return
       end
@@ -1213,7 +1238,7 @@ c
       subroutine comppottarg_corr(zk,n,nch,xys,dxys,qwts,ixys,ks,
      1   kmid,iscorn,ifdn,ifinout,soln,coefs,lcoefs,nc,tsc,wtsc,
      2   umatc,vmatc,ncint,angs,xsgnl,xsgnr,ichl,ichr,
-     3   nverts,verts,ntarg,targ,isin,pottarg)
+     3   nverts,verts,ntarg,targ,pottarg)
 
 
       implicit real *8 (a-h,o-z)
@@ -1229,7 +1254,6 @@ c
       complex *16 soln(n)
       integer ntarg
       real *8 targ(2,ntarg)
-      integer isin(ntarg)
       complex *16 pottarg(ntarg)
 
       real *8, allocatable :: vtmp(:,:)
@@ -14858,4 +14882,242 @@ c
 c
 c
 c
+
+        
+        subroutine getmagnetroncorner(xvals,yvals,nvals)
+        implicit real *8 (a-h,o-z)
+        dimension xvals(1),yvals(1),vxs(108),vys(108)
+
+        nvals = 108
+
+        data vxs/
+     1      116.41667d0,
+     1      97.719442d0,
+     1      143.93333d0,
+     1      124.88333d0,
+     1      133.34999d0,
+     1      154.51666d0,
+     1      177.44722d0,
+     1      138.28889d0,
+     1      138.28889d0,
+     1      176.38889d0,
+     1      154.51666d0,
+     1      133.70278d0,
+     1      125.94167d0,
+     1      145.69722d0,
+     1      98.777776d0,
+     1      115.35833d0,
+     1      107.24444d0,
+     1      87.841666d0,
+     1      63.499999d0,
+     1      103.36389d0,
+     1      103.71667d0,
+     1      62.441666d0,
+     1      67.027778d0,
+     1      56.797221d0,
+     1      50.799999d0,
+     1      55.121527d0,
+     1      49.565277d0,
+     1      58.825693d0,
+     1      53.622221d0,
+     1      61.824304d0,
+     1      58.737499d0,
+     1      66.234026d0,
+     1      61.030554d0,
+     1      70.996526d0,
+     1      67.204165d0,
+     1      76.817360d0, 
+     1      68.438887d0,
+     1      77.699304d0,
+     1      76.023609d0,
+     1      83.872915d0,
+     1      87.488887d0,
+     1      94.820050d0, 
+     1      95.095658d0,
+     1      101.99687d0,
+     1      104.15763d0,
+     1      110.37810d0, 
+     1      111.65968d0,
+     1      116.82181d0,
+     1      120.92560d0, 
+     1      126.05191d0,
+     1      129.41432d0,
+     1      134.89340d0, 
+     1      138.46528d0,
+     1      142.74271d0,
+     1      147.02014d0,
+     1      151.29757d0,
+     1      159.80833d0,
+     1      158.61770d0, 
+     1      172.59652d0,
+     1      166.46701d0,
+     1      177.97638d0,
+     1      169.73020d0, 
+     1      180.89782d0,
+     1      172.66267d0,
+     1      183.12473d0,
+     1      176.65346d0,
+     1      188.51562d0,
+     1      181.07421d0,
+     1      191.97725d0,
+     1      185.94695d0,
+     1      195.43888d0,
+     1      193.12378d0,
+     1      196.45312d0,
+     1      188.49357d0,
+     1      192.52846d0,
+     1      182.45225d0,
+     1      186.13437d0,
+     1      178.52760d0, 
+     1      186.79583d0,
+     1      175.66128d0,
+     1      180.75451d0,
+     1      171.73663d0,
+     1      178.59375d0,
+     1      168.16475d0,
+     1      178.54965d0,
+     1      165.39766d0,
+     1      168.12065d0,
+     1      158.39722d0,
+     1      157.33889d0,
+     1      149.22500d0,  
+     1      147.10833d0,
+     1      141.81666d0,
+     1      137.58333d0,
+     1      133.35000d0,   
+     1      126.29444d0,
+     1      123.82500d0,  
+     1      117.82778d0,
+     1      113.59444d0,
+     1      107.95000d0,   
+     1      103.01111d0,
+     1      98.072221d0,
+     1      94.191666d0,
+     1      88.899999d0,
+     1      85.019444d0,
+     1      76.552777d0,
+     1      80.433332d0,
+     1      86.783332d0,
+     1      108.30278d0/ 
+c
+c
+c
+c
+        data vys/
+     1      151.65555d0,   
+     1      184.81667d0,   
+     1      185.16944d0,   
+     1      151.30278d0,   
+     1      146.01111d0,   
+     1      179.52499d0,   
+     1      138.25000d0,     
+     1      139.30833d0,   
+     1      129.78333d0,   
+     1      128.37222d0,   
+     1      89.566667d0,   
+     1      122.02222d0,   
+     1      117.08334d0,   
+     1      83.216667d0,   
+     1      83.922221d0,   
+     1      115.67222d0,   
+     1      119.55278d0,   
+     1      87.802777d0,   
+     1      128.01944d0,   
+     1      128.01944d0,   
+     1      137.54444d0,   
+     1      137.89722d0,   
+     1      148.83333d0,   
+     1      148.12778d0,   
+     1      130.48889d0,   
+     1      127.99739d0,   
+     1      120.91980d0,    
+     1      120.19219d0,  
+     1      113.46736d0,  
+     1      112.73976d0,  
+     1      106.01493d0,  
+     1      105.64010d0,    
+     1      96.093056d0,  
+     1      96.071006d0,  
+     1      90.051735d0,  
+     1      90.029685d0,  
+     1      81.188192d0,  
+     1      80.460588d0,  
+     1      73.030206d0,  
+     1      77.241491d0,  
+     1      71.222220d0,    
+     1      75.268139d0,  
+     1      62.733503d0,  
+     1      68.708675d0,  
+     1      57.728464d0,  
+     1      70.932826d0,  
+     1      50.623299d0,  
+     1      65.238772d0,  
+     1      55.865356d0,  
+     1      65.996693d0,  
+     1      49.669697d0,  
+     1      74.617700d0,     
+     1      58.345825d0,  
+     1      73.823950d0,    
+     1      64.607631d0,  
+     1      77.263534d0,  
+     1      73.338881d0,  
+     1      81.717353d0,  
+     1      71.751380d0,    
+     1      85.068741d0,  
+     1      82.511101d0,  
+     1      93.359017d0,  
+     1      93.336967d0,  
+     1      102.48714d0,  
+     1      102.81787d0,  
+     1      113.37916d0,  
+     1      113.64374d0,  
+     1      120.67725d0,  
+     1      122.77187d0,  
+     1      131.21648d0,  
+     1      131.89999d0,  
+     1      135.73645d0,  
+     1      142.74790d0,    
+     1      143.40936d0,  
+     1      151.47915d0,  
+     1      147.55450d0,    
+     1      155.27151d0,  
+     1      153.46353d0,  
+     1      165.41388d0,  
+     1      161.48922d0,  
+     1      168.50068d0,  
+     1      167.75103d0,  
+     1      178.29026d0,  
+     1      175.77672d0,  
+     1      188.07985d0,  
+     1      183.11891d0,  
+     1      200.03019d0,  
+     1      189.04999d0,  
+     1      201.06648d0,  
+     1      195.09130d0,    
+     1      210.28280d0,    
+     1      199.72151d0,  
+     1      206.44634d0,  
+     1      196.59061d0,  
+     1      202.25711d0,  
+     1      193.45971d0,  
+     1      201.94843d0,  
+     1      193.85659d0,  
+     1      202.69808d0,  
+     1      195.66457d0,  
+     1      206.26995d0,  
+     1      193.59200d0,     
+     1      200.66961d0,  
+     1      193.63610d0,    
+     1      180.58332d0,  
+     1      167.88332d0,  
+     1      180.23054d0,  
+     1      146.01110d0/    
+
+        do 1200 i=1,nvals
+        xvals(i) = vxs(i)
+        yvals(i) = vys(i)
+ 1200 continue
+
+        return
+        end
 
