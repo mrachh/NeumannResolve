@@ -366,9 +366,11 @@ c       main subroutine
 c*******************************
 
 
-      subroutine helm_eig_solver(a0,b0,ncheb,nverts,verts,ifdn,
+        subroutine helm_eig_solver(a0,b0,ncheb,nverts,verts,ifdn,
      1   ifwrite,fname)
-      implicit real *8 (a-h,o-z)
+        implicit real *8 (a-h,o-z)
+        dimension coefsre(10000),coefsim(10000),roots(10000),
+     1        errvec(10000),wroot(100 000)
 
 c
 c       calling sequence variables
@@ -389,9 +391,7 @@ c
       complex *16, allocatable :: zroots(:),uvec(:),vvec(:)
       real *8, allocatable :: tscheb(:),wcheb(:),ucheb(:,:),vcheb(:,:)
 
-      complex *16, allocatable :: w2(:),worksvd(:),rwork(:)
-      complex *16, allocatable :: uu(:,:),vv(:,:)
-      real *8, allocatable :: ss(:)
+      complex *16, allocatable :: w2(:)
       complex *16 alpha_c,beta_c
 
 c
@@ -600,17 +600,10 @@ c
       allocate(tsc(ncorner),wtsc(ncorner),umatc(ncorner,ncorner),
      1   vmatc(ncorner,ncorner))
       call getcornstruct(ncorner,tsc,wtsc,umatc,vmatc)
-
-
       allocate(xmat(npts,npts),rhs(npts),soln(npts),znull(npts))
       allocate(zvectmp(npts))
       allocate(xmat2(npts,npts))
       allocate(ipiv(npts))
-
-      allocate(uu(npts,npts),ss(npts),vv(npts,npts))
-
-      lwork = 20*npts + 100
-      allocate(worksvd(lwork),rwork(10*npts))
 
 
       allocate(pols(ncheb+10))
@@ -723,24 +716,60 @@ c
 
       call prin2('fcoefs=*',fcoefs,2*ncheb)
 
-      zk0 = sqrt(1.0d0+1.0d0/1.05d0**2)
-      
-      rr = (zk0 - a0)/(b0-a0)*2 -1
 
-      print *, "exact root=",rr
+ccc
+ccc
+c           .   .   .   jeremy
+ccc
+ccc
 
-      call chebpols(rr,ncheb-1,pols)
-
-      zz = 0
       do i=1,ncheb
-        zz = zz + fcoefs(i)*pols(i)
+        coefsre(i) = real(fcoefs(i))
+        coefsim(i) = imag(fcoefs(i))
       enddo
 
-      call prin2('zz=*',zz,2)
+      call prin2('real part = *',coefsre,ncheb)      
+      call prin2('imag part = *',coefsim,ncheb)      
 
-      nroots = 2
-      zroots(1) = zk0
-      zroots(2) = sqrt(1.0d0 + 4.0d0/1.05d0**2) 
+      call roots_m1p1_find(ncheb,
+     1      roots,errvec,nroots,coefsre,wroot)
+
+      call prin2('roots = *',roots,nroots)
+
+      ikeep = 1
+
+      do i=1,nroots
+
+        r = roots(i)
+        call chebexev(r,val1,coefsre,ncheb-1)
+        call chebexev(r,val2,coefsim,ncheb-1)
+        call prin2('val1 = *',val1,1)
+        call prin2('val2 = *',val2,1)
+
+        err = sqrt(val1*val1+val2*val2)
+
+        if (err .lt. 1.0d-8) then
+          roots(ikeep) = roots(i)
+          ikeep = ikeep + 1
+        end if
+
+      enddo
+
+      ikeep = ikeep - 1
+      nroots = ikeep
+
+      call prin2('roots = *',roots,nroots)
+
+cc
+cc          .   .   .   now rescale them
+c
+
+      do i=1,nroots
+        roots(i) = (roots(i)+1)/2*(b0-a0)+a0
+      enddo
+
+      call prin2('roots rescaled= *',roots,nroots)
+
 
 c
 c      generate targets on a grid
@@ -780,7 +809,7 @@ c
 
 
       do izk = 1,nroots
-        zk = zroots(izk)
+        zk = roots(izk)
         write(47,*) real(zk)
 
 
@@ -964,41 +993,6 @@ c
       enddo
 
 
-      
-
-      
-      stop
-
-      return
-cc      ntargv = 1
-cc      targ(1,1) = 0.05d0
-cc      targ(2,1) = -0.09d0
-
-      call cpu_time(t1)
-      call comppottarg_fmm(zk,npts,xys,dxys,qwts,ifdn,soln,ntargv,
-     1    targ,pottarg)
-
-      call cpu_time(t2)
-      call prin2('fmm for volume targets time=*',t2-t1,1)
-
-      
-      call cpu_time(t1)
-      call comppottarg_corr(zk,npts,nch,xys,dxys,qwts,ixys,ks,kmid,
-     1   iscorn,ifdn,ifinout,soln,coefs,lcoefs,ncorner,
-     2   tsc,wtsc,umatc,vmatc,ncint,angs,xsgnl,xsgnr,ichl,ichr,
-     3   nverts,verts,ntargv,targ,pottarg)
-      call cpu_time(t2)
-      call prin2('quadrature correction for volume targets time=*',
-     1       t2-t1,1)
-
-
-
-      
-      do i=1,ntargv
-        write(47,*) targ(1,i),targ(2,i),real(pottarg(i)),
-     1     imag(pottarg(i))
-      enddo
-      close(47)
 
       return
       end

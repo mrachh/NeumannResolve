@@ -93,11 +93,10 @@ ccc        call prin2('in roots *',coefs,2*(n+1))
 c
 c       find the roots that are on the interval [-1,1]
 c
-        call prin2('w2=*',w2,2*n) 
         nn=0
         eps=zero_mach*100000
 ccc        call prin2('eps=*',eps,1)
-        eps = 1.0d-4
+        eps = 1.0d-9
 
         do 2000 i=1,n
 c
@@ -125,12 +124,11 @@ c
      1      diag,xs,ws,u,v,vals,
      2      coefs,w,p,q,supdiag,zero_mach)
         implicit real *8 (a-h,o-z)
-        save
         dimension xs(1),ws(1),u(1),v(1),vals(1),
-     1      par1(1),par2(1)
-        complex *16 q(1),p(1),diag(1),supdiag(1),
-     1      coefs(1),d,w(1)
+     1      par1(1),par2(1),coefs(1),w(1)
+        complex *16 q(1),p(1),diag(1),supdiag(1)
         data ifcalled/0/
+        save
 c
 c       construct the test polynomial
 c
@@ -223,7 +221,7 @@ c
         call trid_p_rank1(ier,diag,supdiag,q,p,n,
      1      w,niter_max,aver_niter)
 
-cc        call prin2('diags=  *',diag,2*n)
+ccc        call prin2('diags=  *',diag,2*n)
 
         return
         end
@@ -259,8 +257,7 @@ c
 c 
         subroutine roots_m1p1_matvec(a,n,x,y)
         implicit real *8 (a-h,o-z)
-        dimension a(n,n)
-        complex *16 cd,x(n),y(n)
+        dimension a(n,n),x(n),y(n)
 c 
 c        apply the matrix a to the vector x obtaining y
 c 

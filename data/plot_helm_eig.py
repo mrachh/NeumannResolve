@@ -66,7 +66,6 @@ xmax = float(a[2])
 ymax = float(a[3])
 
 pot = zeros((2,nt))
-potex = zeros((2,nt))
 targ = zeros((2,nt))
 rrt = zeros(nt)
 isin = zeros(nt)
@@ -92,21 +91,13 @@ for irr in range(nroots):
         rrt[i] = sqrt(targ[0,i]**2 + targ[1,i]**2)
         pot[0,i] = float(a[2])
         pot[1,i] = float(a[3])
-        potex[0,i] = cos(x)*cos((irr+1)*y/1.05)
         isin[i] = int(a[4])
         if(isin[i]>0):
             rr1 = rr1 + pot[0,i]**2
-            rr2 = rr2 + potex[0,i]**2
-    
     rr1 = sqrt(rr1)
-    rr2 = sqrt(rr2)
 
     for i in range(nt):
         pot[0,i] = pot[0,i]/rr1 
-        potex[0,i] = potex[0,i]/rr2
-        errs[i] = min(abs(pot[0,i]-potex[0,i]),abs(pot[0,i]+potex[0,i]))
-        if(isin[i]<0 or errs[i] < 10**-16):
-            errs[i] = 10**-16
         
 
     figure(4+irr)
@@ -119,13 +110,4 @@ for irr in range(nroots):
     colorbar()
     show()
  
-    figure(6+irr)
-    clf()
-    xx = log10(errs)
-    xx[isin<0] = NaN
-    xx = xx.reshape(nlat,nlat)
-    imshow(xx,extent=[xmin,xmax,ymin,ymax])
-    plot(vtmp[0,:],vtmp[1,:],'w-',linewidth=0.5)
-    colorbar()
-    show()
  
