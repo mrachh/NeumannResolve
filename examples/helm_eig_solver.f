@@ -389,7 +389,9 @@ c
       complex *16, allocatable :: zroots(:),uvec(:),vvec(:)
       real *8, allocatable :: tscheb(:),wcheb(:),ucheb(:,:),vcheb(:,:)
 
-      complex *16, allocatable :: w2(:)
+      complex *16, allocatable :: w2(:),worksvd(:),rwork(:)
+      complex *16, allocatable :: uu(:,:),vv(:,:)
+      real *8, allocatable :: ss(:)
       complex *16 alpha_c,beta_c
 
 c
@@ -598,10 +600,17 @@ c
       allocate(tsc(ncorner),wtsc(ncorner),umatc(ncorner,ncorner),
      1   vmatc(ncorner,ncorner))
       call getcornstruct(ncorner,tsc,wtsc,umatc,vmatc)
+
+
       allocate(xmat(npts,npts),rhs(npts),soln(npts),znull(npts))
       allocate(zvectmp(npts))
       allocate(xmat2(npts,npts))
       allocate(ipiv(npts))
+
+      allocate(uu(npts,npts),ss(npts),vv(npts,npts))
+
+      lwork = 20*npts + 100
+      allocate(worksvd(lwork),rwork(10*npts))
 
 
       allocate(pols(ncheb+10))
@@ -731,17 +740,50 @@ c
 
       nroots = 2
       zroots(1) = zk0
-      zroots(2) = 2.0d0/1.05d0
+      zroots(2) = sqrt(1.0d0 + 4.0d0/1.05d0**2) 
+
+c
+c      generate targets on a grid
+c
+      nlat = 300
+      ntargv = nlat*nlat
+
+      allocate(targ(2,ntargv),pottarg(ntargv),isin(ntargv))
+      rfud = 1.2d0
+      call gentarg(nverts,verts,rfud,nlat,ntargv,targ,isin,xylim)
 
 
 c
 c
 c        find a null vector for each of the roots
 c
+      open(unit=47,file=trim(fname))
+      write(47,*) nverts
+      write(47,*) nroots
+      write(47,*) npts
+      write(47,*) nch
+      write(47,*) nlat,ntargv
+      do i=1,nverts
+        write(47,*) verts(1,i),verts(2,i)
+      enddo
+
+      do i=1,npts
+        write(47,*) xys(1,i),xys(2,i),dxys(1,i),dxys(2,i),qwts(i)
+      enddo
+
+      do i=1,nch
+        write(47,*) ixys(i),ks(i),iscorn(i)
+      enddo
+
+      write(47,*) xylim(1,1),xylim(2,1),xylim(1,2),xylim(2,2)
+
+
+
       do izk = 1,nroots
         zk = zroots(izk)
+        write(47,*) real(zk)
 
-        print *, zk
+
         do i=1,ncint
           call helmcornmat(angs(i),zk,pl(i),tsc,wtsc,umatc,vmatc,
      1      ncorner,coefs,lcoefs,xmatc(1,1,i))
@@ -814,12 +856,27 @@ c
           xmat(i,i) = 1.0d0
         enddo
 
+        do i=1,npts
+          do j=1,npts
+            xmat2(j,i) = xmat(j,i)
+          enddo
+        enddo
+
+          
+
+        info = 0
+cc        call zgesvd('a','a',npts,npts,xmat2,npts,ss,uu,npts,vv,npts,
+cc     1    worksvd,lwork,rwork,info)
+        
+cc        call prin2('ss=*',ss,npts)
+
+
         alpha_c = 1.0d0
         beta_c = 0.0d0
 
         do i=1,npts
-          rhs(i) = (xys(1,i)**2 + xys(2,i)**2)*sqrt(qwts(i))
-          rhs(i) = xys(1,i)*sqrt(qwts(i))
+          rhs(i) = (xys(1,i)**2 + ima*xys(2,i)**2)*sqrt(qwts(i))
+cc          rhs(i) = xys(2,i)*sqrt(qwts(i))
         enddo
 
         if(ifdn.eq.0) call zgemv('n',npts,npts,alpha_c,xmat,
@@ -828,11 +885,11 @@ c
         if(ifdn.eq.1) call zgemv('t',npts,npts,alpha_c,xmat,
      1    npts,rhs,1,beta_c,soln,1)
 
-        call prin2('soln=*',soln,24)
+cc        call prin2('soln=*',soln,24)
 
         do i=1,npts
           do j=1,npts
-            xmat2(j,i) = xmat(j,i) + xys(1,i)*sqrt(qwts(j)*qwts(i))
+            xmat2(j,i) = xmat(j,i) + 0*sqrt(qwts(j)*qwts(i))
           enddo
         enddo
 
@@ -841,10 +898,14 @@ c
      1      soln,npts,info)
         if(ifdn.eq.1) call zgetrs('t',npts,1,xmat2,npts,ipiv,
      1      soln,npts,info)
-        
+cc
+cc        call prinf('info=*',info,1)
+cc        
         do i=1,npts
+cc          znull(i) = conjg(uu(i,npts)) 
           znull(i) = soln(i) - rhs(i)
         enddo
+
 
         if(ifdn.eq.0) call zgemv('n',npts,npts,alpha_c,xmat,
      1    npts,znull,1,beta_c,zvectmp,1)
@@ -860,17 +921,46 @@ c
           erra = erra + abs(zvectmp(i))**2
         enddo
 
-        erra = sqrt(erra/ra)
-        call prin2('error in null vector estimate=*',erra,1)
+        ra = sqrt(ra)
 
-        call prin2('znull=*',znull,24)
-        call prin2('zvectmp=*',zvectmp,24)
+        erra = sqrt(erra)/ra
 
+        do i=1,npts
+          stmp = sqrt(qwts(i))
+          znull(i) = znull(i)/ra
+          write(47,*) real(znull(i))/stmp,imag(znull(i))/stmp
+        enddo
 
-     
         
 
+        call prin2('error in null vector estimate=*',erra,1)
 
+
+c
+c      now plot the eigenfunction
+c   
+
+      call cpu_time(t1)
+      call comppottarg_fmm(zk,npts,xys,dxys,qwts,ifdn,znull,ntargv,
+     1    targ,pottarg)
+
+      call cpu_time(t2)
+      call prin2('fmm for user targets time=*',t2-t1,1)
+
+      
+      call cpu_time(t1)
+      ifinout = 0
+      call comppottarg_corr(zk,npts,nch,xys,dxys,qwts,ixys,ks,kmid,
+     1   iscorn,ifdn,ifinout,znull,coefs,lcoefs,ncorner,
+     2   tsc,wtsc,umatc,vmatc,ncint,angs,xsgnl,xsgnr,ichl,ichr,
+     3   nverts,verts,ntargv,targ,pottarg)
+      call cpu_time(t2)
+      call prin2('quadrature correction for user targets time=*',
+     1       t2-t1,1)
+        do i=1,ntargv
+          write(47,*) targ(1,i),targ(2,i),
+     1      real(pottarg(i)),imag(pottarg(i)),isin(i)
+        enddo
       enddo
 
 
@@ -880,16 +970,6 @@ c
       stop
 
       return
-c
-c      generate targets on a grid
-c
-      nlat = 300
-      ntargv = nlat*nlat
-
-      allocate(targ(2,ntargv),pottarg(ntargv),isin(ntargv))
-      rfud = 1.2d0
-      call gentarg(nverts,verts,rfud,nlat,ntargv,targ,isin,xylim)
-
 cc      ntargv = 1
 cc      targ(1,1) = 0.05d0
 cc      targ(2,1) = -0.09d0
@@ -911,46 +991,9 @@ cc      targ(2,1) = -0.09d0
       call prin2('quadrature correction for volume targets time=*',
      1       t2-t1,1)
 
-      call cpu_time(t1)
-      call comppottarg_fmm(zk,npts,xys,dxys,qwts,ifdn,soln,ntarg,
-     1    xytarg,pot)
-
-      call cpu_time(t2)
-      call prin2('fmm for user targets time=*',t2-t1,1)
-
-      
-      call cpu_time(t1)
-      call comppottarg_corr(zk,npts,nch,xys,dxys,qwts,ixys,ks,kmid,
-     1   iscorn,ifdn,ifinout,soln,coefs,lcoefs,ncorner,
-     2   tsc,wtsc,umatc,vmatc,ncint,angs,xsgnl,xsgnr,ichl,ichr,
-     3   nverts,verts,ntarg,xytarg,pot)
-      call cpu_time(t2)
-      call prin2('quadrature correction for user targets time=*',
-     1       t2-t1,1)
 
 
       
-      open(unit=47,file=trim(fname))
-      write(47,*) nverts
-      write(47,*) npts
-      write(47,*) nch
-      write(47,*) nlat,ntargv
-      do i=1,nverts
-        write(47,*) verts(1,i),verts(2,i)
-      enddo
-
-      do i=1,npts
-        ss = sqrt(qwts(i))
-        write(47,*) xys(1,i),xys(2,i),dxys(1,i),dxys(2,i),qwts(i),
-     1    real(rhs(i))/ss,imag(rhs(i))/ss,real(soln(i))/ss,
-     2    imag(soln(i))/ss
-      enddo
-
-      do i=1,nch
-        write(47,*) ixys(i),ks(i),iscorn(i)
-      enddo
-
-      write(47,*) xylim(1,1),xylim(2,1),xylim(1,2),xylim(2,2)
       do i=1,ntargv
         write(47,*) targ(1,i),targ(2,i),real(pottarg(i)),
      1     imag(pottarg(i))
