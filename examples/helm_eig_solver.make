@@ -50,6 +50,8 @@ SOURCES =  helm_eig_solver.f \
   $(SRC)/next235.f \
   $(SRC)/dfft.f \
   $(SRC)/vol_plot_routs.f \
+  $(SRC)/roots_m1p1_find.f \
+  $(SRC)/trid_p_rank1.f \
 
 
 

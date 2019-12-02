@@ -57,9 +57,9 @@ c
       if(ifdn.eq.1) fker => helm_dlp
 
       a = 1.0d0
-      b = 8.0d0
+      b = 2.0d0
 
-      ncheb = 27
+      ncheb = 32
 
       call helm_eig_solver(a,b,ncheb,nverts,verts,ifdn,ifwrite,fname)
 
@@ -377,13 +377,21 @@ c
       
       real *8 a0,b0
       real *8 verts(2,nverts)
-      complex *16 zk
+      complex *16 zk,zz
 
 
       character (len=*) fname
 
-      complex *16, allocatable :: zkvals(:),fdet(:)
+      complex *16, allocatable :: zkvals(:),fdet(:),fcoefs(:)
+      real *8, allocatable :: pols(:)
+      real *8, allocatable :: rrdet(:),rroots(:),rrcoefs(:)
+      real *8, allocatable :: ridet(:),riroots(:),ricoefs(:)
+      complex *16, allocatable :: zroots(:),uvec(:),vvec(:)
       real *8, allocatable :: tscheb(:),wcheb(:),ucheb(:,:),vcheb(:,:)
+
+      complex *16, allocatable :: w2(:)
+      complex *16 alpha_c,beta_c
+
 c
 c
 c      temporary variables
@@ -409,7 +417,8 @@ c
 
       complex *16 h0,h1,z,ima,imainv4
 
-      complex *16, allocatable :: rhs(:),soln(:),xmat(:,:)
+      complex *16, allocatable :: rhs(:),soln(:),xmat(:,:),xmat2(:,:)
+      complex *16, allocatable :: znull(:),zvectmp(:)
       complex *16, allocatable :: solntmp(:)
       integer, allocatable :: ipiv(:)
       real *8, allocatable :: errs(:)
@@ -443,9 +452,12 @@ c
       enddo
       close(32)
 
-      allocate(zkvals(ncheb),fdet(ncheb))
+      allocate(zkvals(ncheb),fdet(ncheb),fcoefs(ncheb))
       allocate(tscheb(ncheb),wcheb(ncheb),ucheb(ncheb,ncheb))
       allocate(vcheb(ncheb,ncheb))
+
+      allocate(rrdet(ncheb),ridet(ncheb),rroots(ncheb),riroots(ncheb))
+      allocate(rrcoefs(ncheb),ricoefs(ncheb),zroots(ncheb))
 
       itype = 2
       call chebexps(itype,ncheb,tscheb,ucheb,vcheb,wcheb)
@@ -581,12 +593,18 @@ c
 c
 c
       call prinf('done generating geometry*',i,0)
+      ncorner = 36
       allocate(xmatc(ncorner,ncorner,ncint))
       allocate(tsc(ncorner),wtsc(ncorner),umatc(ncorner,ncorner),
      1   vmatc(ncorner,ncorner))
       call getcornstruct(ncorner,tsc,wtsc,umatc,vmatc)
-      allocate(xmat(npts,npts))
+      allocate(xmat(npts,npts),rhs(npts),soln(npts),znull(npts))
+      allocate(zvectmp(npts))
+      allocate(xmat2(npts,npts))
       allocate(ipiv(npts))
+
+
+      allocate(pols(ncheb+10))
 
       ifexpon = 1
 
@@ -597,10 +615,7 @@ c
         zk = zkvals(izk)
 
         print *, zk
-        ncorner = 36
 
-        call prin2('angs=*',angs,ncint)
-        stop
         do i=1,ncint
           call helmcornmat(angs(i),zk,pl(i),tsc,wtsc,umatc,vmatc,
      1      ncorner,coefs,lcoefs,xmatc(1,1,i))
@@ -666,7 +681,13 @@ c
         enddo
 
         do i=1,npts
-          xmat(i,i) = -0.5d0*(-1)**(ifdn)
+          do j=1,npts
+            xmat(j,i) = -2.0d0*(-1)**(ifdn)*xmat(j,i)
+          enddo
+        enddo
+
+        do i=1,npts
+          xmat(i,i) = 1.0d0
         enddo
 
 
@@ -683,6 +704,179 @@ c
       enddo
 
       call prin2('fdet=*',fdet,2*ncheb)
+
+      do i=1,ncheb
+        fcoefs(i) = 0
+        do j=1,ncheb
+          fcoefs(i) = fcoefs(i) + ucheb(i,j)*fdet(j)
+        enddo
+      enddo
+
+      call prin2('fcoefs=*',fcoefs,2*ncheb)
+
+      zk0 = sqrt(1.0d0+1.0d0/1.05d0**2)
+      
+      rr = (zk0 - a0)/(b0-a0)*2 -1
+
+      print *, "exact root=",rr
+
+      call chebpols(rr,ncheb-1,pols)
+
+      zz = 0
+      do i=1,ncheb
+        zz = zz + fcoefs(i)*pols(i)
+      enddo
+
+      call prin2('zz=*',zz,2)
+
+      nroots = 2
+      zroots(1) = zk0
+      zroots(2) = 2.0d0/1.05d0
+
+
+c
+c
+c        find a null vector for each of the roots
+c
+      do izk = 1,nroots
+        zk = zroots(izk)
+
+        print *, zk
+        do i=1,ncint
+          call helmcornmat(angs(i),zk,pl(i),tsc,wtsc,umatc,vmatc,
+     1      ncorner,coefs,lcoefs,xmatc(1,1,i))
+        enddo
+
+
+c
+c        generate the matrix
+c
+        do i=1,npts
+          do j=1,npts
+            xmat(j,i) = 0
+          enddo
+        enddo
+        istart = 0
+        do iedge=1,nedges
+          do ii=1,nepts(iedge)
+            i = istart+ii
+            dst = sqrt(dxys(1,i)**2 + dxys(2,i)**2)
+            rnx = dxys(2,i)
+            rny = -dxys(1,i)
+
+            jstart = 0
+            do jedge=1,nedges
+              if(jedge.eq.iedge) goto 1010
+              do jj=1,nepts(jedge)
+                j = jj+jstart
+                rrr = sqrt((xys(1,i)-xys(1,j))**2 + 
+     1            (xys(2,i)-xys(2,j))**2)
+                z = rrr*zk
+                call hank103(z,h0,h1,ifexpon)
+                rrn = ((xys(1,j)-xys(1,i))*rnx+
+     1              (xys(2,j)-xys(2,i))*rny)/dst
+
+                xmat(j,i) = imainv4*h1*rrn/rrr*
+     1              zk*sqrt(qwts(j)*qwts(i))
+              enddo
+ 1010         continue              
+              jstart = jstart + nepts(jedge)
+            enddo
+          enddo
+          istart = istart + nepts(iedge)
+        enddo
+
+c
+c       fix correction matrices
+c
+        do icint=1,ncint
+          if(icsgnl(icint).eq.0) ipts1 = lns(icl(icint))
+          if(icsgnl(icint).eq.1) ipts1 = rns(icl(icint))
+        
+          if(icsgnr(icint).eq.0) ipts2 = lns(icr(icint))
+          if(icsgnr(icint).eq.1) ipts2 = rns(icr(icint))
+
+          do i=1,ncorner
+            do j=1,ncorner
+              xmat(j+ipts1-1,i+ipts2-1) = xmatc(j,i,icint)*xsgnl(icint)
+              xmat(j+ipts2-1,i+ipts1-1) = xmatc(j,i,icint)*xsgnr(icint)
+            enddo
+          enddo
+        enddo
+
+        do i=1,npts
+          do j=1,npts
+            xmat(j,i) = -2.0d0*(-1)**(ifdn)*xmat(j,i)
+          enddo
+        enddo
+
+        do i=1,npts
+          xmat(i,i) = 1.0d0
+        enddo
+
+        alpha_c = 1.0d0
+        beta_c = 0.0d0
+
+        do i=1,npts
+          rhs(i) = (xys(1,i)**2 + xys(2,i)**2)*sqrt(qwts(i))
+          rhs(i) = xys(1,i)*sqrt(qwts(i))
+        enddo
+
+        if(ifdn.eq.0) call zgemv('n',npts,npts,alpha_c,xmat,
+     1    npts,rhs,1,beta_c,soln,1)
+        
+        if(ifdn.eq.1) call zgemv('t',npts,npts,alpha_c,xmat,
+     1    npts,rhs,1,beta_c,soln,1)
+
+        call prin2('soln=*',soln,24)
+
+        do i=1,npts
+          do j=1,npts
+            xmat2(j,i) = xmat(j,i) + xys(1,i)*sqrt(qwts(j)*qwts(i))
+          enddo
+        enddo
+
+        call zgetrf(npts,npts,xmat2,npts,ipiv,info)
+        if(ifdn.eq.0) call zgetrs('n',npts,1,xmat2,npts,ipiv,
+     1      soln,npts,info)
+        if(ifdn.eq.1) call zgetrs('t',npts,1,xmat2,npts,ipiv,
+     1      soln,npts,info)
+        
+        do i=1,npts
+          znull(i) = soln(i) - rhs(i)
+        enddo
+
+        if(ifdn.eq.0) call zgemv('n',npts,npts,alpha_c,xmat,
+     1    npts,znull,1,beta_c,zvectmp,1)
+        
+        if(ifdn.eq.1) call zgemv('t',npts,npts,alpha_c,xmat,
+     1    npts,znull,1,beta_c,zvectmp,1)
+        
+
+        ra = 0
+        erra = 0
+        do i=1,npts
+          ra = ra + abs(znull(i))**2
+          erra = erra + abs(zvectmp(i))**2
+        enddo
+
+        erra = sqrt(erra/ra)
+        call prin2('error in null vector estimate=*',erra,1)
+
+        call prin2('znull=*',znull,24)
+        call prin2('zvectmp=*',zvectmp,24)
+
+
+     
+        
+
+
+      enddo
+
+
+      
+
+      
       stop
 
       return
