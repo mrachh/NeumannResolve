@@ -426,6 +426,8 @@ c
       real *8, allocatable :: errs(:)
       complex *16, allocatable :: work(:)
 
+      real *8, allocatable :: par1(:),par2(:)
+
       integer ifexpon
 
 c
@@ -468,6 +470,28 @@ c
         zkvals(i) = a0 + (tscheb(i)+1)/2.0d0*(b0-a0)
       enddo
 
+      
+      ncorner = 36
+      nr0 = ncorner
+      lpar2 = 2*nverts + 100
+
+      allocate(tsc(ncorner),wtsc(ncorner),umatc(ncorner,ncorner),
+     1   vmatc(ncorner,ncorner))
+
+
+      call getcornstruct(ncorner,tsc,wtsc,umatc,vmatc)
+
+      allocate(par2(lpar2))
+      
+      par2(1) = nverts + 0.1d0
+      par2(2) = ifdn + 0.1d0
+      par2(3) = lcoefs+ 0.1d0
+      par2(4) = a0
+      par2(5) = b0
+      do i=1,nverts
+        par2(5+i) = verts(1,i)
+        par2(5+i+nverts) = verts(2,i)
+      enddo
 
 c
 c
@@ -595,11 +619,9 @@ c
 c
 c
       call prinf('done generating geometry*',i,0)
-      ncorner = 36
       allocate(xmatc(ncorner,ncorner,ncint))
-      allocate(tsc(ncorner),wtsc(ncorner),umatc(ncorner,ncorner),
-     1   vmatc(ncorner,ncorner))
-      call getcornstruct(ncorner,tsc,wtsc,umatc,vmatc)
+
+
       allocate(xmat(npts,npts),rhs(npts),soln(npts),znull(npts))
       allocate(zvectmp(npts))
       allocate(xmat2(npts,npts))
@@ -610,102 +632,19 @@ c
 
       ifexpon = 1
 
+
+c
+c       compute the fredholm determinant on the given chebyshev grid
+c
       do izk = 1,ncheb
-c
-c      get corner correction matrices
-c
+
         zk = zkvals(izk)
-
-        print *, zk
-
-        do i=1,ncint
-          call helmcornmat(angs(i),zk,pl(i),tsc,wtsc,umatc,vmatc,
-     1      ncorner,coefs,lcoefs,xmatc(1,1,i))
-        enddo
-
-
-        call prin2('done generating corner correction matrices*',i,0)
-
-c
-c        generate the matrix
-c
-        do i=1,npts
-          do j=1,npts
-            xmat(j,i) = 0
-          enddo
-        enddo
-        istart = 0
-        do iedge=1,nedges
-          do ii=1,nepts(iedge)
-            i = istart+ii
-            dst = sqrt(dxys(1,i)**2 + dxys(2,i)**2)
-            rnx = dxys(2,i)
-            rny = -dxys(1,i)
-
-            jstart = 0
-            do jedge=1,nedges
-              if(jedge.eq.iedge) goto 1000
-              do jj=1,nepts(jedge)
-                j = jj+jstart
-                rrr = sqrt((xys(1,i)-xys(1,j))**2 + 
-     1            (xys(2,i)-xys(2,j))**2)
-                z = rrr*zk
-                call hank103(z,h0,h1,ifexpon)
-                rrn = ((xys(1,j)-xys(1,i))*rnx+
-     1              (xys(2,j)-xys(2,i))*rny)/dst
-
-                xmat(j,i) = imainv4*h1*rrn/rrr*
-     1              zk*sqrt(qwts(j)*qwts(i))
-              enddo
- 1000         continue              
-              jstart = jstart + nepts(jedge)
-            enddo
-          enddo
-          istart = istart + nepts(iedge)
-        enddo
-
-c
-c       fix correction matrices
-c
-        do icint=1,ncint
-          if(icsgnl(icint).eq.0) ipts1 = lns(icl(icint))
-          if(icsgnl(icint).eq.1) ipts1 = rns(icl(icint))
-        
-          if(icsgnr(icint).eq.0) ipts2 = lns(icr(icint))
-          if(icsgnr(icint).eq.1) ipts2 = rns(icr(icint))
-
-          do i=1,ncorner
-            do j=1,ncorner
-              xmat(j+ipts1-1,i+ipts2-1) = xmatc(j,i,icint)*xsgnl(icint)
-              xmat(j+ipts2-1,i+ipts1-1) = xmatc(j,i,icint)*xsgnr(icint)
-            enddo
-          enddo
-        enddo
-
-        do i=1,npts
-          do j=1,npts
-            xmat(j,i) = -2.0d0*(-1)**(ifdn)*xmat(j,i)
-          enddo
-        enddo
-
-        do i=1,npts
-          xmat(i,i) = 1.0d0
-        enddo
-
-
-        info = 0
-
-        call zgetrf(npts,npts,xmat,npts,ipiv,info)
-
-        fdet(izk) = 1.0d0
-
-        do i=1,npts
-          fdet(izk) = fdet(izk)*xmat(i,i)
-          if(ipiv(i).ne.i) fdet(izk) = -fdet(izk)
-        enddo
+        rzk = real(zk)
+        call freddethelm(rzk,izk,coefs,par2,fdet(izk))
       enddo
 
-      call prin2('fdet=*',fdet,2*ncheb)
+
+cc      call prin2('fdet=*',fdet,2*ncheb)
 
       do i=1,ncheb
         fcoefs(i) = 0
@@ -714,7 +653,7 @@ c
         enddo
       enddo
 
-      call prin2('fcoefs=*',fcoefs,2*ncheb)
+cc      call prin2('fcoefs=*',fcoefs,2*ncheb)
 
 
 ccc
@@ -728,13 +667,8 @@ ccc
         coefsim(i) = imag(fcoefs(i))
       enddo
 
-      call prin2('real part = *',coefsre,ncheb)      
-      call prin2('imag part = *',coefsim,ncheb)      
+      call roots_m1p1_find(ncheb,roots,errvec,nroots,coefsre,wroot)
 
-      call roots_m1p1_find(ncheb,
-     1      roots,errvec,nroots,coefsre,wroot)
-
-      call prin2('roots = *',roots,nroots)
 
       ikeep = 1
 
@@ -743,8 +677,6 @@ ccc
         r = roots(i)
         call chebexev(r,val1,coefsre,ncheb-1)
         call chebexev(r,val2,coefsim,ncheb-1)
-        call prin2('val1 = *',val1,1)
-        call prin2('val2 = *',val2,1)
 
         err = sqrt(val1*val1+val2*val2)
 
@@ -758,7 +690,7 @@ ccc
       ikeep = ikeep - 1
       nroots = ikeep
 
-      call prin2('roots = *',roots,nroots)
+cc      call prin2('roots = *',roots,nroots)
 
 cc
 cc          .   .   .   now rescale them
@@ -805,6 +737,8 @@ c
       enddo
 
       write(47,*) xylim(1,1),xylim(2,1),xylim(1,2),xylim(2,2)
+
+
 
 
 
