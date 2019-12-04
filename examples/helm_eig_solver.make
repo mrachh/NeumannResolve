@@ -28,6 +28,7 @@ SOURCES =  helm_eig_solver.f \
   $(SRC)/second_f90.f \
   $(SRC)/pplot2.f \
   $(SRC)/hkrand.f \
+  $(SRC)/fredhelmdet.f \
   $(SRC)/hank103cc.f \
   $(SRC)/dlaran.f \
   $(SRC)/adapgaus_new.f \
@@ -48,6 +49,7 @@ SOURCES =  helm_eig_solver.f \
   $(SRC)/h2dcommon.f \
   $(SRC)/wideband2d.f \
   $(SRC)/next235.f \
+  $(SRC)/adap_root.f \
   $(SRC)/dfft.f \
   $(SRC)/vol_plot_routs.f \
   $(SRC)/roots_m1p1_find.f \

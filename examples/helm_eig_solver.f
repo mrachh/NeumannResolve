@@ -23,8 +23,9 @@
 c
 c       igeom =1, rectangle
 c       igeom =2, jeremy's magnetron
+c       igeom =3, kirill's star
 
-      igeom = 1
+      igeom = 3
 cc      igeom = 2
 
       call loadverts_demos(igeom,nverts,verts)
@@ -51,17 +52,16 @@ c
       ifdn = 1 
 
       ifwrite = 1
-      fname = 'equi_eig_neu.dat'
+      fname = 'star_eig_neu.dat'
 
       if(ifdn.eq.0) fker => helm_slp
       if(ifdn.eq.1) fker => helm_dlp
 
-      a = 1.0d0
-      b = 2.0d0
+      a = 3.0d0
+      b = 6.0d0
 
-      ncheb = 32
 
-      call helm_eig_solver(a,b,ncheb,nverts,verts,ifdn,ifwrite,fname)
+      call helm_eig_solver(a,b,nverts,verts,ifdn,ifwrite,fname)
 
       
       stop
@@ -353,6 +353,35 @@ c
 
       endif
 
+      if(igeom.eq.3) then
+        nverts = 8
+        verts(1,1) = 2.0d0
+        verts(2,1) = 0.0d0
+
+        verts(1,2) = 3.0d0
+        verts(2,2) = 2.0d0
+
+        verts(1,3) = 5.0d0
+        verts(2,3) = 2.0d0
+        
+        verts(1,4) = 3.0d0
+        verts(2,4) = 3.0d0
+
+        verts(1,5) = 3.0d0
+        verts(2,5) = 5.0d0
+
+        verts(1,6) = 2.0d0
+        verts(2,6) = 3.0d0
+
+        verts(1,7) = 0.0d0
+        verts(2,7) = 3.0d0
+        
+        verts(1,8) = 2.0d0
+        verts(2,8) = 2.0d0
+      endif
+
+
+
 
       
 
@@ -366,11 +395,9 @@ c       main subroutine
 c*******************************
 
 
-        subroutine helm_eig_solver(a0,b0,ncheb,nverts,verts,ifdn,
+        subroutine helm_eig_solver(a0,b0,nverts,verts,ifdn,
      1   ifwrite,fname)
         implicit real *8 (a-h,o-z)
-        dimension coefsre(10000),coefsim(10000),roots(10000),
-     1        errvec(10000),wroot(100 000)
 
 c
 c       calling sequence variables
@@ -384,12 +411,7 @@ c
 
       character (len=*) fname
 
-      complex *16, allocatable :: zkvals(:),fdet(:),fcoefs(:)
       real *8, allocatable :: pols(:)
-      real *8, allocatable :: rrdet(:),rroots(:),rrcoefs(:)
-      real *8, allocatable :: ridet(:),riroots(:),ricoefs(:)
-      complex *16, allocatable :: zroots(:),uvec(:),vvec(:)
-      real *8, allocatable :: tscheb(:),wcheb(:),ucheb(:,:),vcheb(:,:)
 
       complex *16, allocatable :: w2(:)
       complex *16 alpha_c,beta_c
@@ -438,15 +460,44 @@ c
       integer, allocatable :: isin(:)
       complex *16, allocatable :: pottarg(:)
       real *8 xylim(2,2)
+
+
+c
+c
+c      adaptive discretizer stuff
+c
+
+      complex *16, allocatable :: fdet(:),fcoefs(:)
+      real *8, allocatable :: roots(:),tvals(:)
+      integer, allocatable :: iposits(:)
+      real *8, allocatable :: ab(:,:),tcheb(:),ucheb(:,:),vcheb(:,:),
+     1    wcheb(:)
+      real *8, allocatable :: wdis(:)
       
+
 
       data ima/(0.0d0,1.0d0)/
       data imainv4/(0.0d0,0.25d0)/
       
-      external fker,multa_blas,multa_fmm
+      external fker,multa_blas,multa_fmm,freddethelm
 
       done = 1
       pi = atan(done)*4
+
+
+c
+c
+c      adaptive discretizer initialization
+c
+      lmax = 100 000
+      allocate(fdet(lmax),fcoefs(lmax),tvals(lmax))
+
+      lmax2 = 10000
+      allocate(roots(lmax2),ab(2,lmax2),iposits(lmax2))
+
+      kcheb = 16
+      allocate(tcheb(kcheb),ucheb(kcheb,kcheb),vcheb(kcheb,kcheb),
+     1   wcheb(kcheb))
 
       read(32,*) lcoefs
 
@@ -456,19 +507,7 @@ c
       enddo
       close(32)
 
-      allocate(zkvals(ncheb),fdet(ncheb),fcoefs(ncheb))
-      allocate(tscheb(ncheb),wcheb(ncheb),ucheb(ncheb,ncheb))
-      allocate(vcheb(ncheb,ncheb))
 
-      allocate(rrdet(ncheb),ridet(ncheb),rroots(ncheb),riroots(ncheb))
-      allocate(rrcoefs(ncheb),ricoefs(ncheb),zroots(ncheb))
-
-      itype = 2
-      call chebexps(itype,ncheb,tscheb,ucheb,vcheb,wcheb)
-
-      do i=1,ncheb
-        zkvals(i) = a0 + (tscheb(i)+1)/2.0d0*(b0-a0)
-      enddo
 
       
       ncorner = 36
@@ -619,6 +658,7 @@ c
 c
 c
       call prinf('done generating geometry*',i,0)
+      print *, npts
       allocate(xmatc(ncorner,ncorner,ncint))
 
 
@@ -632,75 +672,30 @@ c
 
       ifexpon = 1
 
-
 c
-c       compute the fredholm determinant on the given chebyshev grid
 c
-      do izk = 1,ncheb
-
-        zk = zkvals(izk)
-        rzk = real(zk)
-        call freddethelm(rzk,izk,coefs,par2,fdet(izk))
-      enddo
-
-
-cc      call prin2('fdet=*',fdet,2*ncheb)
-
-      do i=1,ncheb
-        fcoefs(i) = 0
-        do j=1,ncheb
-          fcoefs(i) = fcoefs(i) + ucheb(i,j)*fdet(j)
-        enddo
-      enddo
-
-cc      call prin2('fcoefs=*',fcoefs,2*ncheb)
-
-
-ccc
-ccc
-c           .   .   .   jeremy
-ccc
-ccc
-
-      do i=1,ncheb
-        coefsre(i) = real(fcoefs(i))
-        coefsim(i) = imag(fcoefs(i))
-      enddo
-
-      call roots_m1p1_find(ncheb,roots,errvec,nroots,coefsre,wroot)
-
-
-      ikeep = 1
-
-      do i=1,nroots
-
-        r = roots(i)
-        call chebexev(r,val1,coefsre,ncheb-1)
-        call chebexev(r,val2,coefsim,ncheb-1)
-
-        err = sqrt(val1*val1+val2*val2)
-
-        if (err .lt. 1.0d-8) then
-          roots(ikeep) = roots(i)
-          ikeep = ikeep + 1
-        end if
-
-      enddo
-
-      ikeep = ikeep - 1
-      nroots = ikeep
-
-cc      call prin2('roots = *',roots,nroots)
-
-cc
-cc          .   .   .   now rescale them
+c      compute fredholm determinant using adaptive discretizer
 c
+      epsdisc = 1.0d-6
+      ifinit7 = 1
+      lused = 0
+      nint = 0
+      call adap_root_disc(ier,a0,b0,freddethelm,ipar1,coefs,par2,
+     1       kcheb,ab,lmax2,epsdisc,tcheb,ucheb,vcheb,wcheb,tvals,
+     2       fdet,fcoefs,nint,lused,ifinit7,lmax,iposits)
 
-      do i=1,nroots
-        roots(i) = (roots(i)+1)/2*(b0-a0)+a0
-      enddo
+      call prinf('nintervals=*',nint,1)
+      call prin2('fcoefs=*',fcoefs,2*kcheb)
+      call prin2('tvals =*',tvals,nn*kcheb)
 
-      call prin2('roots rescaled= *',roots,nroots)
+      epsrt = 1.0d-6
+      lwdis = 1 000 000
+      allocate(wdis(lwdis))
+      call adap_root_getroots(kcheb,nint,fcoefs,iposits,wdis,ab,
+     1   roots,nroots,epsrt)
+
+      call prinf('nroots=*',nroots,1)
+      call prin2('roots=*',roots,nroots)
 
 
 c

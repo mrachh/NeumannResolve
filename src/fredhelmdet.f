@@ -27,7 +27,11 @@ c
       data imainv4/(0.0d0,0.25d0)/
       data ima/(0.0d0,1.0d0)/
 
+      done = 1
+      pi = atan(done)*4
+
       nr0 = 36
+
 
       ncorner = 36
       allocate(tsc(ncorner),wtsc(ncorner),umatc(ncorner,ncorner),
@@ -38,7 +42,6 @@ c
 
 
       zk = rzk
-      print *, rzk
       ifexpon = 1
 
       nverts = par2(1)
@@ -71,6 +74,7 @@ c
         rr = (vtmp(1,i+1) - vtmp(1,i))**2 + (vtmp(2,i+1)-vtmp(2,i))**2
         rpan(i) = sqrt(rr)
       enddo
+
       
 
       allocate(pl(nverts+1),pr(nverts+1))
@@ -107,6 +111,7 @@ c
       kmid = 24
 
 
+
       do i=1,nverts
         rmid(i) = rpan(i) -pl(i)-pr(i)
         hmid = 2.0d0*min(pl(i),pr(i))
@@ -135,6 +140,7 @@ c
       allocate(xys(2,npts),dxys(2,npts),qwts(npts))
       allocate(nepts(nedges),lns(nedges),rns(nedges))
       allocate(ixys(nch),ks(nch),iscorn(nch))
+
 
       call getedgedis(nverts,verts,nedges,el,er,pl,pr,imid,kmid,
      1       npts,xys,dxys,qwts,lns,rns,nepts,nch,ixys,ks,iscorn)
@@ -196,6 +202,10 @@ c
           xmat(j,i) = 0
         enddo
       enddo
+
+
+
+
       istart = 0
       do iedge=1,nedges
         do ii=1,nepts(iedge)
@@ -262,11 +272,11 @@ c
 
       fdet = 1.0d0
 
+
       do i=1,npts
         fdet = fdet*xmat(i,i)
         if(ipiv(i).ne.i) fdet = -fdet
       enddo
-
 
       return
       end
