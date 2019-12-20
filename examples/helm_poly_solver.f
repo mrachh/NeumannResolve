@@ -25,7 +25,7 @@ c       igeom =1, skew triangle
 c       igeom =2, jeremy's magnetron
 
       igeom = 1
-      igeom = 2
+cc      igeom = 2
 
       call loadverts_demos(igeom,nverts,verts,xyin,xyout)
 
@@ -81,7 +81,7 @@ c
 c       if exact solution is known, store it in 'fort.48'
 c          
  
-      ifdn = 1 
+      ifdn = 0 
       ifinout = 0
       iffast = 2
 
