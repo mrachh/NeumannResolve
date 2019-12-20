@@ -3,8 +3,9 @@
       real *8 xyin(2),xyout(2),dpars(2)
       real *8 xysrc(2),xytarg(2),xylim(2,2)
       real *8, allocatable :: targ(:,:)
-      complex *16, allocatable :: pottargex(:)
-      complex *16 pp
+      real *8, allocatable :: pottargex(:)
+      real *8 pp
+      complex *16 zpars
       integer, allocatable :: isin(:)
       
       complex *16 zpars,zk,pot,potex
@@ -13,7 +14,7 @@
 
       procedure (), pointer :: fker
 
-      external helm_slp,helm_dlp
+      external lap_slp,lap_dlp
 
       call prini(6,13)
 
@@ -21,47 +22,131 @@
       allocate(verts(2,nvmax))
 
 c
-c       igeom =1, rectangle
+c       igeom =1, skew triangle
 c       igeom =2, jeremy's magnetron
-c       igeom =3, kirill's star
 
-      igeom = 3
-cc      igeom = 2
+      igeom = 1
+      igeom = 2
 
-      call loadverts_demos(igeom,nverts,verts)
-
+      call loadverts_demos(igeom,nverts,verts,xyin,xyout)
 
 c
 c
-c     This subroutine computes the interior Dirichlet/neumann 
-c     eigenvalues using a double layer as the representation
-c     for the dirichlet problem, and single layer as the
-c     representation for the neumann problem.
+c     This subroutine solves the interior/exterior
+c        Dirichlet/Neumann Laplace boundary value
+c        problem using a double layer as the representation
+c        for the dirichlet problem, and single layer as the
+c        representation for the neumann problem.
+c
+c     Note: special care is taken with 1s matrices for the
+c     exterior dirichlet problem and the interior neumann problem
+c
+c     The right hand side is a user supplied subroutine 
+c       fker whose calling sequence is of the form
+c
+c      fker(y,dpars,zpars,ipars,f)
+c       
+c       y contains the source info 
+c        y(1:2) - location of source
+c        y(3:4) - dydt for the source point (note not normalized)
 c
 c
-c     The output is a file containing the number of eigenvalues,
-c     the list of eigenvalues, and the eigenfunctions plotted at a 
-c     a 300x300 grid
+c     The output is the potential at the user specified targets
+c     and also stores the following information in a file
+c     if requested
+c      line 1: nverts - number of vertices
+c      line 2: n - number of discretization points
+c      line 3: nch - number of panels
+c      line 4: ntarg - targets for plotting in interior/exterior
+c          (auto generated and potential computed to 13 digits)
+c      line 5-4+nverts- xy locations of vertices
+c      line 5+nverts-4+n+nverts: 
+c        y1,y2, dy1/dt,dy2/dt,qwts,rhs,soln
+c      line 5+n+nverts-5+n+nverts+nch: ixyzs,ks,iscorn
+c      line 5+n+nverts+nch - xylim info
+c      line 5+n+nverts+nch -4+n+nverts+nch+ntarg:
+c         targ1,targ2,pot
 c
 c       ifdn = dirichlet/Neumann flag
 c          ifdn = 0 => Dirichlet problem
 c          ifdn = 1 => Neumann problem     
 c 
+c       ifinout = interior/exterior problem flag
+c          ifinout = 0 => interior problem
+c          ifinout = 1 => exterior problem
+c
+c       iffast = flag for solving linear system
+c          iffast = 0 => direct inversion using blas
+c          iffast = 1 => iterative solver using blas for matvec
+c          iffast = 2 => iterative solver using fmm for matvec
+c
+c
+c       if exact solution is known, store it in 'fort.48'
 c          
  
       ifdn = 1 
+      ifinout = 0
+      iffast = 2
+
+      zk = 1.2d0
 
       ifwrite = 1
-      fname = 'star_eig_neu.dat'
+      fname = 'equi_interior_neu.dat'
 
-      if(ifdn.eq.0) fker => helm_slp
-      if(ifdn.eq.1) fker => helm_dlp
+      if(ifinout.eq.0) then
+        xysrc(1) = xyout(1)
+        xysrc(2) = xyout(2)
 
-      a = 2.0d0
-      b = 4.0d0
+        xytarg(1) = xyin(1)
+        xytarg(2) = xyin(2)
+      endif
+
+      if(ifinout.eq.1) then
+        xysrc(1) = xyin(1)
+        xysrc(2) = xyin(2)
+        
+        xytarg(1) = xyout(1)
+        xytarg(2) = xyout(2)
+      endif
 
 
-      call helm_eig_solver(a,b,nverts,verts,ifdn,ifwrite,fname)
+
+      if(ifdn.eq.0) fker => lap_slp
+      if(ifdn.eq.1) fker => lap_dlp
+
+      
+
+      ntarg = 1
+
+      call lap_solver(nverts,verts,ifdn,ifinout,iffast,fker,
+     1   xysrc,zpars,ipars,ntarg,xytarg,pot,ifwrite,fname)
+
+
+      call lap_slp(xysrc,xytarg,zpars,ipars,potex)
+      
+      erra = abs(pot-potex)/abs(potex)
+      call prin2('error in potential=*',erra,1)
+
+
+      nlat = 300
+      ntargv = nlat*nlat
+
+      
+      rfud = 1.2d0
+
+
+      allocate(targ(2,ntargv),isin(ntargv),pottargex(ntargv))
+      call gentarg(nverts,verts,rfud,nlat,ntargv,targ,isin,xylim)
+
+cc      ntargv = 1
+cc      targ(1,1) = 0.05d0
+cc      targ(2,1) = -0.09d0
+
+      do i=1,ntargv
+        pottargex(i) = 0
+        call lap_slp(xysrc,targ(1,i),zpars,ipars,pottargex(i))
+        write(48,*) pottargex(i)
+      enddo
 
       
       stop
@@ -71,22 +156,20 @@ c
 c
 c 
 c
-      subroutine helm_slp(y,x,zk,ipars,f)
+      subroutine lap_slp(y,x,zpars,ipars,f)
       implicit real *8 (a-h,o-z)
-      real *8 y(*),x(*)
-      complex *16 zk,f,h0,h1,z,imainv4
-      data imainv4/(0.0d0,0.25d0)/
+      real *8 y(*),x(*),f
+      complex *16 zpars(*)
+      integer ipars(*)
 
+      done = 1
+      pi = atan(done)*4
 
-      ifexpon = 1
       dx = y(1) - x(1)
       dy = y(2) - x(2)
 
-      r = sqrt(dx**2 + dy**2)
-      z = zk*r
-      call hank103(z,h0,h1,ifexpon)
-      
-      f = h0*imainv4
+      r = dx**2 + dy**2
+      f = -1.0d0/4/pi*log(r)
 
       return
       end
@@ -95,23 +178,23 @@ c
 c
 c
 c
-      subroutine helm_dlp(y,x,zk,ipars,f)
+      subroutine lap_dlp(y,x,zpars,ipars,f)
       implicit real *8 (a-h,o-z)
-      real *8 y(*),x(*)
-      complex *16 zk,f,h0,h1,z,imainv4
-      data imainv4/(0.0d0,0.25d0)/
+      real *8 y(*),x(*),f,pi
+      complex *16 zpars(*)
+      integer ipars(*)
 
-      ifexpon = 1
+      done = 1
+      pi = atan(done)*4
+
       dx = y(1) - x(1)
       dy = y(2) - x(2)
-      r = sqrt(dx**2 + dy**2)
+      r = dx**2 + dy**2
       dst = sqrt(y(3)**2 + y(4)**2)
       rnx = y(4)/dst
       rny = -y(3)/dst
-      z = zk*r
-      call hank103(z,h0,h1,ifexpon)
-       
-      f = -(dx*rnx + dy*rny)/r*h1*zk*imainv4
+      
+      f = -(dx*rnx + dy*rny)/r/2/pi
 
       return
       end
@@ -123,13 +206,14 @@ c
 c
 c 
 c
-      subroutine hslp_gau(x,par1,par2,f)
+      subroutine lslp_gau(x,par1,par2,f)
       implicit real *8 (a-h,o-z)
       real *8 par1(*),par2(*)
       real *8 pols(100)
-      complex *16 val,ima,h0,h1,z,zk,imainv4,f
-      data ima/(0.0d0,1.0d0)/
-      data imainv4/(0.0d0,0.25d0)/
+      real *8 val,f,pi
+
+      done = 1
+      pi = atan(done)*4
 
       dd = 0
       ddi = 0
@@ -139,7 +223,6 @@ c
       xt = par1(2)
       yt = par1(3)
       rlen = par1(4)
-      zk = par1(5) + ima*par1(6)
 
       call legepols(x,k-1,pols)
 
@@ -148,18 +231,10 @@ c
         xx = xx + par2(i)*pols(i)
         yy = yy + par2(i+k)*pols(i)
         dd = dd + par2(i+2*k)*pols(i)
-        ddi = ddi + par2(i+3*k)*pols(i)
       enddo
       
-      r = sqrt((xx-xt)**2 + (yy-yt)**2)
-      z = zk*r
-      ifexpon = 1
-
-      call hank103(z,h0,h1,ifexpon)
-      f = imainv4*h0*(dd+ima*ddi)*rlen/2.0d0
-
-      
-
+      r = (xx-xt)**2 + (yy-yt)**2
+      f = -log(r)/4/pi*dd*rlen/2.0d0
 
       return
       end
@@ -167,25 +242,21 @@ c
 c
 c 
 c
-      subroutine hdlp_gau(x,par1,par2,f)
+      subroutine ldlp_gau(x,par1,par2,f)
       implicit real *8 (a-h,o-z)
       real *8 par1(*),par2(*)
       real *8 pols(100)
-      complex *16 val,ima,h0,h1,z,zk,imainv4,f
-      data ima/(0.0d0,1.0d0)/
-      data imainv4/(0.0d0,0.25d0)/
+      real *8 f,val,dd,pi
 
       dd = 0
-      ddi = 0
       xx = 0
       yy = 0
       k = par1(1)
       xt = par1(2)
       yt = par1(3)
       rlen = par1(4)
-      zk = par1(5) + ima*par1(6)
-      rnxe = par1(7)
-      rnye = par1(8)
+      rnxe = par1(5)
+      rnye = par1(6)
 
       call legepols(x,k-1,pols)
 
@@ -194,16 +265,11 @@ c
         xx = xx + par2(i)*pols(i)
         yy = yy + par2(i+k)*pols(i)
         dd = dd + par2(i+2*k)*pols(i)
-        ddi = ddi + par2(i+3*k)*pols(i)
       enddo
       
-      r = sqrt((xx-xt)**2 + (yy-yt)**2)
+      r = (xx-xt)**2 + (yy-yt)**2
       rrn = (xx-xt)*rnxe + (yy-yt)*rnye
-      z = zk*r
-      ifexpon = 1
-
-      call hank103(z,h0,h1,ifexpon)
-      f = -imainv4*h1*(dd+ima*ddi)*rlen/2.0d0*zk*rrn/r
+      f = -dd*rlen/2*rrn/r/2/pi
 
 
       return
@@ -214,78 +280,65 @@ c
 c
 c 
 c
-      subroutine hslp_jer(x,par1,par2,f)
+      subroutine lslp_jer(x,par1,par2,f)
       implicit real *8 (a-h,o-z)
       real *8 par1(*),par2(*)
       real *8 pols(100)
-      complex *16 val,ima,h0,h1,z,zk,imainv4,f
-      data ima/(0.0d0,1.0d0)/
-      data imainv4/(0.0d0,0.25d0)/
+      real *8 f,val,pi
+      
+      done = 1
+      pi = atan(done)*4
 
       dd = 0
-      ddi = 0
       xx = 0
       yy = 0
       k = par1(1)
       xt = par1(2)
       yt = par1(3)
       rlen = par1(4)
-      zk = par1(5) + ima*par1(6)
       
       t = abs(x)
 
       do i=1,k
-        call lapnestev2(ier,par1(9),t,i,pols(i))
+        call lapnestev2(ier,par1(7),t,i,pols(i))
       enddo
      
       do i=1,k
         xx = xx + par2(i)*pols(i)
         yy = yy + par2(i+k)*pols(i)
         dd = dd + par2(i+2*k)*pols(i)
-        ddi = ddi + par2(i+3*k)*pols(i)
       enddo
       
       r = sqrt((xx-xt)**2 + (yy-yt)**2)
-      z = zk*r
-      ifexpon = 1
-
-      call hank103(z,h0,h1,ifexpon)
-      f = imainv4*h0*(dd+ima*ddi)*rlen
-
-      
-
+      f = -log(r)/2/pi*dd*rlen
 
       return
       end
 c
 c
-c 
 c
-      subroutine hdlp_jer(x,par1,par2,f)
+c
+      subroutine ldlp_jer(x,par1,par2,f)
       implicit real *8 (a-h,o-z)
       real *8 par1(*),par2(*)
       real *8 pols(100)
-      complex *16 val,ima,h0,h1,z,zk,imainv4,f
-      data ima/(0.0d0,1.0d0)/
-      data imainv4/(0.0d0,0.25d0)/
+      real *8 val,dd,pi,f
 
       dd = 0
-      ddi = 0
       xx = 0
       yy = 0
       k = par1(1)
       xt = par1(2)
       yt = par1(3)
       rlen = par1(4)
-      zk = par1(5) + ima*par1(6)
-      rnxe = par1(7)
-      rnye = par1(8)
+      rnxe = par1(5)
+      rnye = par1(6)
 
       t = abs(x)
 
 
       do i=1,k
-        call lapnestev2(ier,par1(9),t,i,pols(i))
+        call lapnestev2(ier,par1(7),t,i,pols(i))
       enddo
 
      
@@ -293,16 +346,11 @@ c
         xx = xx + par2(i)*pols(i)
         yy = yy + par2(i+k)*pols(i)
         dd = dd + par2(i+2*k)*pols(i)
-        ddi = ddi + par2(i+3*k)*pols(i)
       enddo
       
-      r = sqrt((xx-xt)**2 + (yy-yt)**2)
+      r = (xx-xt)**2 + (yy-yt)**2
       rrn = (xx-xt)*rnxe + (yy-yt)*rnye
-      z = zk*r
-      ifexpon = 1
-
-      call hank103(z,h0,h1,ifexpon)
-      f = -imainv4*h1*(dd+ima*ddi)*sqrt(rlen)*zk*rrn/r
+      f = -dd*sqrt(rlen)*rrn/r/2/pi
 
 
       return
@@ -311,29 +359,29 @@ c
 c
 c
 c 
-      subroutine loadverts_demos(igeom,nverts,verts)
+      subroutine loadverts_demos(igeom,nverts,verts,xyin,xyout)
       implicit real *8 (a-h,o-z)
       real *8 verts(2,*),xyin(2),xyout(2)
       real *8, allocatable :: xverts(:),yverts(:)
 
 
-      done = 1
-      pi = atan(done)*4
       if(igeom.eq.1) then
 
-        nverts = 4
+        nverts = 3
         verts(1,1) = 0
         verts(2,1) = 0
 
-        verts(1,2) = pi
-        verts(2,2) = 0 
+        verts(1,2) = 0.5d0
+        verts(2,2) = -sqrt(3.0d0)/2.0d0-0.1d0
         
-        verts(1,3) = pi
-        verts(2,3) = 1.05d0*pi 
+        verts(1,3) = 0.57d0
+        verts(2,3) = sqrt(3.0d0)/2.0d0
+        
+        xyout(1) = 1.0d0
+        xyout(2) = 0.1d0
 
-        verts(1,4) = 0
-        verts(2,4) = 1.05d0*pi
-
+        xyin(1) = 0.3d0
+        xyin(2) = 0.2d0
       endif
 
       if(igeom.eq.2) then
@@ -353,35 +401,6 @@ c
 
       endif
 
-      if(igeom.eq.3) then
-        nverts = 8
-        verts(1,1) = 2.0d0
-        verts(2,1) = 0.0d0
-
-        verts(1,2) = 3.0d0
-        verts(2,2) = 2.0d0
-
-        verts(1,3) = 5.0d0
-        verts(2,3) = 2.0d0
-        
-        verts(1,4) = 3.0d0
-        verts(2,4) = 3.0d0
-
-        verts(1,5) = 3.0d0
-        verts(2,5) = 5.0d0
-
-        verts(1,6) = 2.0d0
-        verts(2,6) = 3.0d0
-
-        verts(1,7) = 0.0d0
-        verts(2,7) = 3.0d0
-        
-        verts(1,8) = 2.0d0
-        verts(2,8) = 2.0d0
-      endif
-
-
-
 
       
 
@@ -394,28 +413,24 @@ c
 c       main subroutine
 c*******************************
 
-
-        subroutine helm_eig_solver(a0,b0,nverts,verts,ifdn,
-     1   ifwrite,fname)
-        implicit real *8 (a-h,o-z)
+      subroutine lap_solver(nverts,verts,ifdn,ifinout,iffast,fker,
+     1   dpars,zpars,ipars,ntarg,xytarg,pot,ifwrite,fname)
+      implicit real *8 (a-h,o-z)
 
 c
 c       calling sequence variables
 c 
 
       
-      real *8 a0,b0
       real *8 verts(2,nverts)
-      complex *16 zk,zz
+      real *8 dpars(*)
+      complex *16 zpars(*)
+      integer ipars(*)
 
+      real *8 xytarg(2,ntarg)
+      real *8 pot(ntarg)
 
       character (len=*) fname
-
-      real *8, allocatable :: pols(:)
-
-      complex *16, allocatable :: w2(:)
-      complex *16 alpha_c,beta_c
-
 c
 c
 c      temporary variables
@@ -433,22 +448,18 @@ c
       real *8, allocatable :: xsgnl(:),xsgnr(:)
       integer, allocatable :: icsgnl(:),icsgnr(:)
       
-      complex *16, allocatable :: xmatc(:,:,:),xmatcsub(:,:,:)
+      real *8, allocatable :: xmatc(:,:,:),xmatcsub(:,:,:)
       real *8, allocatable :: tsc(:),wtsc(:),umatc(:,:),vmatc(:,:)
       real *8, allocatable :: coefs(:)
 
       real *8 xtmp(4)
 
-      complex *16 h0,h1,z,ima,imainv4
 
-      complex *16, allocatable :: rhs(:),soln(:),xmat(:,:),xmat2(:,:)
-      complex *16, allocatable :: znull(:),zvectmp(:)
-      complex *16, allocatable :: solntmp(:)
+      real *8, allocatable :: rhs(:),soln(:),xmat(:,:)
+      real *8, allocatable :: solntmp(:)
       integer, allocatable :: ipiv(:)
       real *8, allocatable :: errs(:)
-      complex *16, allocatable :: work(:)
-
-      real *8, allocatable :: par1(:),par2(:)
+      real *8, allocatable :: work(:)
 
       integer ifexpon
 
@@ -458,46 +469,13 @@ c       volume target related stuff
 c
       real *8, allocatable :: targ(:,:)
       integer, allocatable :: isin(:)
-      complex *16, allocatable :: pottarg(:)
+      real *8, allocatable :: pottarg(:)
       real *8 xylim(2,2)
-
-
-c
-c
-c      adaptive discretizer stuff
-c
-
-      complex *16, allocatable :: fdet(:),fcoefs(:)
-      real *8, allocatable :: roots(:),tvals(:)
-      integer, allocatable :: iposits(:)
-      real *8, allocatable :: ab(:,:),tcheb(:),ucheb(:,:),vcheb(:,:),
-     1    wcheb(:)
-      real *8, allocatable :: wdis(:)
       
-
-
-      data ima/(0.0d0,1.0d0)/
-      data imainv4/(0.0d0,0.25d0)/
-      
-      external fker,multa_blas,multa_fmm,freddethelm
+      external fker,multa_blas,multa_fmm
 
       done = 1
       pi = atan(done)*4
-
-
-c
-c
-c      adaptive discretizer initialization
-c
-      lmax = 100 000
-      allocate(fdet(lmax),fcoefs(lmax),tvals(lmax))
-
-      lmax2 = 10000
-      allocate(roots(lmax2),ab(2,lmax2),iposits(lmax2))
-
-      kcheb = 16
-      allocate(tcheb(kcheb),ucheb(kcheb,kcheb),vcheb(kcheb,kcheb),
-     1   wcheb(kcheb))
 
       read(32,*) lcoefs
 
@@ -506,37 +484,6 @@ c
         read(32,*) coefs(i)
       enddo
       close(32)
-
-
-
-      
-      ncorner = 36
-      nr0 = ncorner
-      lpar2 = 2*nverts + 100
-
-      allocate(tsc(ncorner),wtsc(ncorner),umatc(ncorner,ncorner),
-     1   vmatc(ncorner,ncorner))
-
-
-      call getcornstruct(ncorner,tsc,wtsc,umatc,vmatc)
-
-      allocate(par2(lpar2))
-      
-      par2(1) = nverts + 0.1d0
-      par2(2) = ifdn + 0.1d0
-      par2(3) = lcoefs+ 0.1d0
-      par2(4) = a0
-      par2(5) = b0
-      do i=1,nverts
-        par2(5+i) = verts(1,i)
-        par2(5+i+nverts) = verts(2,i)
-      enddo
-
-c
-c
-c       generate the grid based on max value of b0
-c
-      
 
 c
 c      find lenght of each of the edges
@@ -563,9 +510,8 @@ c
 c       compute lengths of corner panels
 c
       do i=1,nverts
-        rmin = 0.3d0*min(rpan(i+1),rpan(i))
-cc        rmin = 0.075d0*min(rpan(i+1),rpan(i))
-        rr = pi/b0
+        rmin = 0.15d0*min(rpan(i+1),rpan(i))
+        rr = pi/real(zk)
         if(rmin.gt.rr) rmin = rr
         pr(i) = rmin
         pl(i+1) = rmin
@@ -616,16 +562,12 @@ cc        rmin = 0.075d0*min(rpan(i+1),rpan(i))
       nch = nch + 2*nedges
       npts = npts + 72*nedges
 
-      print *, npts
-
       allocate(xys(2,npts),dxys(2,npts),qwts(npts))
       allocate(nepts(nedges),lns(nedges),rns(nedges))
       allocate(ixys(nch),ks(nch),iscorn(nch))
 
       call getedgedis(nverts,verts,nedges,el,er,pl,pr,imid,kmid,
      1       npts,xys,dxys,qwts,lns,rns,nepts,nch,ixys,ks,iscorn)
-
-cc      call prinf('iscorn=*',iscorn,nch)
 
 
 c
@@ -657,103 +599,61 @@ c
       enddo
 
 c
+c      get corner correction matrices
 c
-c
-c
-      call prinf('done generating geometry*',i,0)
-      print *, npts
+
+      ncorner = 36
+
       allocate(xmatc(ncorner,ncorner,ncint))
 
+      allocate(tsc(ncorner),wtsc(ncorner),umatc(ncorner,ncorner),
+     1   vmatc(ncorner,ncorner))
+      call getcornstruct(ncorner,tsc,wtsc,umatc,vmatc)
 
-      allocate(xmat(npts,npts),rhs(npts),soln(npts),znull(npts))
-      allocate(zvectmp(npts))
-      allocate(xmat2(npts,npts))
-      allocate(ipiv(npts))
+      do i=1,ncint
+        call lapcornmat(angs(i),tsc,wtsc,umatc,vmatc,ncorner,coefs,
+     1    lcoefs,xmatc(1,1,i))
+      enddo
+
+      call prin2('done generating corner correction matrices*',i,0)
 
 
-      allocate(pols(ncheb+10))
+
+c
+c        get rhs
+c
+c
+      allocate(rhs(npts),soln(npts))
+      
+      do i=1,npts
+        xtmp(1) = xys(1,i)
+        xtmp(2) = xys(2,i)
+        xtmp(3) = dxys(1,i)
+        xtmp(4) = dxys(2,i)
+        call fker(xtmp,dpars,zpars,ipars,rhs(i))
+        rhs(i) = rhs(i)*sqrt(qwts(i))
+      enddo
+
+      
 
       ifexpon = 1
 
-c
-c
-c      compute fredholm determinant using adaptive discretizer
-c
-      epsdisc = 1.0d-9
-      ifinit7 = 1
-      lused = 0
-      nint = 0
-      call adap_root_disc(ier,a0,b0,freddethelm,ipar1,coefs,par2,
-     1       kcheb,ab,lmax2,epsdisc,tcheb,ucheb,vcheb,wcheb,tvals,
-     2       fdet,fcoefs,nint,lused,ifinit7,lmax,iposits)
-
-      call prinf('nintervals=*',nint,1)
-      call prin2('fcoefs=*',fcoefs,2*kcheb)
-      call prin2('tvals =*',tvals,nn*kcheb)
-
-      epsrt = 1.0d-6
-      lwdis = 1 000 000
-      allocate(wdis(lwdis))
-      call adap_root_getroots(kcheb,nint,fcoefs,iposits,wdis,ab,
-     1   roots,nroots,epsrt)
-
-      call prinf('nroots=*',nroots,1)
-      call prin2('roots=*',roots,nroots)
-
-
-c
-c      generate targets on a grid
-c
-      nlat = 300
-      ntargv = nlat*nlat
-
-      allocate(targ(2,ntargv),pottarg(ntargv),isin(ntargv))
-      rfud = 1.2d0
-      call gentarg(nverts,verts,rfud,nlat,ntargv,targ,isin,xylim)
 
 
 c
 c
-c        find a null vector for each of the roots
 c
-      open(unit=47,file=trim(fname))
-      write(47,*) nverts
-      write(47,*) nroots
-      write(47,*) npts
-      write(47,*) nch
-      write(47,*) nlat,ntargv
-      do i=1,nverts
-        write(47,*) verts(1,i),verts(2,i)
-      enddo
-
-      do i=1,npts
-        write(47,*) xys(1,i),xys(2,i),dxys(1,i),dxys(2,i),qwts(i)
-      enddo
-
-      do i=1,nch
-        write(47,*) ixys(i),ks(i),iscorn(i)
-      enddo
-
-      write(47,*) xylim(1,1),xylim(2,1),xylim(1,2),xylim(2,2)
-
-
-
-
-
-      do izk = 1,nroots
-        zk = roots(izk)
-        write(47,*) real(zk)
-
-
-        do i=1,ncint
-          call helmcornmat(angs(i),zk,pl(i),tsc,wtsc,umatc,vmatc,
-     1      ncorner,coefs,lcoefs,xmatc(1,1,i))
-        enddo
-
+c
 
 c
-c        generate the matrix
+c        compute matrix if not using fmm to solve
 c
+c
+
+
+      call cpu_time(t1)
+      if(iffast.eq.0.or.iffast.eq.1) then
+        allocate(xmat(npts,npts))
         do i=1,npts
           do j=1,npts
             xmat(j,i) = 0
@@ -769,20 +669,17 @@ c
 
             jstart = 0
             do jedge=1,nedges
-              if(jedge.eq.iedge) goto 1010
+              if(jedge.eq.iedge) goto 1000
               do jj=1,nepts(jedge)
                 j = jj+jstart
-                rrr = sqrt((xys(1,i)-xys(1,j))**2 + 
-     1            (xys(2,i)-xys(2,j))**2)
-                z = rrr*zk
-                call hank103(z,h0,h1,ifexpon)
+                rrr = (xys(1,i)-xys(1,j))**2 + 
+     1            (xys(2,i)-xys(2,j))**2
                 rrn = ((xys(1,j)-xys(1,i))*rnx+
      1              (xys(2,j)-xys(2,i))*rny)/dst
 
-                xmat(j,i) = imainv4*h1*rrn/rrr*
-     1              zk*sqrt(qwts(j)*qwts(i))
+                xmat(j,i) = rrn/rrr/2/pi*sqrt(qwts(j)*qwts(i))
               enddo
- 1010         continue              
+ 1000         continue              
               jstart = jstart + nepts(jedge)
             enddo
           enddo
@@ -808,129 +705,152 @@ c
         enddo
 
         do i=1,npts
-          do j=1,npts
-            xmat(j,i) = -2.0d0*(-1)**(ifdn)*xmat(j,i)
-          enddo
+          xmat(i,i) = -0.5d0*(-1)**(ifdn+ifinout)
         enddo
-
-        do i=1,npts
-          xmat(i,i) = 1.0d0
-        enddo
-
-        do i=1,npts
-          do j=1,npts
-            xmat2(j,i) = xmat(j,i)
-          enddo
-        enddo
-
-          
-
-        info = 0
-cc        call zgesvd('a','a',npts,npts,xmat2,npts,ss,uu,npts,vv,npts,
-cc     1    worksvd,lwork,rwork,info)
-        
-cc        call prin2('ss=*',ss,npts)
-
-
-        alpha_c = 1.0d0
-        beta_c = 0.0d0
-
-        do i=1,npts
-          rhs(i) = (xys(1,i)**2 + ima*xys(2,i)**2)*sqrt(qwts(i))
-cc          rhs(i) = xys(2,i)*sqrt(qwts(i))
-        enddo
-
-        if(ifdn.eq.0) call zgemv('n',npts,npts,alpha_c,xmat,
-     1    npts,rhs,1,beta_c,soln,1)
-        
-        if(ifdn.eq.1) call zgemv('t',npts,npts,alpha_c,xmat,
-     1    npts,rhs,1,beta_c,soln,1)
-
-cc        call prin2('soln=*',soln,24)
-
-        do i=1,npts
-          do j=1,npts
-            xmat2(j,i) = xmat(j,i) + 0*sqrt(qwts(j)*qwts(i))
-          enddo
-        enddo
-
-        call zgetrf(npts,npts,xmat2,npts,ipiv,info)
-        if(ifdn.eq.0) call zgetrs('n',npts,1,xmat2,npts,ipiv,
-     1      soln,npts,info)
-        if(ifdn.eq.1) call zgetrs('t',npts,1,xmat2,npts,ipiv,
-     1      soln,npts,info)
-cc
-cc        call prinf('info=*',info,1)
-cc        
-        do i=1,npts
-cc          znull(i) = conjg(uu(i,npts)) 
-          znull(i) = soln(i) - rhs(i)
-        enddo
-
-
-        if(ifdn.eq.0) call zgemv('n',npts,npts,alpha_c,xmat,
-     1    npts,znull,1,beta_c,zvectmp,1)
-        
-        if(ifdn.eq.1) call zgemv('t',npts,npts,alpha_c,xmat,
-     1    npts,znull,1,beta_c,zvectmp,1)
-        
-
-        ra = 0
-        erra = 0
-        do i=1,npts
-          ra = ra + abs(znull(i))**2
-          erra = erra + abs(zvectmp(i))**2
-        enddo
-
-        ra = sqrt(ra)
-
-        erra = sqrt(erra)/ra
-
-        do i=1,npts
-          stmp = sqrt(qwts(i))
-          znull(i) = znull(i)/ra
-          write(47,*) real(znull(i))/stmp,imag(znull(i))/stmp
-        enddo
-
-        
-
-        call prin2('error in null vector estimate=*',erra,1)
-
 
 c
-c      now plot the eigenfunction
-c   
+c
+c        fix ones matrix
+c
+        isgn = (-1)**(ifdn+ifinout)
+        if(isgn.eq.-1) then
+          xmat(i,i) = xmat(i,i) + sqrt(qwts(i)*qwts(j))
+        endif
+
+
+
+        if(iffast.eq.0) then
+          do i=1,npts
+            soln(i) = rhs(i)
+          enddo
+
+          allocate(ipiv(npts))
+          call dgetrf(npts,npts,xmat,npts,ipiv,info)
+
+          if(ifdn.eq.0) call dgetrs('n',npts,1,xmat,npts,ipiv,
+     1        soln,npts,info)
+
+          if(ifdn.eq.1) call dgetrs('t',npts,1,xmat,npts,ipiv,
+     1        soln,npts,info)
+        endif
+        
+        if(iffast.eq.1) then
+          eps = 1.0d-15
+          numit = 200
+          ngmrec = 200
+          allocate(errs(numit+10),work((ngmrec*10+4)*npts))
+          
+          call dgmres_blas(ier,npts,xmat,multa_blas,ifdn,rhs,eps,numit,
+     1      soln,niter,errs,ngmrec,work)
+          call prinf('niter in gmres=*',niter,1)
+
+          call prin2('soln=*',soln,24)
+
+        endif
+      endif
+
+
+      if(iffast.eq.2) then
+        eps = 1.0d-15
+        numit = 200
+        ngmrec = 200
+        allocate(errs(numit+10),work((ngmrec*10+4)*npts))
+        allocate(xmatcsub(ncorner,ncorner,ncint))
+
+
+        do i=1,ncint
+          call lapcornmatsub(angs(i),tsc,wtsc,ncorner,
+     1      xmatcsub(1,1,i))
+        enddo
+
+        call dgmres_fmm(ier,npts,multa_fmm,zk,ifdn,ifinout,
+     1    xys,dxys,qwts,nedges,ncint,lns,rns,icl,icr,icsgnl,icsgnr,
+     2    xsgnl,xsgnr,ncorner,xmatc,xmatcsub,rhs,eps,numit,
+     3    soln,niter,errs,
+     3    ngmrec,work)
+        
+      endif
+
+      call cpu_time(t2)
+      call prin2('linear system solve time=*',t2-t1,1)
+
+c
+c
+c      generate targets on a grid
+c
+      nlat = 300
+      ntargv = nlat*nlat
+
+      allocate(targ(2,ntargv),pottarg(ntargv),isin(ntargv))
+      rfud = 1.2d0
+      call gentarg(nverts,verts,rfud,nlat,ntargv,targ,isin,xylim)
+
+cc      ntargv = 1
+cc      targ(1,1) = 0.05d0
+cc      targ(2,1) = -0.09d0
 
       call cpu_time(t1)
-      call comppottarg_fmm(zk,npts,xys,dxys,qwts,ifdn,znull,ntargv,
+      call comppottarg_fmm(npts,xys,dxys,qwts,ifdn,soln,ntargv,
      1    targ,pottarg)
+
+      call cpu_time(t2)
+      call prin2('fmm for volume targets time=*',t2-t1,1)
+
+      
+      call cpu_time(t1)
+      call comppottarg_corr(npts,nch,xys,dxys,qwts,ixys,ks,kmid,
+     1   iscorn,ifdn,ifinout,soln,coefs,lcoefs,ncorner,
+     2   tsc,wtsc,umatc,vmatc,ncint,angs,xsgnl,xsgnr,ichl,ichr,
+     3   nverts,verts,ntargv,targ,pottarg)
+      call cpu_time(t2)
+      call prin2('quadrature correction for volume targets time=*',
+     1       t2-t1,1)
+
+      call cpu_time(t1)
+      call comppottarg_fmm(npts,xys,dxys,qwts,ifdn,soln,ntarg,
+     1    xytarg,pot)
 
       call cpu_time(t2)
       call prin2('fmm for user targets time=*',t2-t1,1)
 
       
       call cpu_time(t1)
-      ifinout = 0
-      call comppottarg_corr(zk,npts,nch,xys,dxys,qwts,ixys,ks,kmid,
-     1   iscorn,ifdn,ifinout,znull,coefs,lcoefs,ncorner,
+      call comppottarg_corr(npts,nch,xys,dxys,qwts,ixys,ks,kmid,
+     1   iscorn,ifdn,ifinout,soln,coefs,lcoefs,ncorner,
      2   tsc,wtsc,umatc,vmatc,ncint,angs,xsgnl,xsgnr,ichl,ichr,
-     3   nverts,verts,ntargv,targ,pottarg)
+     3   nverts,verts,ntarg,xytarg,pot)
       call cpu_time(t2)
       call prin2('quadrature correction for user targets time=*',
      1       t2-t1,1)
-        do i=1,ntargv
-          write(47,*) targ(1,i),targ(2,i),
-     1      real(pottarg(i)),imag(pottarg(i)),isin(i)
-        enddo
-        write(47,*) epsdisc,epsrt,erra
+
+
+      
+      open(unit=47,file=trim(fname))
+      write(47,*) nverts
+      write(47,*) npts
+      write(47,*) nch
+      write(47,*) nlat,ntargv
+      do i=1,nverts
+        write(47,*) verts(1,i),verts(2,i)
+      enddo
+
+      do i=1,npts
+        ss = sqrt(qwts(i))
+        write(47,*) xys(1,i),xys(2,i),dxys(1,i),dxys(2,i),qwts(i),
+     1    real(rhs(i))/ss,imag(rhs(i))/ss,real(soln(i))/ss,
+     2    imag(soln(i))/ss
+      enddo
+
+      do i=1,nch
+        write(47,*) ixys(i),ks(i),iscorn(i)
+      enddo
+
+      write(47,*) xylim(1,1),xylim(2,1),xylim(1,2),xylim(2,2)
+      do i=1,ntargv
+        write(47,*) targ(1,i),targ(2,i),real(pottarg(i)),
+     1     imag(pottarg(i))
       enddo
       close(47)
-
-      do i=1,nint*kcheb
-        write(49,*) tvals(i),real(fdet(i)),imag(fdet(i))
-      enddo
-
-
 
       return
       end
@@ -942,8 +862,8 @@ c
       implicit real *8 (a-h,o-z)
       character *1 transa
       
-      complex *16 xmat(n,n),x(n),y(n)
-      complex *16 alpha,beta
+      real *8 xmat(n,n),x(n),y(n)
+      real *8 alpha,beta
       integer ift
 
       if(ift.eq.0) transa = 'n'
@@ -951,7 +871,7 @@ c
       alpha = 1.0d0
       beta = 0.0d0
 
-      call zgemv(transa,n,n,alpha,xmat,n,x,1,beta,y,1) 
+      call dgemv(transa,n,n,alpha,xmat,n,x,1,beta,y,1) 
       
 
       return
@@ -961,7 +881,7 @@ c
 c
 c
 c
-      subroutine multa_fmm(zk,x,y,n,ifdn,ifinout,xys,dxys,qwts,nedges,
+      subroutine multa_fmm(x,y,n,ifdn,ifinout,xys,dxys,qwts,nedges,
      1   ncint,lns,rns,icl,icr,icsgnl,icsgnr,xsgnl,xsgnr,ncorner,
      2   xmatc,xmatcsub)
       implicit real *8 (a-h,o-z)
@@ -972,10 +892,9 @@ c
       integer icsgnl(ncint),icsgnr(ncint)
       integer ncorner
       real *8 xsgnl(ncint),xsgnr(ncint)
-      complex *16 xmatc(ncorner,ncorner,ncint)
-      complex *16 xmatcsub(ncorner,ncorner,ncint)
+      real *8 xmatc(ncorner,ncorner,ncint)
+      real *8 xmatcsub(ncorner,ncorner,ncint)
 
-      complex *16 zk
 
       complex *16, allocatable :: charges(:),dipstr(:)
       real *8, allocatable :: dipvec(:,:)
@@ -984,24 +903,25 @@ c
 
       real *8 targ(2)
       integer ifpgh,ifpghtarg
+      complex *16 ima
+      data ima/(0.0d0,1.0d0)/
 
-      complex *16 z,h0,h1
-
-
+      ifhess = 0
 
       if(ifdn.eq.0) then
         ifdipole = 1
         ifcharge = 0
-        ifpgh = 1
+        ifpot = 1
+        ifgrad = 0
       endif
 
       if(ifdn.eq.1) then
         ifcharge = 1
         ifdipole = 0
-        ifpgh = 2
+        ifpot = 0
+        ifgrad = 1
       endif
 
-      ifpghtarg = 0
 
       allocate(charges(n),dipstr(n),dipvec(2,n))
       allocate(pot(n),grad(2,n))
@@ -1009,11 +929,13 @@ c
 
       do i=1,n
         charges(i) = x(i)*sqrt(qwts(i))
-        dipstr(i) = x(i)*sqrt(qwts(i))
         
         dst = sqrt(dxys(1,i)**2 + dxys(2,i)**2)
-        dipvec(1,i) = dxys(2,i)/dst
-        dipvec(2,i) = -dxys(1,i)/dst
+        rnxx = dxys(2,i)/dst
+        rnyy = -dxys(1,i)/dst
+        dipvec(1,i) = rnxx
+        dipvec(2,i) = rnyy
+        dipstr(i) = x(i)*sqrt(qwts(i))*(rnxx + ima*rnyy)
 
         pot(i) = 0
         grad(1,i) = 0
@@ -1024,9 +946,11 @@ c
       eps = 1.0d-15
       nt = 0
 
-      call hfmm2dpart(nd,eps,zk,n,xys,ifcharge,charges,ifdipole,dipstr,
-     1   dipvec,ifpgh,pot,grad,hess,nt,targ,ifpghtarg,pottarg,gradtarg,
-     2   hesstarg)
+      iprec = 5
+
+
+      call cfmm2dpart(ier,ipredc,in,xys,ifcharge,charges,ifdipole,
+     1   dipstr,ifpot,pot,ifgrad,grad,ifhess,hess) 
 
 
 c
@@ -1125,6 +1049,19 @@ c
       endif
 
 
+      isgn = (-1)**(ifdn+ifinout)
+
+      if(isgn.eq.-1) then
+        rint = 0
+        do i=1,n
+          rint = rint + x(i)*sqrt(qwts(i))
+        enddo
+
+        do i=1,n
+          y(i) = y(i) + rint*sqrt(qwts(i))
+        enddo
+      endif
+
 
       return
       end
@@ -1215,24 +1152,33 @@ c
       complex *16 x(n)
       real *8 xys(2,n),dxys(2,n),qwts(n)
 
-      complex *16 zk
 
       complex *16, allocatable :: charges(:),dipstr(:)
-      real *8, allocatable :: dipvec(:,:)
 
       real *8 targ(2,ntarg)
-      complex *16 pottarg(ntarg)
+      real *8 pottarg(ntarg)
+      complex *16, allocatable :: pottargtmp(:)
 
       complex *16 pot,grad(2)
-      complex *16 gradtarg(2),hess(3),hesstarg(3)
+      complex *16 gradtarg(2),hess(3),hesstarg(3),ima
+      data ima/(0.0d0,1.0d0)/
 
       integer ifpgh,ifpghtarg
 
 
+      ifpot = 0
+      ifgrad = 0
+      ifpottarg = 0
+      ifgradtarg = 0
+      ifhess = 0
+      ifhesstarg = 0
+      ifpottarg = 1
+      ifgradtarg = 0
 
       if(ifdn.eq.0) then
         ifdipole = 1
         ifcharge = 0
+        
       endif
 
       if(ifdn.eq.1) then
@@ -1240,36 +1186,34 @@ c
         ifdipole = 0
       endif
 
-      ifpgh = 0
-      ifpghtarg = 1
 
       allocate(charges(n),dipstr(n),dipvec(2,n))
+      allocate(pottargtmp(ntarg))
 
 
       do i=1,n
         charges(i) = x(i)*sqrt(qwts(i))
-        dipstr(i) = x(i)*sqrt(qwts(i))
         
         dst = sqrt(dxys(1,i)**2 + dxys(2,i)**2)
-        dipvec(1,i) = dxys(2,i)/dst
-        dipvec(2,i) = -dxys(1,i)/dst
+        rnxx = dxys(2,i)/dst
+        rnyy = -dxys(1,i)/dst
+        
+        dipstr(i) = x(i)*sqrt(qwts(i))*(rnxx + ima*rnyy)
       enddo
 
 
       do i=1,ntarg
-        pottarg(i) = 0
+        pottargtmp(i) = 0
       enddo
 
 
-      nd = 1
       eps = 1.0d-15
-
-
-      call hfmm2dpart(nd,eps,zk,n,xys,ifcharge,charges,ifdipole,dipstr,
-     1   dipvec,ifpgh,pot,grad,hess,ntarg,targ,ifpghtarg,pottarg,
-     2   gradtarg,hesstarg)
-      
-
+      iprec = 5
+      ier = 0
+      call cfmm2dparttarg(ier,iprec,n,xys,ifcharge,charges,ifdipole,
+     1  dipstr,ifpot,pot,ifgrad,grad,ifhess,hess,ntarg,targ,
+     2  ifpottarg,pottargtmp,ifgradtarg,gradtarg,ifhesstarg,
+     3  hesstarg)
 
 
       return
@@ -1281,15 +1225,13 @@ c
 c
 c
 c
-c
-      subroutine comppottarg_corr(zk,n,nch,xys,dxys,qwts,ixys,ks,
+      subroutine comppottarg_corr(n,nch,xys,dxys,qwts,ixys,ks,
      1   kmid,iscorn,ifdn,ifinout,soln,coefs,lcoefs,nc,tsc,wtsc,
      2   umatc,vmatc,ncint,angs,xsgnl,xsgnr,ichl,ichr,
      3   nverts,verts,ntarg,targ,pottarg)
 
 
       implicit real *8 (a-h,o-z)
-      complex *16 zk
       integer n,nc,lcoefs,ncint,nedges
       real *8 verts(2,nverts)
       real *8 xsgnl(ncint),xsgnr(ncint),angs(ncint)
@@ -1298,10 +1240,10 @@ c
       real *8 coefs(lcoefs)
       real *8 umatc(nc,nc),vmatc(nc,nc),wtsc(nc),tsc(nc)
       integer nch,ixys(nch),iscorn(nch),ifdn,ifinout
-      complex *16 soln(n)
+      real *8 soln(n)
       integer ntarg
       real *8 targ(2,ntarg)
-      complex *16 pottarg(ntarg)
+      real *8 pottarg(ntarg)
 
       real *8, allocatable :: vtmp(:,:)
 
@@ -1315,14 +1257,14 @@ c
       real *8 par1(100)
       real *8, allocatable :: xstmp(:),ystmp(:),par1m(:)
 
-      complex *16, allocatable :: soln_tmp(:),soln_coefs(:)
+      real *8, allocatable :: soln_tmp(:),soln_coefs(:)
 
       real *8, allocatable :: tsquad(:),wquad(:)
       real *8 xtmp(4),targtmp(2)
-      complex *16 pottmp,ff
+      real *8 pottmp,ff
 
-      complex *16, allocatable :: vals(:)
-      complex *16, allocatable :: soln_resolve(:)
+      real *8, allocatable :: vals(:)
+      real *8, allocatable :: soln_resolve(:)
       real *8, allocatable :: xs_resolve(:),ys_resolve(:)
       real *8, allocatable :: ts_resolve(:),qwts_resolve(:)
       real *8, allocatable :: ts_ref(:),wts_ref(:)
@@ -1333,8 +1275,8 @@ c
 
       procedure (), pointer :: fker_gau,fker_jer,f_rem
 
-      external hslp_gau,hslp_jer,hdlp_gau,hdlp_jer
-      external helm_slp,helm_dlp
+      external lslp_gau,lslp_jer,ldlp_gau,ldlp_jer
+      external lap_slp,lap_dlp
 
       allocate(ts(kmid),wts(kmid),umat(kmid,kmid),vmat(kmid,kmid))
 
@@ -1347,15 +1289,15 @@ c
       call legewhts(m,tsquad,wquad,ifwhts)
 
       if(ifdn.eq.1) then
-        fker_gau => hslp_gau
-        fker_jer => hslp_jer
-        f_rem => helm_slp
+        fker_gau => lslp_gau
+        fker_jer => lslp_jer
+        f_rem => lap_slp
       endif
 
       if(ifdn.eq.0) then
-        fker_gau => hdlp_gau
-        fker_jer => hdlp_jer
-        f_rem => helm_dlp
+        fker_gau => ldlp_gau
+        fker_jer => ldlp_jer
+        f_rem => lap_dlp
       endif
 
 c
@@ -1386,8 +1328,6 @@ cc      call prinf('nnz=*',nnz,1)
       call rsc_to_csc(nch,ntarg,nnz,row_ptr,col_ind,col_ptr,row_ind,
      1         iarr)
 
-
-
       maxdepth = 200
 
       allocate(stack(2,maxdepth),vals(maxdepth))
@@ -1396,14 +1336,12 @@ cc      call prinf('nnz=*',nnz,1)
       allocate(par1m(lcoefs+10))
 
       do i=1,lcoefs
-        par1m(8+i) = coefs(i)
+        par1m(6+i) = coefs(i)
       enddo
 
      
       do ich=1,nch
         istart = ixys(ich)
-
-
 
         if(iscorn(ich).eq.0) then
 
@@ -1436,8 +1374,7 @@ cc      call prinf('nnz=*',nnz,1)
           do i=1,kmid
             tpack(i) = xcoefs(i)
             tpack(i+kmid) = ycoefs(i)
-            tpack(i+2*kmid) = real(soln_coefs(i))
-            tpack(i+3*kmid) = imag(soln_coefs(i))
+            tpack(i+2*kmid) = soln_coefs(i)
           enddo
 
           do ii = col_ptr(ich),col_ptr(ich+1)-1
@@ -1446,10 +1383,8 @@ cc      call prinf('nnz=*',nnz,1)
             par1(2) = targ(1,itarg)
             par1(3) = targ(2,itarg)
             par1(4) = rpan
-            par1(5) = real(zk)
-            par1(6) = imag(zk)
-            par1(7) = rnxe
-            par1(8) = rnye
+            par1(5) = rnxe
+            par1(6) = rnye
 
 c
 c             remove contribution of current patch
@@ -1482,7 +1417,7 @@ c
             
             ier = 0
 
-            call cadinrec(ier,stack,a,b,fker_gau,par1,tpack,tsquad,
+            call adinrec(ier,stack,a,b,fker_gau,par1,tpack,tsquad,
      1        wquad,m,vals,nnmax,eps,pottmp,maxdepth,maxrec,
      2        numint)
 
@@ -1529,8 +1464,7 @@ c
           do i=1,nc
             tpack(i) = xcoefs(i)
             tpack(i+nc) = ycoefs(i)
-            tpack(i+2*nc) = real(soln_coefs(i))
-            tpack(i+3*nc) = imag(soln_coefs(i))
+            tpack(i+2*nc) = soln_coefs(i)
           enddo
 
 
@@ -1541,10 +1475,8 @@ c
             par1m(2) = targ(1,itarg)
             par1m(3) = targ(2,itarg)
             par1m(4) = rpan
-            par1m(5) = real(zk)
-            par1m(6) = imag(zk)
-            par1m(7) = rnxe
-            par1m(8) = rnye
+            par1m(5) = rnxe
+            par1m(6) = rnye
 
 
 cc            call prin2('par1m=*',par1m,24)
@@ -1582,7 +1514,7 @@ c
             
             ier = 0
 
-            call cadinrec(ier,stack,a,b,fker_jer,par1m,tpack,tsquad,
+            call adinrec(ier,stack,a,b,fker_jer,par1m,tpack,tsquad,
      1        wquad,m,vals,nnmax,eps,pottmp,maxdepth,maxrec,
      2        numint)
             pottarg(itarg) = pottarg(itarg) +  pottmp
@@ -1597,7 +1529,7 @@ c
 c     only things remaining are targets close to the boundary
 c     for the case of neumann boundary conditions
 c
-c     in this case, we abandon are previous approach and go 
+c     in this case, we abandon the previous approach and go 
 c     over all existing corner interactions
 c 
 c     identify the closest target for each of these corner
@@ -1742,7 +1674,7 @@ c
 
 
 c
-           call resolve_dens(zk,kmid,nc,tsc,wtsc,vmatc,rpan,angs(icint),
+           call resolve_dens(kmid,nc,tsc,wtsc,vmatc,rpan,angs(icint),
      1       soln(ixys(ichl(icint))),soln(ixys(ichr(icint))),
      2       xsgnl(icint),xsgnr(icint),nlev,nresolve,coefs,lcoefs,
      3       ifinout,soln_resolve)
@@ -1854,8 +1786,7 @@ cc           call prin2('soln_coefs=*',soln_coefs,2*kmid)
            do i=1,kmid
              tpack(i) = xcoefs(i)
              tpack(i+kmid) = ycoefs(i)
-             tpack(i+2*kmid) = real(soln_coefs(i))
-             tpack(i+3*kmid) = imag(soln_coefs(i))
+             tpack(i+2*kmid) = soln_coefs(i)
            enddo
            
            do ii=col_ptr(ich),col_ptr(ich+1)-1
@@ -1864,10 +1795,8 @@ cc           call prin2('soln_coefs=*',soln_coefs,2*kmid)
              par1(2) = targ(1,itarg)-verts(1,icint)
              par1(3) = targ(2,itarg)-verts(2,icint)
              par1(4) = rpan0
-             par1(5) = real(zk)
-             par1(6) = imag(zk)
-             par1(7) = rnxe
-             par1(8) = rnye
+             par1(5) = rnxe
+             par1(6) = rnye
 
 c
              a = -1.0d0
@@ -1886,7 +1815,7 @@ c
             
              ier = 0
 
-             call cadinrec(ier,stack,a,b,fker_gau,par1,tpack,tsquad,
+             call adinrec(ier,stack,a,b,fker_gau,par1,tpack,tsquad,
      1         wquad,m,vals,nnmax,eps,pottmp,maxdepth,maxrec,
      2         numint)
 
@@ -1968,8 +1897,7 @@ c
            do i=1,kmid
              tpack(i) = xcoefs(i)
              tpack(i+kmid) = ycoefs(i)
-             tpack(i+2*kmid) = real(soln_coefs(i))
-             tpack(i+3*kmid) = imag(soln_coefs(i))
+             tpack(i+2*kmid) = soln_coefs(i)
            enddo
            
            do ii=col_ptr(ich),col_ptr(ich+1)-1
@@ -1978,10 +1906,8 @@ c
              par1(2) = targ(1,itarg)-verts(1,icint)
              par1(3) = targ(2,itarg)-verts(2,icint)
              par1(4) = rpan0
-             par1(5) = real(zk)
-             par1(6) = imag(zk)
-             par1(7) = rnxe
-             par1(8) = rnye
+             par1(5) = rnxe
+             par1(6) = rnye
 
 c
              a = -1.0d0
@@ -2000,7 +1926,7 @@ c
             
              ier = 0
 
-             call cadinrec(ier,stack,a,b,fker_gau,par1,tpack,tsquad,
+             call adinrec(ier,stack,a,b,fker_gau,par1,tpack,tsquad,
      1         wquad,m,vals,nnmax,eps,pottmp,maxdepth,maxrec,
      2         numint)
 
@@ -2085,7 +2011,10 @@ c
 
        return
        end
-      
+c
+c
+c
+c
 
        subroutine getcornstruct(nr0,ts,wts,u,v)
        implicit real *8 (a-h,o-z)
@@ -2098,6 +2027,10 @@ c
 
        return
        end
+c
+c
+c
+c
 
        subroutine getedgedis(nverts,verts,nedges,el,er,pl,pr,
      1    imid,kmid,n,xys,dxyds,qwts,lns,rns,nepts,npan,
@@ -2259,24 +2192,21 @@ c
 c
 c
 
-        subroutine helmcornmatsub(alpha,zk,rpan,x0s,w0s,nr0,
-     1      akern)
+        subroutine lapcornmatsub(alpha,x0s,w0s,nr0,akern)
         implicit real *8 (a-h,o-z)
         real *8 x0s(nr0),w0s(nr0),alpha,rpan
-        complex *16 akern(nr0,nr0),zk,z,h0,h1,imainv4
-        data imainv4/(0.0d0,0.25d0)/
+        real *8 akern(nr0,nr0)
 
+        done = 1
+        pi = atan(done)*4
 
-        ifexpon = 1
         do i=1,nr0
-          top = x0s(i)*sin(alpha)*rpan
+          top = x0s(i)*sin(alpha)
           do j=1,nr0
             bottom = sqrt( (cos(alpha)*x0s(i) - x0s(j))**2 +
-     1          (x0s(i)*sin(alpha))**2)*rpan
-            z = zk*bottom
-            call hank103(z,h0,h1,ifexpon)
+     1          (x0s(i)*sin(alpha))**2)
             akern(i,j) =
-     1         -imainv4*h1*zk*top/bottom*sqrt(w0s(i)*w0s(j))*rpan
+     1         top/bottom*sqrt(w0s(i)*w0s(j))/2/pi
           enddo
         enddo
 
@@ -2287,7 +2217,7 @@ c
 c
 c
 c
-      subroutine resolve_dens(zk,k,ncorner,ts,wts,vmat,rtmp,thet,solnl,
+      subroutine resolve_dens(k,ncorner,ts,wts,vmat,rtmp,thet,solnl,
      1   solnr,xsgnl,xsgnr,nlev,nres,svdcoefs,lcoefs,ifinout,
      2   solncomp)
 c
@@ -2297,7 +2227,6 @@ c         of a corner whose angle is given by
 c         thet
 c
 c         input arguments:
-c           zk - Helmholtz parameter
 c           k - number of discretization nodes on the smooth panel
 c           ncorner - number of discretization nodes on corner panel
 c           ts,wts - real *8 (ncorner)
@@ -2328,19 +2257,18 @@ c
       integer k,ncorner,nres,nn,nlev
       real *8 ts(ncorner),wts(ncorner),vmat(ncorner,ncorner),rtmp,thet
       real *8 svdcoefs(lcoefs)
-      complex *16 zk
-      complex *16, allocatable :: xmatc2tmp(:,:)
-      complex *16 solnl(ncorner),solnr(ncorner),solncomp(nres)
+      real *8, allocatable :: xmatc2tmp(:,:)
+      real *8 solnl(ncorner),solnr(ncorner),solncomp(nres)
       real *8 tsloc(300),wtsloc(300),qwtstmp(300)
       real *8, allocatable :: ts3(:),wts3(:)
       real *8, allocatable :: ttt(:),www(:),uuu(:,:),vvv(:,:)
-      complex *16, allocatable :: xmatcnew(:,:),xmatnew(:,:),
+      real *8, allocatable :: xmatcnew(:,:),xmatnew(:,:),
      1    xmatnewcopy(:,:)
-      complex *16, allocatable :: rhsnew(:),rmutmp(:),solnnew(:)
-      complex *16, allocatable :: rhstmp(:),rhstmp2(:),rhscoeffs(:)
-      complex *16, allocatable :: xmatsub(:,:),xmatsub0(:,:),
+      real *8, allocatable :: rhsnew(:),rmutmp(:),solnnew(:)
+      real *8, allocatable :: rhstmp(:),rhstmp2(:),rhscoeffs(:)
+      real *8, allocatable :: xmatsub(:,:),xmatsub0(:,:),
      1   xmatsub1(:,:)
-      complex *16 alpha,beta
+      real *8 alpha,beta
       integer, allocatable :: ipiv(:)
       character *1 tt
 
@@ -2371,6 +2299,12 @@ c
         tsloc(k+i) = ts(i)/2
         wtsloc(k+i) = wts(i)/2
       enddo
+
+c
+c
+c     CONTINUE FROM HERE
+c
+c
 
 
       do i=1,nc2
@@ -2731,11 +2665,11 @@ c
 c
 c
 c
-        subroutine helmcornmat(alpha,zk,rpan,x0s,w0s,u,v,nr0,coefs,
+        subroutine lapcornmat(alpha,x0s,w0s,u,v,nr0,coefs,
      1     lcoefs,akern)
         implicit real *8 (a-h,o-z)
-        complex *16 zk, akern(nr0,nr0)
-        complex *16, allocatable :: work(:)
+        real *8 akern(nr0,nr0)
+        real *8, allocatable :: work(:)
         real *8 coefs(lcoefs),t0,pi
         real *8, allocatable :: rquads(:),wquads(:)
         real *8 x0s(nr0),w0s(nr0),u(nr0,nr0),v(nr0,nr0)
@@ -2752,9 +2686,9 @@ c
 
         do ipt=1,nr0
           call lap_load_quads(t0,rquads,wquads,nquads,ipt)
-          call helmkern(x0s(ipt),w0s(ipt),nr0,t0,rquads,
+          call lapkern(x0s(ipt),w0s(ipt),nr0,t0,rquads,
      1      wquads,nquads,v,
-     2      work(iw),work(iw2),zk,rpan,akern,ipt,coefs,lcoefs)
+     2      work(iw),work(iw2),akern,ipt,coefs,lcoefs)
         enddo
 
         return
@@ -2764,15 +2698,13 @@ c
 c
 c
 c
-        subroutine helmkern(x0,w0,nr0,ang,rq,wq,nq,umat,
-     1      xmat,work,zk,rpan,amat,ipt,coefs,lcoefs)
+        subroutine lapkern(x0,w0,nr0,ang,rq,wq,nq,umat,
+     1      xmat,work,amat,ipt,coefs,lcoefs)
         implicit real *8 (a-h,o-z)
         real *8 pi
         dimension coefs(lcoefs),rq(nq),wq(nq),umat(nr0,nr0),
      1      xmat(nq,nr0)
-        complex *16 zk,amat(nr0,nr0),work(*),z,h0,h1,imainv4,val
-        integer ifexpon
-        data imainv4/(0.0d0,0.25d0)/
+        real *8 amat(nr0,nr0),work(*),val
         data pi/3.141592653589793d0/
 
 c                           Input parameters
@@ -2795,14 +2727,10 @@ c       amat: the row in the kernel matrix corresponding to the point x0
 
         do 1000 i=1,nq
     
-        top = x0*sin(pi*ang)*rpan
-        bottom = sqrt((cos(pi*ang)*x0-rq(i))**2+
-     1      (x0*sin(pi*ang))**2)*rpan
-         
-          
-         z = zk*bottom
-         call hank103(z,h0,h1,ifexpon)
-         work(i) = -imainv4*h1*zk*top/bottom*wq(i)*rpan
+          top = -x0*sin(pi*ang)
+          bottom = sqrt((cos(pi*ang)*x0-rq(i))**2+
+     1      (x0*sin(pi*ang))**2)
+          work(i) = top/bottom*wq(i)
  1000 continue
 
         do 2000 i=1,nq

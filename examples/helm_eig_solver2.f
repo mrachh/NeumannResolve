@@ -25,10 +25,10 @@ c       igeom =1, rectangle
 c       igeom =2, jeremy's magnetron
 c       igeom =3, kirill's star
 
-      igeom = 3
+      igeom = 1
 cc      igeom = 2
 
-      call loadverts_demos(igeom,nverts,verts)
+      call loadverts_demos(igeom,nverts,verts,nsrc,xyin,ntarg,xyout)
 
 
 c
@@ -61,7 +61,8 @@ c
       b = 4.0d0
 
 
-      call helm_eig_solver(a,b,nverts,verts,ifdn,ifwrite,fname)
+      call helm_eig_solver(a,b,nverts,verts,ifdn,nsrc,xyin,ntarg,
+     1   xyout,ifwrite,fname)
 
       
       stop
@@ -311,9 +312,9 @@ c
 c
 c
 c 
-      subroutine loadverts_demos(igeom,nverts,verts)
+      subroutine loadverts_demos(igeom,nverts,verts,ns,xyin,nt,xyout)
       implicit real *8 (a-h,o-z)
-      real *8 verts(2,*),xyin(2),xyout(2)
+      real *8 verts(2,*),xyin(2,*),xyout(2,*)
       real *8, allocatable :: xverts(:),yverts(:)
 
 
@@ -334,6 +335,14 @@ c
         verts(1,4) = 0
         verts(2,4) = 1.05d0*pi
 
+        ns = 1
+        nt = 1
+        xyin(1,1) = 1.4d0
+        xyin(2,1) = 1.7d0
+
+        xyout(1,1) = 6.2d0
+        xyout(2,1) = 5.7d0
+
       endif
 
       if(igeom.eq.2) then
@@ -345,11 +354,13 @@ c
           verts(2,i) = yverts(i)/100.0d0
         enddo
 
-        xyin(1) = 1.2d0
-        xyin(2) = 0.75d0
+        ns = 1
+        nt = 1
+        xyin(1,1) = 1.2d0
+        xyin(2,1) = 0.75d0
 
-        xyout(1) = 3.0d0
-        xyout(2) = 1.0d0
+        xyout(1,1) = 3.0d0
+        xyout(2,1) = 1.0d0
 
       endif
 
@@ -396,7 +407,7 @@ c*******************************
 
 
         subroutine helm_eig_solver(a0,b0,nverts,verts,ifdn,
-     1   ifwrite,fname)
+     1   nsrc,xysrc,ntarg,xytarg,ifwrite,fname)
         implicit real *8 (a-h,o-z)
 
 c
@@ -407,6 +418,9 @@ c
       real *8 a0,b0
       real *8 verts(2,nverts)
       complex *16 zk,zz
+
+      integer nsrc,ntarg
+      real *8 xysrc(2,nsrc),xytarg(2,ntarg)
 
 
       character (len=*) fname
@@ -479,7 +493,7 @@ c
       data ima/(0.0d0,1.0d0)/
       data imainv4/(0.0d0,0.25d0)/
       
-      external fker,multa_blas,multa_fmm,freddethelm
+      external fker,multa_blas,multa_fmm,freddethelm,invhelmip
 
       done = 1
       pi = atan(done)*4
@@ -512,7 +526,7 @@ c
       
       ncorner = 36
       nr0 = ncorner
-      lpar2 = 2*nverts + 100
+      lpar2 = 2*nverts + 2*nsrc + 2*ntarg + 100
 
       allocate(tsc(ncorner),wtsc(ncorner),umatc(ncorner,ncorner),
      1   vmatc(ncorner,ncorner))
@@ -531,6 +545,20 @@ c
         par2(5+i) = verts(1,i)
         par2(5+i+nverts) = verts(2,i)
       enddo
+      par2(6+2*nverts) = nsrc
+      par2(7+2*nverts) = ntarg
+      do i=1,nsrc
+        par2(7+2*nverts+i) = xysrc(1,i)
+        par2(7+2*nverts+nsrc+i) = xysrc(2,i)
+      enddo
+
+      do i=1,ntarg
+        par2(7+2*nverts+2*nsrc+i) = xytarg(1,i)
+        par2(7+2*nverts+2*nsrc+ntarg+i) = xytarg(2,i)
+      enddo
+
+      zki = 0.0d0
+      par2(8+2*(nverts+nsrc+ntarg)) = zki
 
 c
 c
@@ -683,7 +711,7 @@ c
       ifinit7 = 1
       lused = 0
       nint = 0
-      call adap_root_disc(ier,a0,b0,freddethelm,ipar1,coefs,par2,
+      call adap_root_disc(ier,a0,b0,invhelmip,ipar1,coefs,par2,
      1       kcheb,ab,lmax2,epsdisc,tcheb,ucheb,vcheb,wcheb,tvals,
      2       fdet,fcoefs,nint,lused,ifinit7,lmax,iposits)
 
@@ -699,6 +727,11 @@ c
 
       call prinf('nroots=*',nroots,1)
       call prin2('roots=*',roots,nroots)
+
+c
+c    skip everything and write out the function
+c
+      goto 2010
 
 
 c
@@ -926,6 +959,7 @@ c
       enddo
       close(47)
 
+ 2010 continue
       do i=1,nint*kcheb
         write(49,*) tvals(i),real(fdet(i)),imag(fdet(i))
       enddo

@@ -1,7 +1,7 @@
 from numpy import *
 from pylab import *
 
-fname = 'equi_eig_neu.dat'
+fname = 'star_eig_neu.dat'
 
 f = open(fname)
 nverts = int(f.readline())
@@ -71,6 +71,8 @@ rrt = zeros(nt)
 isin = zeros(nt)
 errs = zeros(nt)
 
+
+itmp = 0
 for irr in range(nroots):
     zk = float(f.readline())
     print(zk)
@@ -100,14 +102,23 @@ for irr in range(nroots):
         pot[0,i] = pot[0,i]/rr1 
         
 
-    figure(4+irr)
-    clf()
-    xx = pot[0,:]
-    xx[isin<0] = NaN
-    xx = xx.reshape(nlat,nlat)
-    imshow(xx,extent=[xmin,xmax,ymin,ymax])
-    plot(vtmp[0,:],vtmp[1,:],'w-',linewidth=0.5)
-    colorbar()
-    show()
+    a = f.readline().split()
+    print(a)
+    epsdisc = float(a[0])
+    epsrt = float(a[1])
+    err = float(a[2])
+
+    errcomp = 10*max(epsdisc,epsrt)
+    if(err<=errcomp):
+        itmp = itmp+1
+        figure(4+itmp)
+        clf()
+        xx = pot[0,:]
+        xx[isin<0] = NaN
+        xx = xx.reshape(nlat,nlat)
+        imshow(xx,extent=[xmin,xmax,ymin,ymax])
+        plot(vtmp[0,:],vtmp[1,:],'w-',linewidth=0.5)
+        colorbar()
+        savefig('star_eig_'+str(itmp)+'.pdf',bbox_inches='tight')
  
  
