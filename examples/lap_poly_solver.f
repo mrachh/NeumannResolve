@@ -84,9 +84,9 @@ c
 c       if exact solution is known, store it in 'fort.48'
 c          
  
-      ifdn = 1 
-      ifinout = 1
-      iffast = 0
+      ifdn = 0 
+      ifinout = 0
+      iffast = 2
 
       zk = 1.2d0
 
@@ -967,6 +967,10 @@ c
       complex *16 ima
       data ima/(0.0d0,1.0d0)/
 
+      done = 1
+      pi = atan(done)*4
+
+
       ifhess = 0
 
       if(ifdn.eq.0) then
@@ -1003,14 +1007,25 @@ c
         grad(2,i) = 0
       enddo
 
+cc      call prin2('dipstr=*',dipstr,24)
+
+
       nd = 1
       eps = 1.0d-15
       nt = 0
 
       iprec = 5
 
+cc      call prinf('n=*',n,1)
+cc      call prinf('ifcharge=*',ifcharge,1)
+cc      call prinf('ifdipole=*',ifdipole,1)
+cc      call prinf('ifpot=*',ifpot,1)
+cc      call prinf('igrad=*',ifgrad,1)
+cc      call prinf('ifhess=*',ifhess,1)
 
-      call cfmm2dpart(ier,ipredc,in,xys,ifcharge,charges,ifdipole,
+      ier = 0
+
+      call cfmm2dpart(ier,iprec,n,xys,ifcharge,charges,ifdipole,
      1   dipstr,ifpot,pot,ifgrad,grad,ifhess,hess) 
 
 
@@ -1019,8 +1034,9 @@ c
 c       take care of all corrections now
 c
       if(ifdn.eq.0) then
+
         do i=1,n
-          pot(i) = pot(i)*sqrt(qwts(i))
+          pot(i) = pot(i)*sqrt(qwts(i))/2/pi
         enddo
 
         do icint=1,ncint
@@ -1059,7 +1075,7 @@ c
         enddo
 
         do i=1,n
-          y(i) = pot(i) -0.5d0*(-1)**(ifdn+ifinout)*x(i) 
+          y(i) = real(pot(i)) -0.5d0*(-1)**(ifdn+ifinout)*x(i) 
         enddo
       endif
 
@@ -2267,7 +2283,7 @@ c
             bottom = sqrt( (cos(alpha)*x0s(i) - x0s(j))**2 +
      1          (x0s(i)*sin(alpha))**2)
             akern(i,j) =
-     1         top/bottom*sqrt(w0s(i)*w0s(j))/2/pi
+     1         -top/bottom*sqrt(w0s(i)*w0s(j))/2/pi
           enddo
         enddo
 
