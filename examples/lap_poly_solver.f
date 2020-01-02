@@ -84,8 +84,8 @@ c
 c       if exact solution is known, store it in 'fort.48'
 c          
  
-      ifdn = 0 
-      ifinout = 0
+      ifdn = 1 
+      ifinout = 1
       iffast = 2
 
       zk = 1.2d0
@@ -763,6 +763,12 @@ cc        call prin2('xmat=*',xmat,npts*npts)
 
           call prin2('soln=*',soln,24)
 
+          rint = 0
+          do i=1,npts
+            rint = rint + soln(i)*sqrt(qwts(i))
+          enddo
+          call prin2('integral of density=*',rint,1)
+
         endif
       endif
 
@@ -785,7 +791,13 @@ cc        call prin2('xmat=*',xmat,npts*npts)
      2    xsgnl,xsgnr,ncorner,xmatc,xmatcsub,rhs,eps,numit,
      3    soln,niter,errs,
      3    ngmrec,work)
-        
+         
+         call prin2('soln=*',soln,24)
+          rint = 0
+          do i=1,npts
+            rint = rint + soln(i)*sqrt(qwts(i))
+          enddo
+          call prin2('integral of density=*',rint,1)
       endif
 
       call cpu_time(t2)
@@ -932,7 +944,10 @@ c
       alpha = 1.0d0
       beta = 0.0d0
 
-      call dgemv(transa,n,n,alpha,xmat,n,x,1,beta,y,1) 
+      call dgemv(transa,n,n,alpha,xmat,n,x,1,beta,y,1)
+      call prin2('x=*',x,24)
+      call prin2('y=*',y,24)
+      stop
       
 
       return
@@ -959,7 +974,7 @@ c
 
       complex *16, allocatable :: charges(:),dipstr(:)
       real *8, allocatable :: dipvec(:,:)
-      complex *16, allocatable :: pot(:),grad(:,:)
+      complex *16, allocatable :: pot(:),grad(:)
       complex *16 pottarg,gradtarg(2),hess(3),hesstarg(3),pottmp
 
       real *8 targ(2)
@@ -989,7 +1004,7 @@ c
 
 
       allocate(charges(n),dipstr(n),dipvec(2,n))
-      allocate(pot(n),grad(2,n))
+      allocate(pot(n),grad(n))
 
 
       do i=1,n
@@ -1003,11 +1018,11 @@ c
         dipstr(i) = x(i)*sqrt(qwts(i))*(rnxx + ima*rnyy)
 
         pot(i) = 0
-        grad(1,i) = 0
-        grad(2,i) = 0
+        grad(i) = 0
       enddo
 
 cc      call prin2('dipstr=*',dipstr,24)
+cc      call prin2('dipvec=*',dipvec,24)
 
 
       nd = 1
@@ -1025,6 +1040,9 @@ cc      call prinf('ifhess=*',ifhess,1)
 
       ier = 0
 
+cc      call prin2('charges=*',charges,2*n)
+cc      call prinf('ifcharge=*',ifcharge,1)
+cc      call prinf('ifdipole=*',ifdipole,1)
       call cfmm2dpart(ier,iprec,n,xys,ifcharge,charges,ifdipole,
      1   dipstr,ifpot,pot,ifgrad,grad,ifhess,hess) 
 
@@ -1081,8 +1099,8 @@ c
 
       if(ifdn.eq.1) then
         do i=1,n
-          pot(i) = (grad(1,i)*dipvec(1,i) + grad(2,i)*dipvec(2,i))*
-     1       sqrt(qwts(i)) 
+          pot(i) = (real(grad(i))*dipvec(1,i) + 
+     1        imag(grad(i))*dipvec(2,i))*sqrt(qwts(i))/2/pi 
         enddo
 
         do icint=1,ncint
@@ -1102,7 +1120,7 @@ c
 
             pottmp = 0
             do j=1,ncorner
-              pottmp = pottmp - xmatcsub(j,i,icint)*x(ipts2+j-1)
+              pottmp = pottmp + xmatcsub(j,i,icint)*x(ipts2+j-1)
             enddo
             pot(ipts1+i-1) = pot(ipts1+i-1) + pottmp*xsgnl(icint)
 
@@ -1114,15 +1132,19 @@ c
 
             pottmp = 0
             do j=1,ncorner
-              pottmp = pottmp - xmatcsub(j,i,icint)*x(ipts1+j-1)
+              pottmp = pottmp + xmatcsub(j,i,icint)*x(ipts1+j-1)
             enddo
             pot(ipts2+i-1) = pot(ipts2+i-1) + pottmp*xsgnr(icint)
           enddo
         enddo
 
         do i=1,n
-          y(i) = pot(i) -0.5d0*(-1)**(ifdn+ifinout)*x(i) 
+          y(i) = real(pot(i)) - 0.5d0*(-1)**(ifdn+ifinout)*x(i) 
         enddo
+
+        call prin2('x=*',x,24)
+        call prin2('y=*',y,24)
+        stop
       endif
 
 
@@ -1242,6 +1264,9 @@ c
 
       integer ifpgh,ifpghtarg
 
+      done = 1
+      pi = atan(done)*4
+
 
       ifpot = 0
       ifgrad = 0
@@ -1291,6 +1316,11 @@ c
      1  dipstr,ifpot,pot,ifgrad,grad,ifhess,hess,ntarg,targ,
      2  ifpottarg,pottargtmp,ifgradtarg,gradtarg,ifhesstarg,
      3  hesstarg)
+      
+      do i=1,n
+        pottarg(i) = real(pottargtmp(i))/2/pi
+
+      enddo
 
 
       return
@@ -2280,8 +2310,8 @@ c
         do i=1,nr0
           top = x0s(i)*sin(alpha)
           do j=1,nr0
-            bottom = sqrt( (cos(alpha)*x0s(i) - x0s(j))**2 +
-     1          (x0s(i)*sin(alpha))**2)
+            bottom = (cos(alpha)*x0s(i) - x0s(j))**2 +
+     1          (x0s(i)*sin(alpha))**2
             akern(i,j) =
      1         -top/bottom*sqrt(w0s(i)*w0s(j))/2/pi
           enddo
