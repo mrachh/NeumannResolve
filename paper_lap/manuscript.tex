@@ -95,5 +95,39 @@
 \input{05apparatus}
 \input{06num}
 \input{07conc}
+\section*{Appendix A}
+Here we give explicit bounds for the rate of convergence of the contribution of the rest of the boundary to a corner panel. In particular, given a polygonal domain with boundary $\Gamma,$ let $\bx$ denote a vertex of $\Gamma$ and $C = \Gamma \cap B_r(\bx),$ where $B_r(\bx)$ is the ball of radius of $r$ centered at $\bx.$ We choose $r$ so that $\Gamma \cap B_{2r}(\bx)$ corresponds to a wedge with internal angle $\pi \alpha$ and side lengths $2r.$ 
+
+Let $\Gamma_*$ be any other straight line segment contained entirely within $\Gamma \setminus B_{2r}(\bx).$ Then
+
+\begin{theorem}
+Let $\Gamma$ be the boundary of a polygon and $\bx$ be a vertex. Let $r>0$ be a real number such that $\Gamma \cap B_{2r}(\bx)$ corresponds to a wedge with internal angle $\pi \alpha$ and side lengths $2r,$ where $B_R(\bx)$ denotes a ball of radius $R$ centered at $\bx.$ Let $L$ denote the length of $\Gamma$ and $\gamma: [-L/2,L/2]\to \Gamma$ be an arclength counterclockwise parameterization of $\Gamma$ such that $\gamma(0) = \bx.$ Finally, for any $f \in L^2(\Gamma),$ let $H:[0,r] \to \mathbb{R}$ be the function defined by
+\begin{align}
+H(t) = \int_{\Gamma\backslash B_{2r}(\bx)} K(\gamma(t),\gamma(s)) f(s)\,{\rm d}s.
+\end{align}
+Then $H$ is analytic in a neighborhood of $0$ with Taylor series coefficients $\{ a_n\}$ satisfying
+\begin{align}
+|a_n| \le \frac{\sqrt{L}}{2^nr^{n+1}} \|f\|_{L_2(\Gamma \backslash B_{2r}(\bx))}.
+\end{align}
+\end{theorem}
+\begin{proof}
+Without loss of generality we can assume that $\Gamma$ is shifted, oriented and parameterized so that $\bx = \gamma(0)= 0$ and the leg of the wedge corresponding to positive $t$ is oriented along the positive $x$ axis. Then
+\begin{align}
+H(t) = \int_{\Gamma\backslash B_{2r}(\bx)} K(\gamma(t),\gamma(s)) f(s)\,{\rm d}s = \int_{\Gamma\backslash B_{2r}(\bx)} \frac{y(s)}{(t-x(s))^2+y(s)^2}f(s)\,{\rm d}s.
+\end{align}
+Since $\|\gamma(s)-\gamma(t)\| >2r$ it follows that
+\begin{align}
+H(t) =\int _{\Gamma\backslash B_{2r}(\bx)}\sum {t^n i}\left(\frac{1}{(x(s)+i y(s))^{n+1}}-\frac{1}{(x(s)-i y(s))^{n+1}} \right)\,{\rm d}s.
+\end{align}
+In particular, $H$ has a Taylor series about $t=0,$
+\begin{align}
+\sum_{n=0}^\infty c_n \left(\frac{t}{2r}\right)^n
+\end{align}
+where
+\begin{align}
+|c_n| \le  \frac{\sqrt{L}}{r} \|f\|_{L_2(\Gamma \backslash B_{2r}(\bx))}.
+\end{align}
+\end{proof}
+
 \end{document}
 
