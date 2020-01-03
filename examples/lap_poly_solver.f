@@ -84,8 +84,8 @@ c
 c       if exact solution is known, store it in 'fort.48'
 c          
  
-      ifdn = 1 
-      ifinout = 1
+      ifdn = 0 
+      ifinout = 0
       iffast = 2
 
       zk = 1.2d0
@@ -145,11 +145,13 @@ cc      ntargv = 1
 cc      targ(1,1) = 0.05d0
 cc      targ(2,1) = -0.09d0
 
+
       do i=1,ntargv
         pottargex(i) = 0
         call lap_slp(xysrc,targ(1,i),zpars,ipars,pottargex(i))
         write(48,*) pottargex(i)
       enddo
+      call prin2('pottargex=*',pottargex,1)
 
       
       stop
@@ -251,6 +253,9 @@ c
       real *8 pols(100)
       real *8 f,val,dd,pi
 
+      done = 1
+      pi = atan(done)*4
+
       dd = 0
       xx = 0
       yy = 0
@@ -326,6 +331,9 @@ c
       real *8 par1(*),par2(*)
       real *8 pols(100)
       real *8 val,dd,pi,f
+
+      done = 1
+      pi = atan(done)*4
 
       dd = 0
       xx = 0
@@ -479,6 +487,8 @@ c
 
       done = 1
       pi = atan(done)*4
+
+
 
       read(32,*) lcoefs
 
@@ -845,7 +855,6 @@ cc        call prin2('xmat=*',xmat,npts*npts)
         enddo
       endif
 
-      return
 
 
 
@@ -881,7 +890,13 @@ cc      targ(2,1) = -0.09d0
       call prin2('quadrature correction for volume targets time=*',
      1       t2-t1,1)
 
+      call prin2('pottarg=*',pottarg,1)
+
       call cpu_time(t1)
+      call prinf('npts=*',npts,1)
+      call prinf('ifdn=*',ifdn,1)
+      call prinf('ntarg=*',ntarg,1)
+      call prin2('xytarg=*',xytarg,2*ntarg)
       call comppottarg_fmm(npts,xys,dxys,qwts,ifdn,soln,ntarg,
      1    xytarg,pot)
 
@@ -899,7 +914,7 @@ cc      targ(2,1) = -0.09d0
      1       t2-t1,1)
 
 
-      
+ 
       open(unit=47,file=trim(fname))
       write(47,*) nverts
       write(47,*) npts
@@ -1022,7 +1037,7 @@ c
       enddo
 
 cc      call prin2('dipstr=*',dipstr,24)
-cc      call prin2('dipvec=*',dipvec,24)
+cc      call prin2('dipvec=*',dipvec,2*n)
 
 
       nd = 1
@@ -1099,7 +1114,7 @@ c
 
       if(ifdn.eq.1) then
         do i=1,n
-          pot(i) = (real(grad(i))*dipvec(1,i) + 
+          pot(i) = -(real(grad(i))*dipvec(1,i)-
      1        imag(grad(i))*dipvec(2,i))*sqrt(qwts(i))/2/pi 
         enddo
 
@@ -1120,7 +1135,7 @@ c
 
             pottmp = 0
             do j=1,ncorner
-              pottmp = pottmp + xmatcsub(j,i,icint)*x(ipts2+j-1)
+              pottmp = pottmp - xmatcsub(j,i,icint)*x(ipts2+j-1)
             enddo
             pot(ipts1+i-1) = pot(ipts1+i-1) + pottmp*xsgnl(icint)
 
@@ -1132,7 +1147,7 @@ c
 
             pottmp = 0
             do j=1,ncorner
-              pottmp = pottmp + xmatcsub(j,i,icint)*x(ipts1+j-1)
+              pottmp = pottmp - xmatcsub(j,i,icint)*x(ipts1+j-1)
             enddo
             pot(ipts2+i-1) = pot(ipts2+i-1) + pottmp*xsgnr(icint)
           enddo
@@ -1142,9 +1157,6 @@ c
           y(i) = real(pot(i)) - 0.5d0*(-1)**(ifdn+ifinout)*x(i) 
         enddo
 
-        call prin2('x=*',x,24)
-        call prin2('y=*',y,24)
-        stop
       endif
 
 
@@ -1243,12 +1255,12 @@ c
 c
 c
 
-      subroutine comppottarg_fmm(zk,n,xys,dxys,qwts,ifdn,x,ntarg,
+      subroutine comppottarg_fmm(n,xys,dxys,qwts,ifdn,x,ntarg,
      1   targ,pottarg)
       implicit real *8 (a-h,o-z)
 
 
-      complex *16 x(n)
+      real *8 x(n)
       real *8 xys(2,n),dxys(2,n),qwts(n)
 
 
@@ -1270,23 +1282,23 @@ c
 
       ifpot = 0
       ifgrad = 0
-      ifpottarg = 0
-      ifgradtarg = 0
       ifhess = 0
-      ifhesstarg = 0
       ifpottarg = 1
       ifgradtarg = 0
+      ifhesstarg = 0
 
       if(ifdn.eq.0) then
         ifdipole = 1
         ifcharge = 0
-        
       endif
 
       if(ifdn.eq.1) then
         ifcharge = 1
         ifdipole = 0
       endif
+
+      call prinf('n=*',n,1)
+      call prinf('ntarg=*',ntarg,1)
 
 
       allocate(charges(n),dipstr(n))
@@ -1309,6 +1321,7 @@ c
       enddo
 
 
+
       eps = 1.0d-15
       iprec = 5
       ier = 0
@@ -1317,9 +1330,8 @@ c
      2  ifpottarg,pottargtmp,ifgradtarg,gradtarg,ifhesstarg,
      3  hesstarg)
       
-      do i=1,n
+      do i=1,ntarg
         pottarg(i) = real(pottargtmp(i))/2/pi
-
       enddo
 
 
@@ -1421,7 +1433,7 @@ c        and radii - things might break if kmid = 2
       enddo
 
       call findnearslowmem(cm,nch,radtmp,targ,ntarg,nnz)
-cc      call prinf('nnz=*',nnz,1)
+      call prinf('nnz=*',nnz,1)
 
 
       allocate(row_ptr(ntarg+1),col_ptr(nch+1))
@@ -1435,6 +1447,7 @@ cc      call prinf('nnz=*',nnz,1)
       call rsc_to_csc(nch,ntarg,nnz,row_ptr,col_ind,col_ptr,row_ind,
      1         iarr)
 
+
       maxdepth = 200
 
       allocate(stack(2,maxdepth),vals(maxdepth))
@@ -1446,7 +1459,6 @@ cc      call prinf('nnz=*',nnz,1)
         par1m(6+i) = coefs(i)
       enddo
 
-     
       do ich=1,nch
         istart = ixys(ich)
 
@@ -1605,6 +1617,8 @@ c
             enddo
 
 
+
+
             a=0.0d0
             b=1.0d0
 
@@ -1620,6 +1634,8 @@ c
             enddo
             
             ier = 0
+            pottmp = 0
+
 
             call adinrec(ier,stack,a,b,fker_jer,par1m,tpack,tsquad,
      1        wquad,m,vals,nnmax,eps,pottmp,maxdepth,maxrec,
