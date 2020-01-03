@@ -84,8 +84,8 @@ c
 c       if exact solution is known, store it in 'fort.48'
 c          
  
-      ifdn = 0 
-      ifinout = 0
+      ifdn = 1 
+      ifinout = 1
       iffast = 2
 
       zk = 1.2d0
@@ -143,7 +143,7 @@ c
 
 cc      ntargv = 1
 cc      targ(1,1) = 0.05d0
-cc      targ(2,1) = -0.09d0
+cc      targ(2,1) = -0.12d0
 
 
       do i=1,ntargv
@@ -871,7 +871,7 @@ c
 
 cc      ntargv = 1
 cc      targ(1,1) = 0.05d0
-cc      targ(2,1) = -0.09d0
+cc      targ(2,1) = -0.12d0
 
       call cpu_time(t1)
       call comppottarg_fmm(npts,xys,dxys,qwts,ifdn,soln,ntargv,
@@ -1331,7 +1331,7 @@ c
      3  hesstarg)
       
       do i=1,ntarg
-        pottarg(i) = real(pottargtmp(i))/2/pi
+        pottarg(i) = -real(pottargtmp(i))/2/pi
       enddo
 
 
@@ -1673,6 +1673,7 @@ c
       if(ifdn.eq.1) then
         allocate(vtmp(2,nverts+2))
 
+
         do i=1,nverts+2
           ii = i
           if(ii.gt.nverts) ii = ii-nverts
@@ -1796,11 +1797,15 @@ c
            enddo
 
 
+
 c
            call resolve_dens(kmid,nc,tsc,wtsc,vmatc,rpan,angs(icint),
      1       soln(ixys(ichl(icint))),soln(ixys(ichr(icint))),
      2       xsgnl(icint),xsgnr(icint),nlev,nresolve,coefs,lcoefs,
      3       ifinout,soln_resolve)
+          
+
+          
 
 
            
@@ -2433,12 +2438,15 @@ c
 
       allocate(xmatcnew(nc2,nc2))
 
+
       call getlapcornermat(thet,nc2,rtmp,tsloc,wtsloc,xmatcnew)
 
       allocate(xmatnew(nn,nn))
       allocate(xmatnewcopy(nn,nn))
       nnn = 2*ncorner
       allocate(xmatsub(nnn,nnn),xmatsub0(nnn,nnn))
+
+
 
 
       do i=1,nn
@@ -2458,7 +2466,7 @@ c
        call xreplmat(nc2,nc2,nn,0,nc2,xmatcnew,xmatnew,xsgnl)
        call xreplmat(nc2,nc2,nn,nc2,0,xmatcnew,xmatnew,xsgnr)
 
-        call lapcornmat(thet,ttt,www,uuu,vvvv,ncorner,svdcoefs,
+        call lapcornmat(thet,ttt,www,uuu,vvv,ncorner,svdcoefs,
      1    lcoefs,xmatc2)
 
 
@@ -2476,6 +2484,8 @@ c
      1       xsgnl) 
        call xreplmat(ncorner,ncorner,nnn,0,ncorner,xmatc2,xmatsub0,
      1       xsgnr) 
+
+       call prinf('nnn=*',nnn,1)
 
        do i=1,nnn
          xmatsub0(i,i) = 0.5d0*(-1)**(ifinout)
@@ -2548,7 +2558,7 @@ c
            enddo
          endif
 
-         if(inout.eq.1) then
+         if(ifinout.eq.1) then
            do i=1,nnn
              do j=1,nnn
                 xmatsub(j,i) = xmatsub0(j,i)
@@ -2561,10 +2571,10 @@ c
          enddo
 
 
+
          call dgemv('t',nnn,nnn,alpha,xmatsub,nnn,rmutmp,1,beta,
      1      rhstmp,1)
 
-ccc         call prin2('rhstmp=*',rhstmp,2*nnn)
 
 c
 cc       extract out the relevant pieces of rhs
@@ -2585,9 +2595,7 @@ cc       smear this function onto the rest of the grid
           enddo
         enddo
 
-cc        call prinf('ilev=*',ilev,1)
 cc
-cc        call prin2('rhscoeffs=*',rhscoeffs,ncorner*2)
          
 
         do ipt = 1,nc2
