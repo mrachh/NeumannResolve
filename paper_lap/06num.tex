@@ -1,19 +1,31 @@
 
 \section{Numerical results}
 \subsection{Accuracy}
-In this section, we demonstrate accuracy of the proposed numerical method (both in the "weak" sense, and 
-"strong sense" after sufficiently many re-solves) on the triangular domain shown below. 
+In this section, we demonstrate the accuracy of the proposed numerical method (both in the {\it weak} sense 
+described above, 
+as well as in the classical sense after sufficiently many re-solves) on the triangular domain shown below. 
 The reference solution for each of the examples is computed using a discretization with
 a graded mesh in the vicinity of the corners, where the smallest panel at the corner is $2^{-150}$ times
 the length of the first macroscopic panel away from the corner (see~\cref{fig:dom}). 
 \begin{rem}
-$2^{-150}$ is significantly smaller than machine precision, however the matrix entries corresponding to the
-corner interactions can be computed accurately by recentering the corner at the origin. 
+Though $2^{-150}$ is significantly smaller than machine precision, the matrix entries corresponding to the
+corner interactions can be computed accurately by {\color{red}translating the corners to the origin when 
+computing interactions of nearby points.} 
 \end{rem} 
 \begin{rem}
+Simple arguments from complex analysis show that when using graded meshes, in order to obtain full 
+machine precision 
+($\sim 1.11 \times 10^{-16}$) for solutions of the Neumann problem at any point in the interior 
+at least $10^{-16}$ away from a corner, it suffices to choose the smallest panel size (i.e. the size of the 
+panel closest to the corner) to be of size $2^{-100}.$ However, it is not true that the value of the density is 
+accurate to machine precision at all nodes. In fact the quality
+of the density deteriorates as one approaches the corner. Thus, in order to obtain accurate point values
+of the density to machine precision at all points which are $2^{-100}$ away from the corner, we use a smallest
+panel size of $2^{-150}$. 
+
 It is well-known that a smallest panel size of $2^{-100}$ is sufficient to resolve the density corresponding
-to solutions of the Neumann problem in order to obtain full machine precision in the solution anywhere in the volume.
-However, it is not true the value of the density is accurate to machine precision at all the nodes. In fact the quality
+to solutions of the Neumann problem in order to obtain full machine precision {\color{red}($\sim 1.11 \times 10^{-16}$)} for the solution anywhere in the volume {\color{red} sufficiently far from the corner.}
+However, it is not true that the value of the density is accurate to machine precision at all nodes. In fact the quality
 of the density deteriorates as one approaches the corner. Thus, in order to obtain accurate point values
 of the density to machine precision at all points which are $2^{-100}$ away from the corner, we use a smallest
 panel size of $2^{-150}$. 
