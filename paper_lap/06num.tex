@@ -1,2 +1,65 @@
 
 \section{Numerical results}
+\subsection{Accuracy}
+In this section, we demonstrate accuracy of the proposed numerical method (both in the "weak" sense, and 
+"strong sense" after sufficiently many re-solves) on the triangular domain shown below. 
+The reference solution for each of the examples is computed using a discretization with
+a graded mesh in the vicinity of the corners, where the smallest panel at the corner is $2^{-150}$ times
+the length of the first macroscopic panel away from the corner (see~\cref{fig:dom}). 
+\begin{rem}
+$2^{-150}$ is significantly smaller than machine precision, however the matrix entries corresponding to the
+corner interactions can be computed accurately by recentering the corner at the origin. 
+\end{rem} 
+\begin{rem}
+It is well-known that a smallest panel size of $2^{-100}$ is sufficient to resolve the density corresponding
+to solutions of the Neumann problem in order to obtain full machine precision in the solution anywhere in the volume.
+However, it is not true the value of the density is accurate to machine precision at all the nodes. In fact the quality
+of the density deteriorates as one approaches the corner. Thus, in order to obtain accurate point values
+of the density to machine precision at all points which are $2^{-100}$ away from the corner, we use a smallest
+panel size of $2^{-150}$. 
+\end{rem}
+In these examples, the solutions are computed dense linear solves.
+
+The potential at target locations which are more than 1 panel length away is the inner product of the 
+density with a smooth function. For a target location $\boldsymbol{y}$, we compute the solution via the formula,
+\begin{equation}
+u(\by) = \int_{\Gamma} G(\bx,\by) \sigma(\bx) dS_{\bx} \approx \sum_{i=1}^{N}  G(\gamma(s_{i}),\by) \sigma_{i} \sqrt{w_{i}}
+\end{equation}
+In figure~\cref{fig:far-field}, we compute the error in the solution at target
+locations in the volume for the right hand side given by
+\begin{equation}
+f(\bx) = 
+\end{equation}
+
+Another example of weak quantity is the polarization tensor associated with a domain. This requires the solution of the
+exterior problems with boundary data $f_{1} = \bnu_{1}$ or $f_{2} = \bnu_{2}$. Let $\sigma_{1}$ and $\sigma_{2}$ denote
+the corresponding solutions. The polarization tensor can be expressed in terms of the solutions $\sigma_{1}$ and $\sigma_{2}$
+as
+\begin{equation}
+P = \begin{bmatrix}
+\int_{\Gamma} x_{1} \sigma_{1}(\bx) dS_{\bx} & \int_{\Gamma} x_{2} \sigma_{1}(\bx) dS_{\bx} \\
+\int_{\Gamma} x_{1} \sigma_{2}(\bx) dS_{\bx} & \int_{\Gamma} x_{2} \sigma_{2}(\bx) dS_{\bx} 
+\end{bmatrix}
+\end{equation}
+The polarization tensor as computed by the reference solution, and the error in computation using the adjoint method
+are given by
+\begin{equation}
+P = \begin{bmatrix}
+\end{bmatrix} \, , \quad \text{Error} = 
+\begin{bmatrix} 
+\end{bmatrix}
+\end{equation}
+
+In order to demonstrate the capability to obtain the true density at the corner panels, we  apply the procedure
+discussed in~\cref{sec:resolve} iteratively, and compare the obtained density with the reference density after 20,40,60, and
+80 iterations of resolves in the vicinity of one of the corners. The reference density and the errors are shown in ~\cref{fig:dens-error}. 
+
+After re-solving the density, we also compute the solution at target locations on a tensor product polar grid, where the grid
+is exponentially spaced in the radial direction and equispaced in the angular direction. For target locations
+close to panels which are not at the corner, we use adaptive integration in order to resolve the near-singular behavior of
+the kernel for accurate computation of the integrals. For target locations close to the corner panel, since we do not have
+the capability to interpolate the density, we use the underlying smooth quadrature rules for computing their contribution. 
+The reference solution and the errors are demonstrated in~\cref{fig:vol-plot}.
+\subsection{Performance}
+In this section, we demonstrate the performance of the solver of two large domains. We solve scattering problems in the
+exterior of a magnetron like region, and the maple leaf. The right hand side is the potential due to a collection of charges in the exterior of the region, and we impose that 
