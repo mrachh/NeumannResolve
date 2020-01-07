@@ -16,24 +16,19 @@ computing interactions of nearby points.
 Simple arguments from complex analysis show that when using graded meshes, in order to obtain full 
 machine precision 
 ($\sim 1.11 \times 10^{-16}$) for solutions of the Neumann problem at any point in the interior 
-at least $10^{-16}$ away from a corner, it suffices to choose the smallest panel size (i.e. the size of the 
-panel closest to the corner) to be of size $2^{-100}.$ However, it is not true that the value of the density is 
+at least $10^{-16}$ away from a corner, it suffices to choose the smallest panel (i.e. the size of the 
+panel closest to the corner) to be of size $2^{-100}.$ However, resulting values of the density will not be 
 accurate to machine precision at all nodes. In fact the quality
 of the density deteriorates as one approaches the corner. Thus, in order to obtain accurate point values
-of the density to machine precision at all points which are $2^{-100}$ away from the corner, we use a smallest
-panel size of $2^{-150}$. 
-
-It is well-known that a smallest panel size of $2^{-100}$ is sufficient to resolve the density corresponding
-to solutions of the Neumann problem in order to obtain full machine precision ($\sim 1.11 \times 10^{-16}$) for the solution anywhere in the volume sufficiently far from the corner.
-However, it is not true that the value of the density is accurate to machine precision at all nodes. In fact the quality
-of the density deteriorates as one approaches the corner. Thus, in order to obtain accurate point values
-of the density to machine precision at all points which are $2^{-100}$ away from the corner, we use a smallest
+of the density to machine precision at all points which are at least $2^{-100}$ away from the corner, we use a smallest
 panel size of $2^{-150}$. 
 \end{rem}
 In these examples, the solutions are computed via dense linear solves.
 
-The potential at target locations which are more than 1 panel length away is the inner product of the 
-density with a smooth function. For a target location $\boldsymbol{y}$, we compute the solution via the formula,
+The potential at target locations which are sufficiently far from the boundary (i.e. at least one panel length away from 
+every panel) is the inner product of the 
+density with a smooth function and hence can be computed accurately without re-solving. For a target 
+location $\boldsymbol{y}$, we compute the solution via the formula,
 \begin{equation}
 u(\by) = \int_{\Gamma} G(\bx,\by) \sigma(\bx) dS_{\bx} \approx \sum_{i=1}^{N}  G(\gamma(s_{i}),\by) \sigma_{i} \sqrt{w_{i}}
 \end{equation}
@@ -43,7 +38,7 @@ locations in the volume for the right hand side given by
 f(\bx) = 
 \end{equation}
 
-Another example of weak quantity is the polarization tensor associated with a domain. This requires the solution of the
+Another example of a ``weak quantity'' is the polarization tensor associated with a domain. This requires the solution of the
 exterior problems with boundary data $f_{1} = \bnu_{1}$ or $f_{2} = \bnu_{2}$. Let $\sigma_{1}$ and $\sigma_{2}$ denote
 the corresponding solutions. The polarization tensor can be expressed in terms of the solutions $\sigma_{1}$ and $\sigma_{2}$
 as
@@ -62,7 +57,7 @@ P = \begin{bmatrix}
 \end{bmatrix}
 \end{equation}
 
-In order to demonstrate the capability to obtain the true density at the corner panels, we  apply the procedure
+In order to demonstrate the accuracy of the corner re-solving approach in obtaining the true density at the corner panels, we  apply the procedure
 discussed in~\cref{sec:resolve} iteratively, and compare the obtained density with the reference density after 20,40,60, and
 80 iterations of resolves in the vicinity of one of the corners. The reference density and the errors are shown in ~\cref{fig:dens-error}. 
 
@@ -73,5 +68,5 @@ the kernel for accurate computation of the integrals. For target locations close
 the capability to interpolate the density, we use the underlying smooth quadrature rules for computing their contribution. 
 The reference solution and the errors are demonstrated in~\cref{fig:vol-plot}.
 \subsection{Performance}
-In this section, we demonstrate the performance of the solver of two large domains. We solve scattering problems in the
-exterior of a magnetron like region, and the maple leaf. The right hand side is the potential due to a collection of charges in the exterior of the region, and we impose that 
+In this section, we demonstrate the performance of the solver on two large domains. We solve scattering problems in the
+exterior of a ``broken wheel'' region, and the maple leaf. The right hand side is the potential due to a collection of charges in the exterior of the region, and we impose that 
