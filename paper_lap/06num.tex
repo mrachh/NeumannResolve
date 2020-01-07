@@ -9,8 +9,8 @@ a graded mesh in the vicinity of the corners, where the smallest panel at the co
 the length of the first macroscopic panel away from the corner (see~\cref{fig:dom}). 
 \begin{rem}
 Though $2^{-150}$ is significantly smaller than machine precision, the matrix entries corresponding to the
-corner interactions can be computed accurately by {\color{red}translating the corners to the origin when 
-computing interactions of nearby points.} 
+corner interactions can be computed accurately by translating the corners to the origin when 
+computing interactions of nearby points.
 \end{rem} 
 \begin{rem}
 Simple arguments from complex analysis show that when using graded meshes, in order to obtain full 
@@ -24,7 +24,7 @@ of the density to machine precision at all points which are $2^{-100}$ away from
 panel size of $2^{-150}$. 
 
 It is well-known that a smallest panel size of $2^{-100}$ is sufficient to resolve the density corresponding
-to solutions of the Neumann problem in order to obtain full machine precision {\color{red}($\sim 1.11 \times 10^{-16}$)} for the solution anywhere in the volume {\color{red} sufficiently far from the corner.}
+to solutions of the Neumann problem in order to obtain full machine precision ($\sim 1.11 \times 10^{-16}$) for the solution anywhere in the volume sufficiently far from the corner.
 However, it is not true that the value of the density is accurate to machine precision at all nodes. In fact the quality
 of the density deteriorates as one approaches the corner. Thus, in order to obtain accurate point values
 of the density to machine precision at all points which are $2^{-100}$ away from the corner, we use a smallest

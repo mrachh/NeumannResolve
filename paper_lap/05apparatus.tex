@@ -82,7 +82,6 @@ Though the above method produces a viable method for reducing the problem, as wr
 \end{remark}
 
 The following theorem shows that the right-hand side $\underline{f}_0$ can be computed only using local data (i.e. values of the weak solution in the vicinity of the corner).\\
-{\color{red} Manas: there is something a little bad with this proof - Taylor series vs $\epsilon$}
 \begin{theorem}
 Suppose that $\underline{f}_0$ is the discretization of the right-hand side of (\ref{eqn:resolve_diri0}) corresponding to nodes $s^0_1,\dots,s^0_{N_0}.$ Further suppose that $U$ is the $P\times P$ matrix with entries $U_{ij} = \phi_i(s_j) \sqrt{w_j},$ where $\phi_1,\dots,\phi_P$ are the orthonormal functions on $(-\delta,\delta)$ spanning $,{\rm sgn}(s)|s|^\mu, |s|^\mu,$ $\mu=0,1/2-40$ on that interval. Let $w:(-\delta,\delta) \to \mathbb{R}^P$ be the vector-valued function defined by
 \begin{align}
@@ -99,7 +98,7 @@ We begin by observing that both $f$ and $h$ are analytic on the interval $(-\del
 \begin{align}\label{eqn:approx_thm}
 f(t)-h(t) \approx w(t) U^{-1} (f(s_1)-h(s_1),\dots,f(s_P)-h(s_P))^T.
 \end{align}
-{\color{red}A similar argument shows that $f(t)-h(t)$ is interpolable on $[-2\delta,-\delta]$ and $[\delta,2\delta].$}
+A similar argument shows that $f(t)-h(t)$ is interpolable on $[-2\delta,-\delta]$ and $[\delta,2\delta].$
 On the other hand, by construction,
 \begin{align}\label{eqn:linalg_thm}
 \underline{f} = A^T \begin{pmatrix}\tilde{\sigma}\\ \sigma_{P+{2M+1}}\\ \vdots\\ \sigma_N\end{pmatrix}.

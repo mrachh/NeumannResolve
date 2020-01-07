@@ -35,7 +35,7 @@ Finally, a set of interpolation points $x_j,$ $j=1,\dots,K$ and quadrature weigh
 
 \subsubsection{Construction of quadrature rules}
 
-Once the discretization has been constructed it is necessary to construct appropriate quadrature for the integrals appearing in equation (\ref{eqn_1std}). When $s_i$ and $t$ do not belong to the same corner panel (in particular when either is not itself contained in a corner panel) then the weights and nodes associated with the discretization can be used as the quadrature rule. When $s_i$ corresponds to a corner panel special care must be taken. Instead, using an algorithm for generating generalized Gaussian quadratures \cite{}, quadrature nodes are chosen which integrate
+Once the discretization has been constructed it is necessary to construct appropriate quadrature for the integrals appearing in equation (\ref{eqn_1std}). When $s_i$ and $t$ do not belong to the same corner panel (in particular when either is not itself contained in a corner panel) then the weights and nodes associated with the discretization can be used as the quadrature rule. When $s_i$ corresponds to a corner panel special care must be taken. Instead, using an algorithm for generating generalized Gaussian quadratures \cite{bremer2010}, quadrature nodes are chosen which integrate
 \begin{align}
 \int_{0}^\delta k(t,s_j) \tilde{\phi}_j(t)\,{\rm d}t
 \end{align} 

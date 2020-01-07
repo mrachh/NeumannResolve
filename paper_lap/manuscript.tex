@@ -96,7 +96,8 @@
 \input{06num}
 \input{07conc}
 
-\section*{Appendix A}
+\appendix
+\section{Approximation of data on corner panels for re-solve}
 Here we give explicit bounds for the rate of convergence of the contribution of the rest of the boundary to a corner panel. In particular, given a polygonal domain with boundary $\Gamma,$ let $\bx$ denote a vertex of $\Gamma$ and $C = \Gamma \cap B_r(\bx),$ where $B_r(\bx)$ is the ball of radius of $r$ centered at $\bx.$ We choose $r$ so that $\Gamma \cap B_{2r}(\bx)$ corresponds to a wedge with internal angle $\pi \alpha$ and side lengths $2r.$ 
 
 Let $\Gamma_*$ be any other straight line segment contained entirely within $\Gamma \setminus B_{2r}(\bx).$ Then
@@ -130,7 +131,7 @@ where
 \end{align}
 \end{proof}
 
-\section{Appendix B}
+\section{Strong approximation of density away from corner panels}
 \label{sec:appb}
 In this section, we demonstrate that for a panel which is away from the corner, which is discretized using $M$ Gauss-Legendre nodes, where the solution is computed using the adjoint of a Dirichlet discretization, the density can be interpolated 
 accurately at any point on the panel. As before let $\Omega$ denote a polygonal domain with boundary $\Gamma$. Let
@@ -203,5 +204,8 @@ truncated to a taylor series of order $N$ is less than $C 2^{-N}$, since all poi
 well-separated from corners by twice the panel length $r_{c}$. Thus, by making the panels small enough, $\rho$ can be increased arbitrarily to obtain desired tolerances on the boundary data $\tilde{f}(s)$ on the corresponding discretization of the boundary. 
  
  Thus, the boundary data $\tilde{f}(s)$ is piecewise analytic , which can be approximated to any desired tolerance by appropriately reducing the panel sizes. This is the precise setup for which the discretization of the Dirichlet problem is designed to obtain accurate solutions to the density $\tilde{\sigma}$. 
+ 
+ \bibliographystyle{plain}
+ \bibliography{bib_file2}
 \end{document}
 
