@@ -38,10 +38,14 @@ density with a smooth function. For a target location $\boldsymbol{y}$, we compu
 u(\by) = \int_{\Gamma} G(\bx,\by) \sigma(\bx) dS_{\bx} \approx \sum_{i=1}^{N}  G(\gamma(s_{i}),\by) \sigma_{i} \sqrt{w_{i}}
 \end{equation}
 In figure~\cref{fig:far-field}, we compute the error in the solution at target
-locations in the volume for the right hand side given by
+locations for a scattering problem whose right hand side is given by a collection of three interior charges
 \begin{equation}
-f(\bx) = 
+u(\bx) = \sum_{j=1}^{3} \log |\bx - \bx_{j}| \, ,  
 \end{equation}
+where the locations $\bx_{j}$ are denoted by square dots in~\cref{fig:analytictest}. Note that the density $\sigma$ plotted
+as a function of arclength goes to infinity at the corner vertices, indicating that the native Dirichlet discretization 
+presented in~\cref{sec:disc_dir} wouldn't have sufficed. However, the potential in the volume is accurate to 14 digits at
+target locations away from the boundary. 
 
 Another example of weak quantity is the polarization tensor associated with a domain. This requires the solution of the
 exterior problems with boundary data $f_{1} = \bnu_{1}$ or $f_{2} = \bnu_{2}$. Let $\sigma_{1}$ and $\sigma_{2}$ denote
@@ -57,14 +61,20 @@ The polarization tensor as computed by the reference solution, and the error in 
 are given by
 \begin{equation}
 P = \begin{bmatrix}
+-0.823641009939200 & -0.139714174784448 \\
+ -0.139714174784448 &  -1.1421444446470226
 \end{bmatrix} \, , \quad \text{Error} = 
 \begin{bmatrix} 
+2.3 \times 10^{-15} & 7.9 \times 10^{-16} \\
+1.3 \times. 10^{-14} & 2.7 \times 10^{-15}
 \end{bmatrix}
 \end{equation}
 
 In order to demonstrate the capability to obtain the true density at the corner panels, we  apply the procedure
 discussed in~\cref{sec:resolve} iteratively, and compare the obtained density with the reference density after 20,40,60, and
-80 iterations of resolves in the vicinity of one of the corners. The reference density and the errors are shown in ~\cref{fig:dens-error}. 
+80 iterations of resolves in the vicinity of one of the corners. The reference density and the errors are shown in ~\cref{fig:dens-error}. Furthermore, to highlight the need for special purpose discretizations in the vicinity of corners in the adjoint method, we also compare the solution computed using a graded mesh in the vicinity of corners, where the smallest panel is identical
+to the one after resolves. So for 20 iterations, the smallest panel is $2^{-20}$ times the original panel, for $40$ iterations,
+the smallest panel is $2^{-40}$ times the original panel and so on.
 
 After re-solving the density, we also compute the solution at target locations on a tensor product polar grid, where the grid
 is exponentially spaced in the radial direction and equispaced in the angular direction. For target locations
