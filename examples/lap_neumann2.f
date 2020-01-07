@@ -111,6 +111,7 @@
       character *22 sfname3,sfname4
       
       character *15 vfname1
+      character *20 vfname2
 
 
 c
@@ -171,7 +172,7 @@ c
 c
 c        get reference grid
 c
-       irefinelev = 100
+       irefinelev = 150
        nc_ref = k*irefinelev
        allocate(ts_ref(nc_ref),wts_ref(nc_ref))
        call getcornerdis(k,irefinelev,ts_ref,wts_ref)
@@ -330,6 +331,16 @@ c
 
       call pyplot2(12,xverts,yverts,nverts,3,xs2,ys2,n2,
      1    1,'a*')
+
+c
+c        nodes for plotting the grids
+c
+       do i=1,nedges
+         write(17,*) verts(1,el(i)),verts(2,el(i)),verts(1,er(i)),
+     1       verts(2,er(i))
+         write(17,*) rlen(i),pl(i),pr(i)
+       enddo
+
 
 c
 c
@@ -1200,7 +1211,6 @@ c
      1     sigmatmp(i)/sqrt(rtmp)
       enddo
 
-      stop
 
       call interp_spdis(nlev,k,ncorner2,nres,solncomp,
      1   qres,nc_ref,ts_ref,sigma2_ref)
@@ -1295,6 +1305,7 @@ c        compute smooth quadrature in the volume
 c
 c
       write(vfname1,'(a,i3.3,a)') "neu_vol_",nlatv,".dat"
+      write(vfname2,'(a,i3.3,a)') "neu_vol_scat",nlatv,".dat"
 
       open(unit=33,file=vfname1)
       do j=1,ntargv
@@ -1321,7 +1332,6 @@ c
 
       close(33)
 
-      stop
       
       
 
@@ -1426,7 +1436,34 @@ C$      t2 = omp_get_wtime()
         pottarg_px(i) = pottarg_px(i) + rdiff1
         pottarg_rand(i) = pottarg_rand(i) + rdiff1
         pottarg_scat(i) = pottarg_scat(i) + rdiff1
+
       enddo
+
+      open(unit=33,file=vfname2)
+      do j=1,ntargv
+
+        inout = -1
+        call pnpoly(targv(1,j),targv(2,j),xverts,yverts,nverts,
+     1     inout)
+        
+        pottarg2_vol(j) = 0
+
+        if(inout.eq.1) then
+          do i=1,n2
+            rr = (targv(1,j)-xs2(i))**2 + (targv(2,j)-ys2(i))**2
+            pottarg2_vol(j) = pottarg2_vol(j) - log(rr)/4/pi*
+     1         soln2_scat(i)*sqrt(qwts2(i))
+          enddo
+          pottarg2_vol(j) = pottarg2_vol(j) + rdiff2
+        endif
+
+        write(33,*) pottarg_ref_scat(j),pottarg2_vol(j),inout
+      enddo
+
+      close(33)
+
+      stop
+
 
       call comperr(ntarg,potex,pottarg2,errtarg2(1))
       call comperr(ntarg,potex,pottarg,errtarg(1))
