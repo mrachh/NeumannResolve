@@ -6,15 +6,15 @@ described above,
 as well as in the classical sense after sufficiently many re-solves) on the triangular domain shown below. 
 The reference solution for each of the examples is computed using a discretization with
 a graded mesh in the vicinity of the corners, where the smallest panel at the corner is $2^{-150}$ times
-the length of the first macroscopic panel away from the corner (see~\cref{fig:dom}). 
+the length of the first macroscopic panel away from the corner (see~\cref{fig:dom}). In these examples, the solutions are computed via dense linear solves.
 
 \begin{figure}
 \begin{center}
 \includegraphics[width=0.7\linewidth]{media/discretization}
 \caption{Problem domain and panel discretization of the boundary. The discretization on the left is based on using the Dirichlet
 discretization at corner panels (indicated by blue panels) discussed in~\cref{sec:disc_dir}, while the discretization on the right is a sample discretization with 2 levels of refinement in the vicinity of the corner. All the panels in black are discretized using scaled Gauss-Legendre nodes. The square ticks indicate location of the charges $\bx_{j}$ for defining the boundary data for the scattering problem.}
-\end{center}
 \label{fig:dom}
+\end{center}
 \end{figure}
 
 \begin{rem}
@@ -33,17 +33,17 @@ of the density deteriorates as one approaches the corner. Thus, in order to obta
 of the density to machine precision at all points which are at least $2^{-100}$ away from the corner, we use a smallest
 panel size of $2^{-150}$. 
 \end{rem}
-In these examples, the solutions are computed via dense linear solves.
+
 
 The potential at target locations which are sufficiently far from the boundary (i.e. at least one panel length away from 
 every panel) is the inner product of the 
-density with a smooth function and hence can be computed accurately without re-solving. For a target 
-location $\boldsymbol{y}$, we compute the solution via the formula,
+density with a smooth function and hence can be computed accurately without re-solving (see~\cref{rem:far-field-accuracy}). For a target 
+location $\boldsymbol{y}$, we compute the potential via the formula,
 \begin{equation}
 \label{eq:farfieldpot}
 u(\by) = \int_{\Gamma} G(\bx,\by) \sigma(\bx) dS_{\bx} \approx \sum_{i=1}^{N}  G(\gamma(s_{i}),\by) \sigma_{i} \sqrt{w_{i}}
 \end{equation}
-In figure~\cref{fig:far-field}, we compute the error in the solution at target
+In~\cref{fig:scatteringtest}, we compute the error in the solution at target
 locations for a scattering problem whose right hand side is given by a collection of three interior charges
 \begin{equation}
 \label{eq:scatboundarydata}
@@ -57,8 +57,8 @@ target locations away from the boundary.
 \begin{center}
 \includegraphics[width=\linewidth]{media/weaktest}
 \caption{Left panel: Solution to Neumann problem with data given by~\cref{eq:scatboundarydata}, center panel: error in computing the potential in the formula using the underlying smooth quadrature~\cref{eq:farfieldpot}, and on the right the density $\sigma$ as a function of arc-length}.
-\end{center}
 \label{fig:scatteringtest}
+\end{center}
 \end{figure}
 
 
@@ -72,7 +72,7 @@ P = \begin{bmatrix}
 \int_{\Gamma} x_{1} \sigma_{2}(\bx) dS_{\bx} & \int_{\Gamma} x_{2} \sigma_{2}(\bx) dS_{\bx} 
 \end{bmatrix}
 \end{equation}
-The polarization tensor as computed by the reference solution, and the error in computation using the adjoint method
+The polarization tensor as computed by the reference solution, and the error in computation using the adjoint discretization
 are given by
 \begin{equation}
 P = \begin{bmatrix}
@@ -87,16 +87,14 @@ P = \begin{bmatrix}
 
 In order to demonstrate the accuracy of the corner re-solving approach in obtaining the true density at the corner panels, we  apply the procedure
 discussed in~\cref{sec:resolve} iteratively, and compare the obtained density with the reference density after 20,40,60, and
-80 iterations of resolves in the vicinity of one of the corners. The reference density and the errors are shown in ~\cref{fig:dens-error}. Furthermore, to highlight the need for special purpose discretizations in the vicinity of corners in the adjoint method, we also compare the solution computed using a graded mesh in the vicinity of corners, where the smallest panel is identical
-to the one after resolves. So for 20 iterations, the smallest panel is $2^{-20}$ times the original panel, for $40$ iterations,
-the smallest panel is $2^{-40}$ times the original panel and so on. 
+80 iterations of resolves in the vicinity of one of the corners. The reference density and the errors are shown in ~\cref{fig:dens-error}. Furthermore, to highlight the need for special purpose discretizations in the vicinity of corners in the adjoint discretization, we also compare the solution computed using a graded mesh in the vicinity of corners, where the size of the smallest panels for both discretizations are equal. 
 
 \begin{figure}
 \begin{center}
 \includegraphics[width=\linewidth]{media/density}
 \caption{Top row: (left) Illustrative mesh used for iteratively computing the solution in the vicinity of a corner, (right) the density in the vicinity of one of the corner panels. Bottom row: error in computing the density, where $\tilde{\sigma}$ denotes the density computed using special purpose discretizations at corner panels, and $\tilde{\sigma_{g}}$ denotes the density using a graded mesh with the smallest panel equal to the length of the smallest panel after the iterative resolve procedure. The errors are scaled by square roots of the quadrature weights.    }.
-\end{center}
 \label{fig:dens-error}
+\end{center}
 \end{figure}
 
 After re-solving the density, we also compute the solution at target locations on a tensor product polar grid, where the grid
@@ -108,14 +106,14 @@ The reference solution and the errors are demonstrated in~\cref{fig:vol-plot}.
 \begin{figure}
 \begin{center}
 \includegraphics[width=\linewidth]{media/volume}
-\caption{Top row: Solution on the volume after 10, 20, and 40 iterations of resolve. The target locations are a tensor product polar grid, where the nodes are exponentially spaced in the radial direction. The closest node is approximately $10^{-13}$ away from the corner. Near quadrature is handled via adaptive integration except for the corner panel where the smooth quadrature weights are used. Bottom row: analogous results where the solution is computed using a graded mesh.   }.
-\end{center}
+\caption{Top row: Solution on the volume after 10, 20, and 40 iterations of resolve. The target locations are a tensor product polar grid, where the nodes are exponentially spaced in the radial direction. The closest target location is approximately $10^{-13}$ away from the corner. Near quadrature is handled via adaptive integration except for the corner panel where the smooth quadrature weights are used. Bottom row: analogous results where the solution is computed using a graded mesh.   }.
 \label{fig:vol-plot}
+\end{center}
 \end{figure}
 
 
 \subsection{Performance}
-In this section, we demonstrate the performance of the solver on two large domains. We solve scattering problems in the
+In this section, we demonstrate the performance of the solver by solving a scattering problem in the
 exterior of a ``broken wheel'' region. The boundary data is given by
 \begin{equation}
 f(x) = \nabla  \sum_{j=1}^{57} c_{j} \log| \bx - \bx_{j}| \cdot \bnu(\bx) \, , 
@@ -126,7 +124,7 @@ where there is one $\bx_{j}$ located in each of the spokes, one of the $\bx_{j}$
 \begin{center}
 \includegraphics[width=\linewidth]{media/magnetron}
 \caption{(left): Boundary data as a function of arclength, (center): absolute value of density as a function of arclength, and 
-(right): solution in the volume computed using an FMM.}
+(right): $\log_{10}$ of the absolute value of the solution in the volume computed using an FMM.}
 \label{fig:magnetron}
 \end{center}
 \end{figure}

@@ -1,5 +1,6 @@
 \documentclass[12pt]{article}
 \usepackage{amsmath,amsthm,amssymb,amscd,fancybox,epsfig,float,subfigure}
+\usepackage{authblk}
 \usepackage[margin=1in]{geometry}
 \usepackage{graphics}
 \usepackage{epstopdf}
@@ -84,8 +85,9 @@
 \newtheorem{comment}{Remark}
 
 \begin{document}
- \title{Dirichlet discretization of Neumann problems}
- \author{Jeremy Hoskins and Manas Rachh}
+ \title{On the discretization of Laplace's equation with Neumann boundary conditions on polygonal domains}
+\author{Jeremy Hoskins\thanks{Applied Mathematics Program, Yale University, USA. \\ email: jeremy.hoskins@yale.edu}, \,
+Manas Rachh\thanks{Center for Computational Mathematics, Flatiron Institute, USA. \\ email: mrachh@flatironinstitute.org}}
  \maketitle
 
 \input{01intro}
@@ -95,6 +97,9 @@
 \input{05apparatus}
 \input{06num}
 \input{07conc}
+
+\section{Acknowledgements}
+The authors would like to thank Leslie Greengard, and Vladimir Rokhlin for many useful discussions.
 
 \appendix
 \section{Approximation of data on corner panels for re-solve}
@@ -165,15 +170,15 @@ Let $V$ denote the collection of corner points in parameter space $[0,L]$, i.e. 
 Recall that $\sigma_{f}$ denote the solution to the Dirichlet problem with boundary data $f$, i.e., 
 $\sigma_{f}$ satisfies
 \begin{equation}
-\sigma_{f}(s)   + \int_{0}^{L} k(s,t) \sigma_{f}(t) dt  = f(s) \,  \quad s\in[0,L]\setminus{V}.
+-\frac{\sigma_{f}(s)}{2}   + \int_{0}^{L} k(s,t) \sigma_{f}(t) dt  = f(s) \,  \quad s\in[0,L]\setminus{V}.
 \end{equation}
- Then $\sigma_{f} = f + \tilde{\sigma}$ where $\tilde{\sigma}$ satisfies the integral equation
+ Then $\sigma_{f} = -2f + \tilde{\sigma}$ where $\tilde{\sigma}$ satisfies the integral equation
  \begin{equation}
--\tilde{\sigma}+ \int_{0}^{L} k(s,t) \tilde{\sigma}(t) dt = \int_{s_{1}}^{s_{2}} k(s,t) f(t) dt \, , \quad s\in[0,L] \setminus V \, ,
+-\frac{\tilde{\sigma}}{2}+ \int_{0}^{L} k(s,t) \tilde{\sigma}(t) dt = -2\int_{s_{1}}^{s_{2}} k(s,t) f(t) dt \, , \quad s\in[0,L] \setminus V \, ,
  \end{equation}
 i.e, $\tilde{\sigma}$ is the solution of Dirichle with data at $\tilde{f}$ given by
 \begin{equation}
-\tilde{f}(s) = \int_{s_{1}}^{s_{2}} k(s,t) f(t) dt \, , s \in [0,L] \setminus V \, .
+\tilde{f}(s) = -2\int_{s_{1}}^{s_{2}} k(s,t) f(t) dt \, , s \in [0,L] \setminus V \, .
 \end{equation}
 Now there are two concerns that need to be addressed. First, the accuracy of computing $\tilde{f}(s)$ 
 for any point $s \in [0,L]$ using an $M$ point Gauss-Legendre quadrature on $[s_{1},s_{2}]$, and secondly, 

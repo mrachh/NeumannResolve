@@ -1,18 +1,18 @@
 
 \section{Numerical preliminaries \label{sec:nprelim}}
-In this section we summarize the numerical tools which are necessary for the main result. In particular we summarize the method for discretizing the boundary integral equation for the Dirichlet problem described in \cite{}, which uses the expansion in Theorem \ref{thm_cord}.
+In this section we summarize the numerical tools which are necessary for the main result. In particular we summarize the method for discretizing the boundary integral equation for the Dirichlet problem described in \cite{hoskins2019numerical}, which uses the expansion in Theorem \ref{thm_cord}.
 \subsection{Discretization of the Dirichlet problem}\label{sec:disc_dir}
-In this section we sketch an algorithm for solving the interior Dirichlet boundary integral equation using a Nystr\"{o}m method; the exterior Dirichlet boundary integral equation can be discretized in a similar way. See \cite{} for a thorough description of the method. 
+In this section we sketch an algorithm for solving the interior Dirichlet boundary integral equation using a Nystr\"{o}m method; the exterior Dirichlet boundary integral equation can be discretized in a similar way. See \cite{hoskins2019numerical} for a thorough description of the method. 
 
 The Nystr\"{o}m method proceeds as follows. We begin by constructing a discretization of the boundary $\Gamma$ with nodes $s_1,\dots,s_N,$ and weights $w_1,\dots,w_N,$ which enable interpolation of the left- and right-hand sides of the boundary integral equation
 \begin{align}\label{eqn:numpreint}
-f(s) = -\sigma(s) + \int_0^L k(t,s) \,\sigma(t)\, {\rm d} t
+f(s) = -\frac{\sigma(s)}{2} + \int_0^L k(t,s) \,\sigma(t)\, {\rm d} t
 \end{align}
-with precision $\epsilon.$ In other words, given $f(s_i),-\sigma(s_i) + \int_0^L k(t,s_i) \,\sigma(t)\, {\rm d} t,$ for $i=1,\dots,N,$ the values $f(s)$ and $-\sigma(s) + \int_0^L k(t,s) \,\sigma(t)\, {\rm d} t$ can be obtained for all $0 \le s \le L$ to within $\epsilon.$
+with precision $\epsilon.$ In other words, given $f(s_i),-\sigma(s_i) + \int_0^L k(t,s_i) \,\sigma(t)\, {\rm d} t,$ for $i=1,\dots,N,$ the values $f(s)$ and $-\sigma(s)/2 + \int_0^L k(t,s) \,\sigma(t)\, {\rm d} t$ can be obtained for all $0 \le s \le L$ to within $\epsilon.$
 
 Once these nodes and weights have been generated we proceed by enforcing equality of (\ref{eqn:numpreint}) at the discretization nodes, which yields the system of equations
 \begin{align}
-f(s_i) \sqrt{w_i} = -\sigma(s_i)\sqrt{w_i} +  \sqrt{w_i}\int_0^L k(t,s_i)\, \sigma(t)\,{\rm d}t,\quad i=1,\dots,N. \label{eqn_1std}
+f(s_i) \sqrt{w_i} = -\frac{\sigma(s_i)\sqrt{w_i}}{2} +  \sqrt{w_i}\int_0^L k(t,s_i)\, \sigma(t)\,{\rm d}t,\quad i=1,\dots,N. \label{eqn_1std}
 \end{align}
 We note that scaling by the square root of the weights in the above equation is equivalent to solving the problem in the $L^2$ sense, and results in discretized operators with condition numbers which are close to those of the original physical systems \cite{bremer3}. The new unknowns are $\sigma_i = \sigma(s_i) \sqrt{w_i},$ $i=1,\dots,N.$ Next, for each interpolation node $s_i$ we find a collection of weights $W_{ij}$ such that
 \begin{align}
@@ -20,7 +20,7 @@ We note that scaling by the square root of the weights in the above equation is 
 \end{align}
 resulting in the linear system
 \begin{align}
-  -\sigma_i +  \sum_{j=1}^N W_{ij} \sigma_j \sqrt{w_i w_j}=f(s_i) \sqrt{w_i},\quad i,j=1,\dots,N. 
+  -\frac{\sigma_i}{2} +  \sum_{j=1}^N W_{ij} \sigma_j \sqrt{w_i w_j}=f(s_i) \sqrt{w_i},\quad i,j=1,\dots,N. 
 \end{align}
 
 %{\color{red} then find quadratures}
@@ -29,7 +29,7 @@ resulting in the linear system
 
 The boundary $\Gamma$ is separated into a collection of intervals which are at least a fixed distance $\delta$  (measured in terms of arclength) away from a corner and the collection of intervals of length $2 \delta$ centered about each corner. The former are discretized using a standard smooth quadrature rule such as nested Gauss-Legendre quadrature while the latter are discretized using a custom set of interpolation nodes constructed in the following way.
 
-First, all functions of the form $x^\mu,$ $\mu \in \{0\} \cup [1/2,40],$ $x \in [0,1]$ are discretized using nested Gauss-Legendre panels in $x$ and a single Gauss-Legendre panel in $\mu$. This creates a $N \times M$ matrix where $N$ denotes the number of spatial discretization points $r_i$ and $M$ denotes the number of $\mu_j$ chosen. $M$ and $N$ are increased until it is guaranteed that using Lagrange interpolation from the nested discretization the function $x^\mu$ can be interpolated to within an $L^2$ error less than $\epsilon$ on the interval $[0,1]$ for any $\mu$ in the specified range. A singular value decomposition is then performed on the $N\times M$ matrix. Let $K$ denote the number of singular values greater than $\epsilon.$ The right singular vectors correspond to discretizations of an orthonormal set of functions $\phi_1,\dots,\phi_K$ such that $x^\mu$ is in the span of $\phi_1,\dots,\phi_K$ to within an accuracy of $\epsilon.$
+First, all functions of the form $x^\mu,$ $\mu \in \{0\} \cup [1/2,50],$ $x \in [0,1]$ are discretized using nested Gauss-Legendre panels in $x$ and a single Gauss-Legendre panel in $\mu$. This creates a $N \times M$ matrix where $N$ denotes the number of spatial discretization points $r_i$ and $M$ denotes the number of $\mu_j$ chosen. $M$ and $N$ are increased until it is guaranteed that using Lagrange interpolation from the nested discretization the function $x^\mu$ can be interpolated to within an $L^2$ error less than $\epsilon$ on the interval $[0,1]$ for any $\mu$ in the specified range. A singular value decomposition is then performed on the $N\times M$ matrix. Let $K$ denote the number of singular values greater than $\epsilon.$ The right singular vectors correspond to discretizations of an orthonormal set of functions $\phi_1,\dots,\phi_K$ such that $x^\mu$ is in the span of $\phi_1,\dots,\phi_K$ to within an accuracy of $\epsilon.$
 
 Finally, a set of interpolation points $x_j,$ $j=1,\dots,K$ and quadrature weights $w_j,$ $j=1,\dots,K$ are chosen for $\phi_1,\dots,\phi_K$ such that the matrix $U_{ij} = \phi_i(x_j) \sqrt{w_j}$ is well-conditioned. In practice suitable interpolation points can be obtained by using the roots of $\phi_{K+1}$ and calculating the corresponding weights by solving a linear system. The corresponding discretization nodes and weights for the corner-containing intervals of $\Gamma$ are obtained by suitable translations and scalings of $\{x_j\}$ and $\{w_j\}.$
 
@@ -74,4 +74,4 @@ can be interpolated to a function $\tilde{\sigma}$ which is within $\epsilon$ of
 \subsection{Discretization of the Neumann problem}
 In principle a similar method could be employed to discretize the Neumann boundary integral equations. Unfortunately, the singular nature of the powers (the smallest in the expansion given in Theorem \ref{thm_cord} lies in the range $(-1/2,0)$) makes it difficult to produce universal discretizations and quadratures which work for large ranges of angles. When the above method is run on these problems, discretization nodes tend to accumulate close to the corner (within $10^{-14}$). Apart from posing certain numerical challenges, it also makes the task of finding suitable quadrature formulae difficult. Instead, a different set of discretization nodes and a different set of quadrature nodes can be constructed for each angle, though this would significantly increase the precomputation cost.
 
-Finally, in many applications one already has a discretization of the Dirichlet problem. For example, when considering Laplace transmission problems or triple junction problems one has to solve two decoupled boundary integral equations: one of them a Dirichlet-type boundary integral equation with the diagonal term scaled and the other a Neumann-type boundary integral equation with the identity term scaled (see \cite{} and \cite{} for example). In such cases it is convenient to reuse the Dirichlet discretization for the Neumann problem.  
+Finally, in many applications one already has a discretization of the Dirichlet problem. For example, when considering Laplace transmission problems or triple junction problems one has to solve two decoupled boundary integral equations: one of them a Dirichlet-type boundary integral equation with the diagonal term scaled and the other a Neumann-type boundary integral equation with the identity term scaled (see \cite{hoskins2018numerical} and \cite{hoskins2019solution} for example). In such cases it is convenient to reuse the Dirichlet discretization for the Neumann problem.  

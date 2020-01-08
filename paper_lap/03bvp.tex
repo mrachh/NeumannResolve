@@ -40,14 +40,14 @@ Suppose the point $\bx$ approaches a point $\bx_0 = \gamma(t_0)$ (where $\bx_{0}
 for some $\alpha >0.$ Then for any continuous function $\sigma:\Gamma \to \mathbb{R},$
 \begin{align}
 &\lim_{\bx \to \bx_0} \cS[\sigma](\bx) = \cS[\sigma](\bx_0)\\
-&\lim_{\bx \to \bx_0} \cD[\sigma](\bx) = \cD[\sigma](\bx_0)- \sigma(\bx_0)\\
-&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx+\tau \bnu(\bx_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx_0+\tau \bnu(\bx_0))+ \sigma(\bx_0).
+&\lim_{\bx \to \bx_0} \cD[\sigma](\bx) = \cD[\sigma](\bx_0)- \frac{\sigma(\bx_0)}{2})\\
+&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx+\tau \bnu(\bx_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx_0+\tau \bnu(\bx_0))+ \frac{\sigma(\bx_0)}{2}.
 \end{align}
 Similarly, if $\bx$ approaches a point $\bx_0 = \gamma(t_0)$ from the outside then for any continuous function $\sigma:\Gamma \to \mathbb{R},$
 \begin{align}
 &\lim_{\bx \to \bx_0} \cS[\sigma](\bx) = \cS[\sigma](\bx_0)\\
-&\lim_{\bx \to \bx_0} \cD[\sigma](\bx) = \cD[\sigma](\bx_0)+ \sigma(\bx_0)\\
-&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx+\tau \bnu(\bx_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx_0+\tau \bnu(\bx_0))- \sigma(\bx_0).
+&\lim_{\bx \to \bx_0} \cD[\sigma](\bx) = \cD[\sigma](\bx_0)+ \frac{\sigma(\bx_0)}{2}\\
+&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx+\tau \bnu(\bx_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx_0+\tau \bnu(\bx_0))- \frac{\sigma(\bx_0)}{2}.
 \end{align}
 \end{theorem}
 
@@ -83,7 +83,7 @@ In this section we describe the conversion of the Laplace boundary value problem
 \begin{theorem} [Interior Dirichlet problem for Laplace's equation]
 For every $f:[0,L] \rightarrow \mathbb{R}$ in $L^{2}[0,L],$ there exists a unique $\sigma \in L^{2}[0,L]$ which satisfies
 \begin{align}
-f(s)= - \sigma(s)+ \int_0^L k(t,s)\,\sigma(t)\,{\rm d}t,
+f(s)= - \frac{\sigma(s)}{2}+ \int_0^L k(t,s)\,\sigma(t)\,{\rm d}t,
 \label{bie_intd}
 \end{align}
 Moreover, the solution to the interior Dirichlet problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cD[\sigma](\by)$ for all $\by \in \Omega.$
@@ -93,7 +93,7 @@ Moreover, the solution to the interior Dirichlet problem for Laplace's equation 
 For every $f:[0,L] \rightarrow \mathbb{R}$ in $L^{2}[0,L]$ there exists a unique $\sigma \in L^{2}[0,L]$ which
 satisfies
 \begin{align}
-f(s)=  \sigma(s)+ \int_0^L (k(t,s) + 1)\,\sigma(t)\,{\rm d}t,
+f(s)=  \frac{\sigma(s)}{2}+ \int_0^L (k(t,s) + 1)\,\sigma(t)\,{\rm d}t,
 \end{align}\label{bie_extd}
 for all $s \in [0,L].$ 
 Moreover, the solution to the exterior Dirichlet problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cD[\sigma](\by) + \int_{0}^{L} \sigma(t) dt$
@@ -105,7 +105,7 @@ for all $\by \in \mathbb{R}^2 \setminus \Omega.$
 \begin{theorem}[Interior Neumann problem for Laplace's equation]
 For every  $f:[0,L] \rightarrow \mathbb{C}$ in $L^{2}[0,L]$ such that $\int_{0}^{L} f(t) = 0,$ there exists a unique $\sigma \in L^{2}[0,L]$ which satisfies
 \begin{align}
-f(s)=  \sigma(s)+ \int_0^L (k(s,t) + 1)\,\sigma(t)\,{\rm d}t,
+f(s)=  \frac{\sigma(s)}{2}+ \int_0^L (k(s,t) + 1)\,\sigma(t)\,{\rm d}t,
 \label{bie_intn}
 \end{align}
 Moreover, the solution to the interior Neumann problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cS[\sigma](\by)$ for all $\by \in \Omega.$
@@ -115,7 +115,7 @@ Moreover, the solution to the interior Neumann problem for Laplace's equation wi
 \begin{theorem}[Exterior Neumann problem for Laplace's equation]
 For every $f:[0,L] \rightarrow \mathbb{C}$ in $L^{2}[0,L]$ there exists a unique $\sigma \in L^{2}[0,L]$ which satisfies
 \begin{align}
-f(s)=  \sigma(s)+ \int_0^L k(s,t) \,\sigma(t)\,{\rm d}t,
+f(s)=  \frac{\sigma(s)}{2}+ \int_0^L k(s,t) \,\sigma(t)\,{\rm d}t,
 \label{bie_extn}
 \end{align}
 Moreover, the solution to the interior Neumann problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cS[\sigma](\by)$ for all $\by \in \Omega.$
@@ -123,7 +123,7 @@ Moreover, the solution to the interior Neumann problem for Laplace's equation wi
 
 \subsection{Corner expansions}
 
-In the remainder of this section we assume $\Gamma$ is an open wedge with sides of length one and interior angle $\pi \alpha$ with $0 <\alpha<2.$ Let $\gamma:[-1,1] \rightarrow \Gamma$ be an arc length parametrization of $\Gamma$ and $\nu:[-1,1] \rightarrow \mathbb{R}^2$ be the inward-pointing normal to $\Gamma.$ 
+In the remainder of this section, we assume $\Gamma$ is an open wedge with sides of length one and interior angle $\pi \alpha$ with $0 <\alpha<2.$ Let $\gamma:[-1,1] \rightarrow \Gamma$ be an arc length parametrization of $\Gamma$ and $\nu:[-1,1] \rightarrow \mathbb{R}^2$ be the inward-pointing normal to $\Gamma.$ 
 The following theorem  gives an explicit representation of the solutions of the boundary integral equation (\ref{bie_intd}) in this geometry.
 
 \begin{theorem}[\cite{serkhacha}]\label{thm_cord}
@@ -157,7 +157,7 @@ where $b_0,b_1,\dots,b_N$ and $c_1,c_2,\dots,c_N$ are arbitrary real numbers and
 \end{align}
 \noindent If $f$ is defined by
 \begin{align}
-f(t) = -\sigma(s) +\int_{-1}^1 k(t,s)  \sigma(t)\,{\rm d}t.
+f(t) = -\frac{\sigma(s)}{2} +\int_{-1}^1 k(t,s)  \sigma(t)\,{\rm d}t.
 \label{eqn_grho}
 \end{align}
 and $\sigma$ is defined by (\ref{eqn_rhfm}) then there exist two sequences of real numbers $\beta_0$, $\beta_1,\,\dots$ and $\gamma_0,$ $\gamma_1,\,\dots$ such that
@@ -173,7 +173,7 @@ A similar result holds for the case where the identity term in (\ref{eqn_grho}) 
 \end{remark1}
 
 
-The following Corollary, proved in \cite{serkhacha} gives a characterization of the solutions to the Dirichlet and Neumann boundary integral equations in the vicinity of a corner.
+The following corollary, proved in \cite{serkhacha} gives a characterization of the solutions to the Dirichlet and Neumann boundary integral equations in the vicinity of a corner.
 
 \begin{corollary}
 Let $\Gamma$ be the boundary of a polygonal region and suppose one of its corners has interior angle $\pi \alpha$ where $\alpha \in (0,2).$ Let $\gamma:(-\delta,\delta) \rightarrow \mathbb{R}^2$ be an arclength parametrization of $\Gamma$ in the vicinity of the corner, with $\gamma(0)$ coinciding with the corner. If the boundary data, $f,$ is analytic on either side of the corner then there exist unique real numbers $b_0,\,b_1,\,\dots,\,b_N$ and $c_0,\,c_1,\,\dots,\,c_N$ such that the density, $\rho,$ defined by (\ref{eqn_rhfm}) satisfies the interior Dirichlet boundary integral equation to within an error ${\rm O}(t^{N+1})$ for $t$ within $\delta$ of the corner. For the Neumann problems the representation is the same with the powers in the expansion reduced by one.

@@ -1,6 +1,6 @@
 
 \section{Numerical apparatus \label{sec:napp}}
-\subsection{Adjoint method}
+\subsection{Adjoint discretization}
 
 The following lemma relates the discretization of the inverse of an operator to the adjoint of the discretization of its inverse. Its proof follows directly from the definition of the adjoint and is omitted.
 \begin{lemma}\label{lem_adjm}
@@ -29,9 +29,11 @@ Hence a discretization of the Neumann problem can be obtained simply by taking t
 We conclude this section with a few remarks. 
 
 \begin{remark1}
+\label{rem:far-field-accuracy}
 We observe that if the solution to the boundary value problem is being calculated at a point $\by \in \mathbb{R}^2\setminus \Omega$ more than one panel length away from the boundary curve $\Gamma$ then the Neumann density $\sigma$ obtained using the above result will give an accuracy of $\epsilon,$ ie. the function $K(\by,\gamma(t)) \in S_\epsilon.$ Thus accurate values of the solution in the far-field can be obtained almost immediately.
 \end{remark1}
 \begin{remark1}
+\label{rem:strong-sol-smooth}
 Similarly, if the point $\by \in \mathbb{R}^2 \setminus \Omega$ at which the solution to the Neumann boundary value problem is to be calculated lies close to a smooth panel then the density $\sigma$ near that point can be interpolated to a finer set of quadrature points and the value of $u(\by)$ can once again be obtained to precision $\epsilon.$ We note, however, that in general the density in the vicinity of a corner cannot be interpolated accurately. This follows from the fact that the interpolation scheme constructed is only guaranteed to interpolate the powers arising in the Dirichlet problem accurately near the corner. The collection of singular powers arising in Neumann problems contain negative powers which are not contained in this set and hence are not interpolated accurately.
 \end{remark1}
 
@@ -49,7 +51,7 @@ For notational convenience we let $\gamma:[-\delta,L-\delta] \to \partial \Omega
 For a panel $\gamma([s_1,s_2])$ with discretization nodes $x_i,\dots,x_{i+M}$ corresponding to a Gauss-Legendre panel the density is smooth and thus it is expected to be well-represented in the basis of Legendre polynomials (shifted and scaled to the interval $[s_1,s_2]$). Hence standard interpolation techniques can be used to obtain an accurate approximation to the density $\sigma$ on the interval $s_1 \le s\le s_2$ . Typically we use 16th order Gauss-Legendre panels and choose their sizes so that their length is no more than their distance to the nearest corner. This latter choice guarantees that for any $\epsilon>0$ there exists an $M$ such that if the Gauss-Legendre panels are discretized using an $M$-point Gauss-Legendre rule then the density on that panel can be interpolated to relative precision $\epsilon$ in an $L^2$-sense.
 (We discuss a sketch of a proof in~\cref{sec:appb})
 
-For corner panels the nodes were constructed to enable stable interpolation of densities $s^\mu,$ $\mu \in 0 \cup [1/2,40],$ on the interval $s \in (-\delta,\delta)$ - assuming for simplicity that the corner is at $0$ and the panel is of length $2 \delta.$ As mentioned above, the density is expected to contain terms of the form $s^\mu$ for some finite collection of $\mu$ in the interval $(-1/2,1/2),$ and hence will not in general be stably interpolable on the interval $(-\delta,\delta).$ However, it is possible to use the density obtained using (\ref{eqn:adj_linalg}) to construct a sequence of nested problems in the neighborhood of the corner, the solutions of which enable accurate interpolation of the density arbitrarily close to the vertex. The number of these problems depends only on the distance of the closest evaluation point to the corner. In particular, if $r$ is the smallest distance of an evaluation point from the corner then only $\log_2 r/\delta$ levels are required. Each problem involves the solution of a small linear system (typically less than $100 \times 100$) and as such can be performed quickly. Furthermore, we note that the algorithm can be easily parallelized to treat multiple corners concomitantly.
+For corner panels the nodes were constructed to enable stable interpolation of densities $s^\mu,$ $\mu \in 0 \cup [1/2,50],$ on the interval $s \in (-\delta,\delta)$ - assuming for simplicity that the corner is at $0$ and the panel is of length $2 \delta.$ As mentioned above, the density is expected to contain terms of the form $s^\mu$ for some finite collection of $\mu$ in the interval $(-1/2,1/2),$ and hence will not in general be stably interpolable on the interval $(-\delta,\delta).$ However, it is possible to use the density obtained using (\ref{eqn:adj_linalg}) to construct a sequence of nested problems in the neighborhood of the corner, the solutions of which enable accurate interpolation of the density arbitrarily close to the vertex. The number of these problems depends only on the distance of the closest evaluation point to the corner. In particular, if $r$ is the smallest distance of an evaluation point from the corner then only $\log_2 r/\delta$ levels are required. Each problem involves the solution of a small linear system (typically less than $100 \times 100$) and as such can be performed quickly. Furthermore, we note that the algorithm can be easily parallelized to treat multiple corners concomitantly.
 
 We begin with the following proposition, the proof of which follows immediately from the definition of the kernel $k$ and is omitted.
 \begin{proposition}
