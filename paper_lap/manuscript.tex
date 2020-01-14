@@ -105,7 +105,7 @@ The authors would like to thank Leslie Greengard, and Vladimir Rokhlin for many 
 \section{Approximation of data on corner panels for re-solve}
 Here we give explicit bounds for the rate of convergence of the contribution of the rest of the boundary to a corner panel. In particular, given a polygonal domain with boundary $\Gamma,$ let $\bx$ denote a vertex of $\Gamma$ and $C = \Gamma \cap B_r(\bx),$ where $B_r(\bx)$ is the ball of radius of $r$ centered at $\bx.$ We choose $r$ so that $\Gamma \cap B_{2r}(\bx)$ corresponds to a wedge with internal angle $\pi \alpha$ and side lengths $2r.$ 
 
-Let $\Gamma_*$ be any other straight line segment contained entirely within $\Gamma \setminus B_{2r}(\bx).$ Then
+%Let $\Gamma_*$ be any other straight line segment contained entirely within $\Gamma \setminus B_{2r}(\bx).$ Then
 
 \begin{theorem}
 Let $\Gamma$ be the boundary of a polygon and $\bx$ be a vertex. Let $r>0$ be a real number such that $\Gamma \cap B_{2r}(\bx)$ corresponds to a wedge with internal angle $\pi \alpha$ and side lengths $2r,$ where $B_R(\bx)$ denotes a ball of radius $R$ centered at $\bx.$ Let $L$ denote the length of $\Gamma$ and $\gamma: [-L/2,L/2]\to \Gamma$ be an arclength counterclockwise parameterization of $\Gamma$ such that $\gamma(0) = \bx.$ Finally, for any $f \in L^2(\Gamma),$ let $H:[0,r] \to \mathbb{R}$ be the function defined by
@@ -140,19 +140,19 @@ where
 \label{sec:appb}
 In this section, we demonstrate that for a panel which is sufficiently far from the corner and  discretized using $M$ Gauss-Legendre nodes, the density computed using the adjoint of a Dirichlet discretization can be interpolated 
 accurately at any point on the panel. As before let $\Omega$ denote a polygonal domain with boundary $\Gamma$. Let
-$L$ denote the length of the boundary, and let $\gamma: [-L/2,L/2]$ denote an arc-length parameterization of the boundary.
+$L$ denote the length of the boundary, and let $\gamma: [-L/2,L/2]\to \mathbb{R}^2$ denote an arc-length parameterization of the boundary.
 Assume that the discretization satisfies the following assumptions:
 \begin{enumerate}
-\item All panels which are not at a corner, are separated from the closest corner by their panel length.
-\item Let $E_{\rho}(\Gamma_{i})$ denote the Bernstein $\rho-$ellipse corresponding to panel $\Gamma_{i}$, and let $\rho_{i}$ 
+\item All panels which are not at a corner, are separated from the closest corner by at least their panel length.
+\item Let $E_{\rho}(\Gamma_{i})$ denote the Bernstein $\rho-$ellipse (see \cite{tref_approx}) corresponding to the panel $\Gamma_{i}$, and let $\rho_{i}$ 
 be such that $E_{\rho_{i}}(\Gamma_{i})$ does not intersect $\Gamma \setminus S_{\Gamma_{i}}$, where 
 $S_{\Gamma_{i}}$ is the edge containing $\Gamma_{i}$ (see~\cref{fig:illus-cons}). Let $\rho_{0} = \min_{i} \rho_{i} >1$.
 \item All panels which are not adjacent to a panel at the corner, are separated from the corner by $2r_{c}$ where $r_{c}$ 
 denotes the length of the panel at the corner.
 \end{enumerate}
-Under these assumptions, it can be shown that the accuracy in computing the
-Legendre coefficients of the density (at panels which are not adjacent to a corner panel) for the Neumann problem, is related to the accuracy 
-of a Dirichlet problem where the boundary data is resolved with controlled error on the given discretization.
+Under these assumptions, it can be shown that the accuracy of computing the
+Legendre coefficients of the density (at panels which are not adjacent to a corner panel) for the Neumann problem using the adjoint discretization is related to the accuracy 
+in the computation of the solution to an associated Dirichlet problem.
 \begin{figure}
 \begin{center}
 \includegraphics[width=0.3\linewidth]{media/geom-restriction-illus}
@@ -170,14 +170,12 @@ degree $n$ scaled to the panel $\gamma([s_{1},s_{2}])$ and $0$ everywhere else. 
 where $\sigma_{f}$ is the solution of the interior Dirichlet problem with boundary data $f$ using a double layer potential.
  
 
-Using~\cref{lem_adjm}, the above statement implies that the error in computing the $n$ Legendre coefficient of
+Using~\cref{lem_adjm}, the above statement implies that the error in computing the $M$ Legendre coefficients of
 the density for the Neumann problem is the same as the error in computing the solution of a Dirichlet problem with 
-data given by a Legendre polynomial on the same panel.  %This seems problematic since the right hand side
-%is not smooth, however, in the special case of polygonal domains, this problem is alleviated since the kernel corresponding
-%to the double layer potential is identically zero on line segments.
+data given by a Legendre polynomial on the same panel. 
 
 Let $V$ denote the collection of corner points in parameter space $[0,L]$, i.e. $a \in V$ if $\gamma(a)$ is a corner vertex.
-Recall that $\sigma_{f}$ denote the solution to the Dirichlet problem with boundary data $f$, i.e., 
+Recall that $\sigma_{f}$ denotes the solution of the Dirichlet problem with boundary data $f$, i.e., 
 $\sigma_{f}$ satisfies
 \begin{equation}
 -\frac{\sigma_{f}(s)}{2}   + \int_{0}^{L} k(s,t) \sigma_{f}(t) dt  = f(s) \,  \quad s\in[0,L]\setminus{V}.
@@ -186,22 +184,21 @@ $\sigma_{f}$ satisfies
  \begin{equation}
 -\frac{\tilde{\sigma}}{2}+ \int_{0}^{L} k(s,t) \tilde{\sigma}(t) dt = -2\int_{s_{1}}^{s_{2}} k(s,t) f(t) dt \, , \quad s\in[0,L] \setminus V \, ,
  \end{equation}
-i.e, $\tilde{\sigma}$ is the solution of Dirichle with data at $\tilde{f}$ given by
+i.e, $\tilde{\sigma}$ is the solution of the Dirichlet with data $\tilde{f}$ given by
 \begin{equation}
 \tilde{f}(s) = -2\int_{s_{1}}^{s_{2}} k(s,t) f(t) dt \, , s \in [0,L] \setminus V \, .
 \end{equation}
-Now there are two concerns that need to be addressed. First, the accuracy of computing $\tilde{f}(s)$ 
+There are two concerns which must be addressed. First, the accuracy of computing $\tilde{f}(s)$ 
 for any point $s \in [0,L]$ using an $M$ point Gauss-Legendre quadrature on $[s_{1},s_{2}]$, and secondly, 
 the resolution of the function $\tilde{f}(s)$ on the given discretization of the boundary. 
 
 For any $s$ which is contained on the same segment as $\gamma_{[s_{1},s_{2}]}$, the kernel $k(s,t)$ is identically $0$.
 Thus the boundary data $\tilde{f}(s)=0$  on the same edge as the panel $\gamma([s_{1},s_{2}])$. 
-We further observe that $f(t)$ is an entire function when extended to the complex plane (since it is a Legendre polynomial)
-and the nearest singularity of the function $k(s,t)$ in the complex plane as a function of $t$ is corresponding to $\gamma(s)$.
+We further observe that $f(t)$ is an entire function when extended to the complex plane, since it is a Legendre polynomial.
+Moreover, the nearest singularity of the function $k(s,t)$ in the complex plane as a function of $t$ is at $\gamma(s)$.
 From assumption 2, it follows that
 the error in computing $\tilde{f}(s)$ using an $M$ point Gauss-Legendre rule is bounded by $C \rho_{0}^{-M}$, where
-the constant $C$ is related to the boundedness of the function $k(s,t)$ when $t$ is complexified.
-(Note the error is not $\rho_{0}^{-2M}$ since $P_{M}$ would grow like $\rho_{0}^{M}$ on the $\rho_{0}-$ Bernstein ellipse.) 
+the constant $C$ is related to the smoothness of $k(s,t)$ as a function of $t \in \mathbb{C}.$
 Thus the function $\tilde{f}(s)$ can be computed to any desired precision by increasing the order of quadrature nodes
 used to compute the integrals. 
 
