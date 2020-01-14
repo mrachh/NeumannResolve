@@ -97,8 +97,8 @@ discussed in~\cref{sec:resolve} iteratively, and compare the obtained density wi
 \end{center}
 \end{figure}
 
-After re-solving the density, we also compute the solution at target locations on a tensor product polar grid, where the grid
-is exponentially spaced in the radial direction and equispaced in the angular direction. For target locations
+After re-solving the density, the solution is evaluated on a tensor product polar grid, where the grid
+is exponentially spaced in the radial direction and equispaced in the angular direction. For evaluation points (targets)
 close to panels which are not at the corner, we use adaptive integration in order to resolve the near-singular behavior of
 the kernel for accurate computation of the integrals. For target locations close to the corner panel, since we do not have
 the capability to interpolate the density, we use the underlying smooth quadrature rules for computing their contribution. 
@@ -106,7 +106,7 @@ The reference solution and the errors are demonstrated in~\cref{fig:vol-plot}.
 \begin{figure}
 \begin{center}
 \includegraphics[width=\linewidth]{media/volume}
-\caption{Top row: Solution on the volume after 10, 20, and 40 iterations of resolve. The target locations are a tensor product polar grid, where the nodes are exponentially spaced in the radial direction. The closest target location is approximately $10^{-13}$ away from the corner. Near quadrature is handled via adaptive integration except for the corner panel where the smooth quadrature weights are used. Bottom row: analogous results where the solution is computed using a graded mesh.   }.
+\caption{Top row: Solution on the volume after 10, 20, and 40 iterations of re-solve. The solution is computed on a tensor product polar grid, where the evaluation points (targets) are exponentially spaced in the radial direction. The closest target location is approximately $10^{-13}$ away from the corner. Near quadrature is handled via adaptive integration except for the corner panel where the smooth quadrature weights are used. Bottom row: analogous results where the solution is computed using a graded mesh.   }.
 \label{fig:vol-plot}
 \end{center}
 \end{figure}
@@ -118,7 +118,7 @@ exterior of a ``broken wheel'' region. The boundary data is given by
 \begin{equation}
 f(x) = \nabla  \sum_{j=1}^{57} c_{j} \log| \bx - \bx_{j}| \cdot \bnu(\bx) \, , 
 \end{equation}
-where there is one $\bx_{j}$ located in each of the spokes, one of the $\bx_{j}$ is in the central disc, and the remaining $50$ $\bx_{j}$ are chosen randomly in the exrterior of the bounding disc containing the domain. The strengths $c_{j}$ are chosen such that they average to $0$. The domain contains $108$ corners, was discretized using $22240$ nodes and required $105$ iterations to converge to a residue of $10^{-15}$. The matrix at each iteration was applied using an FMM whose tolerance was also set to $10^{-15}$. The solution was computed in $15$ secs, and plotted at a $500\times 500$ grid of targets in $6.5$ secs. All of the results have been computed on a single core on a Macintosh machine with Intel core i5 2.3GHz processors. In~\cref{fig:magnetron}, we plot the scattered field, the right hand side, and the computed density.
+where there is one $\bx_{j}$ located in each of the spokes, one of the $\bx_{j}$ is in the central disc, and the remaining $50$ $\bx_{j}$ are chosen randomly in the exrterior of the bounding disc containing the domain. The strengths $c_{j}$ are chosen such that they average to $0$. The domain contains $108$ corners, was discretized using $22240$ nodes and required $105$ iterations to converge to a residue of $10^{-15}$. The matrix at each iteration was applied using an FMM whose tolerance was also set to $10^{-15}$. The solution was computed in $15$ secs, and plotted at a $500\times 500$ grid of targets in $6.5$ secs. All of the results have been computed on a single core on a Macintosh machine with Intel core i5 2.3GHz processors. In~\cref{fig:magnetron}, we plot the scattered field, the boundary data, and the computed density.
 
 \begin{figure}
 \begin{center}
