@@ -5,12 +5,12 @@ In this section, we demonstrate the accuracy of the proposed numerical method (b
 described above, 
 as well as in the classical sense after sufficiently many re-solves) on the triangular domain shown below. 
 The reference solution for each of the examples is computed using a discretization with
-a graded mesh in the vicinity of the corners, where the smallest panel at the corner is $2^{-150}$ times
+a graded mesh in the vicinity of the corners, where the smallest panel at the corner is $2^{-200}$ times
 the length of the first macroscopic panel away from the corner (see~\cref{fig:dom}). In these examples, the solutions are computed via dense linear solves.
 
 \begin{figure}
 \begin{center}
-\includegraphics[width=0.7\linewidth]{media/discretization}
+\includegraphics[width=0.7\linewidth]{paper-figs/discretization}
 \caption{Problem domain and panel discretization of the boundary. The discretization on the left is based on using the Dirichlet
 discretization at corner panels (indicated by blue panels) discussed in~\cref{sec:disc_dir}, while the discretization on the right is a sample discretization with 2 levels of refinement in the vicinity of the corner. All the panels in black are discretized using scaled Gauss-Legendre nodes. The square ticks indicate location of the charges $\bx_{j}$ for defining the boundary data for the scattering problem.}
 \label{fig:dom}
@@ -18,7 +18,7 @@ discretization at corner panels (indicated by blue panels) discussed in~\cref{se
 \end{figure}
 
 \begin{rem}
-Though $2^{-150}$ is significantly smaller than machine precision, the matrix entries corresponding to the
+Though $2^{-200}$ is significantly smaller than machine precision, the matrix entries corresponding to the
 corner interactions can be computed accurately by translating the corners to the origin when 
 computing interactions of nearby points.
 \end{rem} 
@@ -31,7 +31,7 @@ panel closest to the corner) to be of size $2^{-100}.$ However, resulting values
 accurate to machine precision at all nodes. In fact the quality
 of the density deteriorates as one approaches the corner. Thus, in order to obtain accurate point values
 of the density to machine precision at all points which are at least $2^{-100}$ away from the corner, we use a smallest
-panel size of $2^{-150}$. 
+panel size of $2^{-200}$. 
 \end{rem}
 
 
@@ -55,7 +55,7 @@ presented in~\cref{sec:disc_dir} wouldn't have sufficed. However, the potential 
 target locations away from the boundary. 
 \begin{figure}
 \begin{center}
-\includegraphics[width=\linewidth]{media/weaktest}
+\includegraphics[width=\linewidth]{paper-figs/weaktest}
 \caption{Left panel: Solution to Neumann problem with data given by~\cref{eq:scatboundarydata}, center panel: error in computing the potential in the formula using the underlying smooth quadrature~\cref{eq:farfieldpot}, and on the right the density $\sigma$ as a function of arc-length}.
 \label{fig:scatteringtest}
 \end{center}
@@ -91,7 +91,7 @@ discussed in~\cref{sec:resolve} iteratively, and compare the obtained density wi
 
 \begin{figure}
 \begin{center}
-\includegraphics[width=\linewidth]{media/density}
+\includegraphics[width=\linewidth]{paper-figs/density}
 \caption{Top row: (left) Illustrative mesh used for iteratively computing the solution in the vicinity of a corner, (right) the density in the vicinity of one of the corner panels. Bottom row: error in computing the density, where $\tilde{\sigma}$ denotes the density computed using special purpose discretizations at corner panels, and $\tilde{\sigma_{g}}$ denotes the density using a graded mesh with the smallest panel equal to the length of the smallest panel after the iterative resolve procedure. The errors are scaled by square roots of the quadrature weights.    }.
 \label{fig:dens-error}
 \end{center}
@@ -105,7 +105,7 @@ the capability to interpolate the density, we use the underlying smooth quadratu
 The reference solution and the errors are demonstrated in~\cref{fig:vol-plot}.
 \begin{figure}
 \begin{center}
-\includegraphics[width=\linewidth]{media/volume}
+\includegraphics[width=\linewidth]{paper-figs/volume}
 \caption{Top row: Solution on the volume after 10, 20, and 40 iterations of re-solve. The solution is computed on a tensor product polar grid, where the evaluation points (targets) are exponentially spaced in the radial direction. The closest target location is approximately $10^{-13}$ away from the corner. Near quadrature is handled via adaptive integration except for the corner panel where the smooth quadrature weights are used. Bottom row: analogous results where the solution is computed using a graded mesh.   }.
 \label{fig:vol-plot}
 \end{center}
@@ -122,7 +122,7 @@ where there is one $\bx_{j}$ located in each of the spokes, one of the $\bx_{j}$
 
 \begin{figure}
 \begin{center}
-\includegraphics[width=\linewidth]{media/magnetron}
+\includegraphics[width=\linewidth]{paper-figs/magnetron}
 \caption{(left): Boundary data as a function of arclength, (center): absolute value of density as a function of arclength, and 
 (right): $\log_{10}$ of the absolute value of the solution in the volume computed using an FMM.}
 \label{fig:magnetron}

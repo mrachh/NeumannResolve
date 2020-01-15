@@ -72,7 +72,7 @@
 \newcommand{\ebmat}{\end{bmatrix}}
 \newcommand{\dudn}[1]{\frac{\partial u_{#1}}{\partial n}}
 
-\usepackage{boxit}
+%\usepackage{boxit}
 %\newcommand{\boxit}[1]{#1}
 %\newcommand{\dashboxit}[1]{#1}
 
@@ -140,7 +140,7 @@ where
 \label{sec:appb}
 In this section, we demonstrate that for a panel which is sufficiently far from the corner and  discretized using $M$ Gauss-Legendre nodes, the density computed using the adjoint of a Dirichlet discretization can be interpolated 
 accurately at any point on the panel. As before let $\Omega$ denote a polygonal domain with boundary $\Gamma$. Let
-$L$ denote the length of the boundary, and let $\gamma: [-L/2,L/2]\to \mathbb{R}^2$ denote an arc-length parameterization of the boundary.
+$L$ denote the length of the boundary, and let $\gamma: [0,L]\to \mathbb{R}^2$ denote an arc-length parameterization of the boundary.
 Assume that the discretization satisfies the following assumptions:
 \begin{enumerate}
 \item All panels which are not at a corner, are separated from the closest corner by at least their panel length.
@@ -155,7 +155,7 @@ Legendre coefficients of the density (at panels which are not adjacent to a corn
 in the computation of the solution to an associated Dirichlet problem.
 \begin{figure}
 \begin{center}
-\includegraphics[width=0.3\linewidth]{media/geom-restriction-illus}
+\includegraphics[width=0.3\linewidth]{paper-figs/geom-restriction-illus}
 \caption{Illustrative figure for demonstrating constraints required on the geometry discretization. The panel $\Gamma_{i}$ satisfies restriction 1 if $L_{i}/L_{0}>1$. Panel $\Gamma_{j}$ illustrates the largest Bernstein ellipse which intersects the other edges, and Panel $\Gamma_{k}$ illustrates restriction 3 if $r_{k}>2r_{c}$. }
 \label{fig:illus-cons}
 \end{center}
@@ -192,7 +192,7 @@ There are two concerns which must be addressed. First, the accuracy of computing
 for any point $s \in [0,L]$ using an $M$ point Gauss-Legendre quadrature on $[s_{1},s_{2}]$, and secondly, 
 the resolution of the function $\tilde{f}(s)$ on the given discretization of the boundary. 
 
-For any $s$ which is contained on the same segment as $\gamma_{[s_{1},s_{2}]}$, the kernel $k(s,t)$ is identically $0$.
+For any $s$ which is contained on the same segment as $\gamma([s_{1},s_{2}])$, the kernel $k(s,t)$ is identically $0$.
 Thus the boundary data $\tilde{f}(s)=0$  on the same edge as the panel $\gamma([s_{1},s_{2}])$. 
 We further observe that $f(t)$ is an entire function when extended to the complex plane, since it is a Legendre polynomial.
 Moreover, the nearest singularity of the function $k(s,t)$ in the complex plane as a function of $t$ is at $\gamma(s)$.
