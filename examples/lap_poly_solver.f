@@ -1,11 +1,12 @@
       implicit real *8 (a-h,o-z)
       real *8, allocatable :: verts(:,:)
-      real *8 xyin(2),xyout(2),dpars(2)
+      real *8 xyin(2),xyout(2),dpars(1000)
       real *8 xysrc(2),xytarg(2),xylim(2,2)
       real *8, allocatable :: targ(:,:)
       real *8, allocatable :: pottargex(:)
       real *8 pp
       integer, allocatable :: isin(:)
+      integer ipars(1000)
       
       complex *16 zpars,zk
       real *8 pot,potex
@@ -14,9 +15,13 @@
 
       procedure (), pointer :: fker
 
-      external lap_slp,lap_dlp
+      external lap_slp,lap_dlp,frand,lap_slp_mult,lap_dlp_mult
+      external frand_sing
 
       call prini(6,13)
+
+      done = 1
+      pi = atan(done)*4
 
       nvmax = 100000
       allocate(verts(2,nvmax))
@@ -26,9 +31,10 @@ c       igeom =1, skew triangle
 c       igeom =2, jeremy's magnetron
 
       igeom = 1
-cc      igeom = 2
+      igeom = 2
 
       call loadverts_demos(igeom,nverts,verts,xyin,xyout)
+
 
 c
 c
@@ -82,16 +88,23 @@ c          iffast = 2 => iterative solver using fmm for matvec
 c
 c
 c       if exact solution is known, store it in 'fort.48'
+c
+c       irhs  = flag for type of rhs
+c       irhs = 1, analytical test
+c       irhs = 2, scattering type solution for exterior problems only
+c       irhs = 3, random data
+c       irhs = 4, data is legendre on one of the panels
 c          
  
-      ifdn = 1 
-      ifinout = 1
+      ifdn = 0 
+      ifinout = 0
       iffast = 2
+      irhs = 1
 
       zk = 1.2d0
 
       ifwrite = 1
-      fname = 'equi_interior_neu.dat'
+      fname = 'magnetron_exterior_neu_scat.dat'
 
       if(ifinout.eq.0) then
         xysrc(1) = xyout(1)
@@ -110,16 +123,99 @@ c
       endif
 
 
+      if(irhs.eq.1) then
+        if(ifdn.eq.0) fker => lap_slp
+        if(ifdn.eq.1) fker => lap_dlp
+        
+        dpars(1) = xysrc(1)
+        dpars(2) = xysrc(2)
+      endif
 
-      if(ifdn.eq.0) fker => lap_slp
-      if(ifdn.eq.1) fker => lap_dlp
+      if(irhs.eq.2) then
+        if(igeom.eq.2) then
+        
+         nsrc = 57
+         ipars(1) = nsrc
 
-      
+c
+c      scattering solution corresponding to 17 random
+c      charges, 6 in each of the spokes, 1 in the central
+c      region and 50 outside
+c
+         dpars(1) = 1.21d0 
+         dpars(2) = 1.2d0 
+         dpars(3) = 1.15d0 
+         dpars(4) = 0.9d0 
+         dpars(5) = 1.25d0 
+         dpars(6) = 1.6d0 
+         dpars(7) = 1.55d0 
+         dpars(nsrc+1) = 1.31d0 
+         dpars(nsrc+2) = 0.9d0
+         dpars(nsrc+3) = 0.92d0
+         dpars(nsrc+4) = 1.55d0
+         dpars(nsrc+5) = 1.75d0
+         dpars(nsrc+6) = 1.425d0
+         dpars(nsrc+7) = 1.2d0
+         dpars(2*nsrc+1) = hkrand(0)
+         dpars(2*nsrc+2) = hkrand(0)
+         dpars(2*nsrc+3) = hkrand(0)
+         dpars(2*nsrc+4) = hkrand(0)
+         dpars(2*nsrc+5) = hkrand(0)
+         dpars(2*nsrc+6) = hkrand(0)
+         dpars(2*nsrc+7) = hkrand(0)
+
+         do i=1,nsrc-7
+           rr = 0.9d0 + 0.3d0*hkrand(0)
+           tt = 2*pi*hkrand(0)
+           dpars(7+i) = 1.2d0 + rr*cos(tt) 
+           dpars(nsrc+7+i) = 1.3d0 + rr*sin(tt)
+           dpars(2*nsrc+7+i) = hkrand(0)
+         enddo
+
+         ravg = 0
+         do i=1,nsrc
+           ravg = ravg + dpars(2*nsrc+i)/17.0d0
+         enddo
+
+         do i=1,nsrc
+           dpars(2*nsrc+i) = (dpars(2*nsrc+i) - ravg)*10
+         enddo
+          
+         if(ifdn.eq.0) fker => lap_slp_mult
+         if(ifdn.eq.1) fker => lap_dlp_mult
+        endif
+      endif
+
+cc      call prin2('dpars=*',dpars,51)
+
+      if(irhs.eq.3) then      
+
+        call prinf('nverts=*',nverts,1)
+        ipars(1) = nverts
+        do i=1,nverts
+          ipars(i+2) = hkrand(0)*10.0d0
+
+          ii = i+1
+          if(ii.gt.nverts) ii = 1
+          dx = verts(1,i) - verts(1,ii)
+          dy = verts(2,i) - verts(2,ii)
+
+          dpars(i) = verts(1,i)
+          dpars(nverts+i) = verts(2,i)
+          dpars(2*nverts+i) = sqrt(dx**2 + dy**2)
+          dpars(3*nverts+i) = hkrand(0)
+          dpars(4*nverts+i) = hkrand(0)
+          dpars(5*nverts+i) = hkrand(0)
+        enddo
+        call prinf('ipars=*',ipars,nverts)
+        fker => frand
+      endif
 
       ntarg = 1
 
       call lap_solver(nverts,verts,ifdn,ifinout,iffast,fker,
-     1   xysrc,zpars,ipars,ntarg,xytarg,pot,ifwrite,fname)
+     1   dpars,zpars,ipars,ntarg,xytarg,pot,ifwrite,fname)
+
 
 
       call lap_slp(xysrc,xytarg,zpars,ipars,potex)
@@ -127,11 +223,11 @@ c
       call prin2('pot=*',pot,1)
       call prin2('potex=*',potex,1)
       
-      erra = abs(pot-potex)/abs(potex)
+      erra = abs(pot+potex)/abs(potex)
       call prin2('error in potential=*',erra,1)
 
 
-      nlat = 300
+      nlat = 500
       ntargv = nlat*nlat
 
       
@@ -148,13 +244,46 @@ cc      targ(2,1) = -0.12d0
 
       do i=1,ntargv
         pottargex(i) = 0
-        call lap_slp(xysrc,targ(1,i),zpars,ipars,pottargex(i))
-        write(48,*) pottargex(i)
+        call lap_slp_mult(targ(1,i),dpars,zpars,ipars,pottargex(i))
+        write(48,*) -pottargex(i)
       enddo
       call prin2('pottargex=*',pottargex,1)
 
       
       stop
+      end
+
+
+c
+c
+c
+c
+      subroutine frand(y,dpars,zpars,ipars,f)
+      implicit real *8 (a-h,o-z)
+      real *8 y(*),dpars(*)
+      integer ipars(*)
+
+      ie = ipars(2)
+      nverts = ipars(1)
+      
+
+      
+
+      dx = y(1) - dpars(ie)
+      dy = y(2) - dpars(nverts+ie)
+      rlen = dpars(2*nverts+ie)
+
+      
+      t = sqrt(dx**2 + dy**2) 
+
+      tt = t/rlen
+      p0 = dpars(3*nverts+ie)
+      p1 = dpars(4*nverts+ie)
+      p2 = dpars(5*nverts+ie)
+      
+      f = (tt-p0)*(tt-p1)*(tt-p2) 
+      
+      return
       end
 
 c
@@ -200,6 +329,70 @@ c
       rny = -y(3)/dst
       
       f = -(dx*rnx + dy*rny)/r/2/pi
+
+      return
+      end
+
+      
+
+c
+c
+c 
+c
+      subroutine lap_slp_mult(y,dpars,zpars,ipars,f)
+      implicit real *8 (a-h,o-z)
+      real *8 y(*),dpars(*),f
+      complex *16 zpars(*)
+      integer ipars(*)
+
+      nsrc = ipars(1)
+
+      done = 1
+      pi = atan(done)*4
+
+      f = 0
+
+
+      do i=1,nsrc
+
+        dx = y(1) - dpars(i)
+        dy = y(2) - dpars(nsrc+i)
+
+        r = dx**2 + dy**2
+        f = f -1.0d0/4/pi*log(r)*dpars(2*nsrc+i)
+      enddo
+
+      return
+      end
+
+c
+c
+c
+c
+      subroutine lap_dlp_mult(y,dpars,zpars,ipars,f)
+      implicit real *8 (a-h,o-z)
+      real *8 y(*),dpars(*),f,pi
+      complex *16 zpars(*)
+      integer ipars(*)
+
+      done = 1
+      pi = atan(done)*4
+
+      nsrc = ipars(1)
+      f = 0
+
+
+      do i=1,nsrc
+
+        dx = y(1) - dpars(i)
+        dy = y(2) - dpars(nsrc+i)
+        r = dx**2 + dy**2
+        dst = sqrt(y(3)**2 + y(4)**2)
+        rnx = y(4)/dst
+        rny = -y(3)/dst
+
+        f = f-(dx*rnx + dy*rny)/r/2/pi*dpars(2*nsrc+i)
+      enddo
 
       return
       end
@@ -382,17 +575,23 @@ c
         verts(1,1) = 0
         verts(2,1) = 0
 
-        verts(1,2) = 0.5d0
-        verts(2,2) = -sqrt(3.0d0)/2.0d0-0.1d0
+cc        verts(1,2) = 0.5d0
+cc        verts(2,2) = -sqrt(3.0d0)/2.0d0-0.1d0
+
+       verts(1,2) = 1.0d0
+       verts(2,2) = 0.0d0
         
-        verts(1,3) = 0.57d0
-        verts(2,3) = sqrt(3.0d0)/2.0d0
+cc        verts(1,3) = 0.57d0
+cc        verts(2,3) = sqrt(3.0d0)/2.0d0
+
+        verts(1,3) = 0.3d0
+        verts(2,3) = 1.0d0
         
         xyout(1) = 1.0d0
-        xyout(2) = 0.1d0
+        xyout(2) = 0.4d0
 
         xyin(1) = 0.3d0
-        xyin(2) = 0.2d0
+        xyin(2) = 0.001d0
       endif
 
       if(igeom.eq.2) then
@@ -638,14 +837,20 @@ c
 c
       allocate(rhs(npts),soln(npts))
       
-      do i=1,npts
-        xtmp(1) = xys(1,i)
-        xtmp(2) = xys(2,i)
-        xtmp(3) = dxys(1,i)
-        xtmp(4) = dxys(2,i)
-        call fker(xtmp,dpars,zpars,ipars,rhs(i))
-        rhs(i) = rhs(i)*sqrt(qwts(i))
+      do ie=1,nedges
+        do j=1,nepts(ie)
+          i = lns(ie) + j-1
+          xtmp(1) = xys(1,i)
+          xtmp(2) = xys(2,i)
+          xtmp(3) = dxys(1,i)
+          xtmp(4) = dxys(2,i)
+          ipars(2) = ie
+          call fker(xtmp,dpars,zpars,ipars,rhs(i))
+          rhs(i) = rhs(i)*sqrt(qwts(i))
+        enddo
       enddo
+
+      call prin2('rhs=*',rhs,24)
 
 
       
@@ -801,6 +1006,7 @@ cc        call prin2('xmat=*',xmat,npts*npts)
      2    xsgnl,xsgnr,ncorner,xmatc,xmatcsub,rhs,eps,numit,
      3    soln,niter,errs,
      3    ngmrec,work)
+         call prinf('niter=*',niter,1)
          
          call prin2('soln=*',soln,24)
           rint = 0
@@ -862,7 +1068,7 @@ c
 c
 c      generate targets on a grid
 c
-      nlat = 300
+      nlat = 500
       ntargv = nlat*nlat
 
       allocate(targ(2,ntargv),pottarg(ntargv),isin(ntargv))
@@ -924,10 +1130,22 @@ cc      targ(2,1) = -0.12d0
         write(47,*) verts(1,i),verts(2,i)
       enddo
 
-      do i=1,npts
-        ss = sqrt(qwts(i))
-        write(47,*) xys(1,i),xys(2,i),dxys(1,i),dxys(2,i),qwts(i),
+      do ie=1,nedges
+        istart = lns(ie)
+        nee = nepts(ie)-ncorner
+        do j=1,nee
+          i = istart+j-1
+          ss = sqrt(qwts(i))
+          write(47,*) xys(1,i),xys(2,i),dxys(1,i),dxys(2,i),qwts(i),
      1    rhs(i)/ss,soln(i)/ss
+        enddo
+        istart = rns(ie)
+        do j=1,ncorner
+          i = istart+ncorner-j
+          ss = sqrt(qwts(i))
+          write(47,*) xys(1,i),xys(2,i),dxys(1,i),dxys(2,i),qwts(i),
+     1    rhs(i)/ss,soln(i)/ss
+        enddo
       enddo
 
       do i=1,nch
@@ -2485,7 +2703,6 @@ c
        call xreplmat(ncorner,ncorner,nnn,0,ncorner,xmatc2,xmatsub0,
      1       xsgnr) 
 
-       call prinf('nnn=*',nnn,1)
 
        do i=1,nnn
          xmatsub0(i,i) = 0.5d0*(-1)**(ifinout)
