@@ -31,7 +31,7 @@ c       igeom =1, skew triangle
 c       igeom =2, jeremy's magnetron
 
       igeom = 1
-      igeom = 2
+cc      igeom = 2
 
       call loadverts_demos(igeom,nverts,verts,xyin,xyout)
 
@@ -227,7 +227,7 @@ cc      call prin2('dpars=*',dpars,51)
       call prin2('error in potential=*',erra,1)
 
 
-      nlat = 500
+      nlat = 100
       ntargv = nlat*nlat
 
       
@@ -746,7 +746,7 @@ c
 
       nch = 0
       npts = 0
-      kmid = 24
+      kmid = 20
 
 
       do i=1,nverts
@@ -760,6 +760,13 @@ c
         nch = nch + imid(i)
         npts = npts  + imid(i)*kmid
       enddo
+      
+      call prinf('imid=*',imid,nverts)
+      call prinf('npts=*',npts,1)
+      call prin2('pl=*',pl,nverts)
+      call prin2('pr=*',pr,nverts)
+      call prin2('angs=*',angs,nverts+1)
+
 
 
       allocate(el(nverts),er(nverts))
@@ -780,6 +787,7 @@ c
 
       call getedgedis(nverts,verts,nedges,el,er,pl,pr,imid,kmid,
      1       npts,xys,dxys,qwts,lns,rns,nepts,nch,ixys,ks,iscorn)
+      
 
 
 c
@@ -849,6 +857,7 @@ c
           rhs(i) = rhs(i)*sqrt(qwts(i))
         enddo
       enddo
+
 
       call prin2('rhs=*',rhs,24)
 
@@ -1068,7 +1077,7 @@ c
 c
 c      generate targets on a grid
 c
-      nlat = 500
+      nlat = 100
       ntargv = nlat*nlat
 
       allocate(targ(2,ntargv),pottarg(ntargv),isin(ntargv))
