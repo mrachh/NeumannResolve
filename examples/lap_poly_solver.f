@@ -31,7 +31,7 @@ c       igeom =1, skew triangle
 c       igeom =2, jeremy's magnetron
 
       igeom = 1
-cc      igeom = 2
+      igeom = 2
 
       call loadverts_demos(igeom,nverts,verts,xyin,xyout)
 
@@ -96,8 +96,8 @@ c       irhs = 3, random data
 c       irhs = 4, data is legendre on one of the panels
 c          
  
-      ifdn = 0 
-      ifinout = 0
+      ifdn = 1 
+      ifinout = 1
       iffast = 2
       irhs = 1
 
@@ -226,8 +226,10 @@ cc      call prin2('dpars=*',dpars,51)
       erra = abs(pot+potex)/abs(potex)
       call prin2('error in potential=*',erra,1)
 
+      stop
 
-      nlat = 100
+
+      nlat = 3
       ntargv = nlat*nlat
 
       
@@ -328,7 +330,7 @@ c
       rnx = y(4)/dst
       rny = -y(3)/dst
       
-      f = -(dx*rnx + dy*rny)/r/2/pi
+      f = (dx*rnx + dy*rny)/r/2/pi
 
       return
       end
@@ -470,7 +472,7 @@ c
       
       r = (xx-xt)**2 + (yy-yt)**2
       rrn = (xx-xt)*rnxe + (yy-yt)*rnye
-      f = -dd*rlen/2*rrn/r/2/pi
+      f = dd*rlen/2*rrn/r/2/pi
 
 
       return
@@ -527,6 +529,7 @@ c
 
       done = 1
       pi = atan(done)*4
+
 
       dd = 0
       xx = 0
@@ -590,8 +593,8 @@ cc        verts(2,3) = sqrt(3.0d0)/2.0d0
         xyout(1) = 1.0d0
         xyout(2) = 0.4d0
 
-        xyin(1) = 0.3d0
-        xyin(2) = 0.001d0
+        xyin(1) = 0.31d0
+        xyin(2) = 0.02d0
       endif
 
       if(igeom.eq.2) then
@@ -1077,7 +1080,7 @@ c
 c
 c      generate targets on a grid
 c
-      nlat = 100
+      nlat = 3
       ntargv = nlat*nlat
 
       allocate(targ(2,ntargv),pottarg(ntargv),isin(ntargv))
@@ -1634,6 +1637,7 @@ c
       ifwhts = 1
       call legewhts(m,tsquad,wquad,ifwhts)
 
+
       if(ifdn.eq.1) then
         fker_gau => lslp_gau
         fker_jer => lslp_jer
@@ -1762,6 +1766,7 @@ c
             enddo
             
             ier = 0
+
 
             call adinrec(ier,stack,a,b,fker_gau,par1,tpack,tsquad,
      1        wquad,m,vals,nnmax,eps,pottmp,maxdepth,maxrec,

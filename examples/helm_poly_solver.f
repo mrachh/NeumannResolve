@@ -81,8 +81,8 @@ c
 c       if exact solution is known, store it in 'fort.48'
 c          
  
-      ifdn = 0 
-      ifinout = 0
+      ifdn = 1 
+      ifinout = 1
       iffast = 2
 
       zk = 1.2d0
