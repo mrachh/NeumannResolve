@@ -31,7 +31,7 @@ c       igeom =1, skew triangle
 c       igeom =2, jeremy's magnetron
 
       igeom = 1
-      igeom = 2
+cc      igeom = 2
 
       call loadverts_demos(igeom,nverts,verts,xyin,xyout)
 
@@ -96,8 +96,8 @@ c       irhs = 3, random data
 c       irhs = 4, data is legendre on one of the panels
 c          
  
-      ifdn = 1 
-      ifinout = 1
+      ifdn = 0 
+      ifinout = 0
       iffast = 2
       irhs = 1
 
@@ -557,7 +557,7 @@ c
       
       r = (xx-xt)**2 + (yy-yt)**2
       rrn = (xx-xt)*rnxe + (yy-yt)*rnye
-      f = -dd*sqrt(rlen)*rrn/r/2/pi
+      f = dd*sqrt(rlen)*rrn/r/2/pi
 
 
       return
@@ -574,26 +574,29 @@ c
 
       if(igeom.eq.1) then
 
-        nverts = 3
+        nverts = 4
         verts(1,1) = 0
         verts(2,1) = 0
 
 cc        verts(1,2) = 0.5d0
 cc        verts(2,2) = -sqrt(3.0d0)/2.0d0-0.1d0
 
-       verts(1,2) = 1.0d0
+       verts(1,2) = 0.5d0
        verts(2,2) = 0.0d0
+
+       verts(1,3) = 1.0d0
+       verts(2,3) = 0.0d0
         
 cc        verts(1,3) = 0.57d0
 cc        verts(2,3) = sqrt(3.0d0)/2.0d0
 
-        verts(1,3) = 0.3d0
-        verts(2,3) = 1.0d0
+        verts(1,4) = 0.3d0
+        verts(2,4) = 1.0d0
         
         xyout(1) = 1.0d0
         xyout(2) = 0.4d0
 
-        xyin(1) = 0.31d0
+        xyin(1) = 0.01d0
         xyin(2) = 0.02d0
       endif
 
@@ -755,8 +758,8 @@ c
       do i=1,nverts
         rmid(i) = rpan(i) -pl(i)-pr(i)
         hmid = 2.0d0*min(pl(i),pr(i))
-        hmida = 2.0d0*min(pl(i)*abs(tan(angs(i))),
-     1      pr(i)*abs(tan(angs(i+1))))
+        hmida = 2.0d0*min(pl(i)*abs(tan(angs(i)/2)),
+     1      pr(i)*abs(tan(angs(i+1)/2)))
         if(hmid.gt.hmida) hmid = hmida
         imid(i) = rmid(i)/hmid + 1
 
