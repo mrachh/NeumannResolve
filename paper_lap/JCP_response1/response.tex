@@ -109,23 +109,17 @@ to form well-conditioned discretizations. Again, I am aware that this falls squa
 
 \qa
 8) 
-p. 21-22. I find the content of Appendix B difficult to understand for a number of reasons. The motivation for such a result is clear, but I?m not sure I totally understand the conclusion. In particular, you want to show that using the adjoint discretization one can interpolate the density on a panel far from the corner. That makes sense. Your approach to showing this is to use the relation (B.1) to find another equivalent integral equation, which you then show can be solved using existing information accurately.
-Is the claim that to actually interpolate the density on such a panel, one would need to solve another Dirichlet problem, and it does NOT suffice to just interpolate the value of ? obtained on the GL nodes when solving the original problem? Please clarify this point.
+p. 21-22. I find the content of Appendix B difficult to understand for a number of reasons. The motivation for such a result is clear, but I'm not sure I totally understand the conclusion. In particular, you want to show that using the adjoint discretization one can interpolate the density on a panel far from the corner. That makes sense. Your approach to showing this is to use the relation (B.1) to find another equivalent integral equation, which you then show can be solved using existing information accurately.
+Is the claim that to actually interpolate the density on such a panel, one would need to solve another Dirichlet problem, and it does NOT suffice to just interpolate the value of $\sigma$ obtained on the GL nodes when solving the original problem? Please clarify this point.
 
-\qb
-\todo{MR}
-
-\qa 
 There are these other issues I?m having with it:
-(a) On your assumptions about the discretization, 1 and 3 have an easy-to-understand interpretation. It?s unclear to me what 2 is really assuming about the discretization, given that it seems to mostly to be introducing notation. Of course, I can imagine conditions where ?0 is less than the width of some panels, but is there some deeper restriction?
-(b) Your assumption that ?0 > 1 and your later statement that the rate at which a polynomial interpolant will converge is C??M is a bit awkward, since these choices are specific for a function
+(a) On your assumptions about the discretization, 1 and 3 have an easy-to-understand interpretation. It's unclear to me what 2 is really assuming about the discretization, given that it seems to mostly to be introducing notation. Of course, I can imagine conditions where $\rho_{0}$ is less than the width of some panels, but is there some deeper restriction?
+(b) Your assumption that $\rho_{0}>1$ and your later statement that the rate at which a polynomial interpolant will converge is $C \rho_{0}^{M}$ is a bit awkward, since these choices are specific for a function
 on an interval of length 2.
-0
-(c) The second paragraph on p. 22 is very unclear to me. I don?t even understand the first sentence as to why k(s,t) would be identically 0 on the same segment as ?([s1,s2]), or what is really even meant by ?segment? here. Furthermore, it is mentioned that k(s, t) when considered as a function of t ? C has a singularity at ?(s). Given the current setup wouldn?t the singularity be at s? I would recommend rewriting this entire paragraph to be more transparent.
+(c) The second paragraph on p. 22 is very unclear to me. I don?t even understand the first sentence as to why k(s,t) would be identically 0 on the same segment as $\gamma([s1,s2])$, or what is really even meant by ?segment? here. Furthermore, it is mentioned that k(s, t) when considered as a function of $t \in \mathbb{C}$ has a singularity at $\gamma(s)$. Given the current setup wouldn't the singularity be at s? I would recommend rewriting this entire paragraph to be more transparent.
 
 \qb
-\todo{MR}
-
+Thank you for pushing on this. We have rewritten the section completely to address all of the concerns above and feel that the readability now is significantly improved. We have eliminated the assumptions on the geometry completely as it can be confusing and rather reduced it to an error estimate of a solution to a Dirichlet problem using the same grid.
 \qa
 Small fixes and typos:
 
