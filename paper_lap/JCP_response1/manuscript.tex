@@ -183,11 +183,9 @@ Let $S:X \to \uX$ denote the operator which samples a function on the boundary a
 S[f] = (f(x_{1})\sqrt{w_{1}},f(x_{2})\sqrt{w_{2}},\ldots f(x_{N}) \sqrt{w_N} )^{T} = \underline{f} \, .
 \end{equation}
 Let $P:\underline{X} \to X$ denote the operator mapping the discretized samples to it's piecewise interpolant on the boundary.
-Let $\Gamma_{\ell} = \gamma([s_{1},s_{2}])$ denote a panel that does not contain a corner vertex and is discretized with $M$ nodes  $x_{i},x_{i+1},\ldots x_{i+M-1}$.}
+Let $\Gamma_{\ell} = \gamma([s_{1},s_{2}])$ denote a panel that does not contain a corner vertex and is discretized with $M$ nodes  $x_{i},x_{i+1},\ldots x_{i+M-1}$.
 
-\note{Is there a clean way to give an explicit definition of P or it's obvious?}
 
-{\color{blue}
 Let $A$ denote operator corresponding to the interior Dirichlet problem where the solution is represented as a double layer potential. Let $\underline{A}$ denote the $N\times N$ matrix corresponding to the discretization of $A$. Let $g$ denote the
 right hand side for the Neumann problem, let $\sigma$ denote the corresponding solution.   Let $\underline{\sigma}$ denote the solution of the linear system $\uA^{T} \usigma = S[g]$. Let $h_{i}$, $i=1,2,\ldots M$, denote the scaled Legendre polynomials to the panel $\Gamma_{\ell}$.
 The main result of this appendix is to show that under suitable assumptions, that the computed density can be accurately interpolated on $\Gamma_{\ell}$, i.e.  
@@ -262,8 +260,6 @@ In practice, a discretization with macroscopic panels at the corner, panels not 
 The size of the panel at the corner needs to be chosen based on the angle formed at the corner---smaller panels for angles closer to $0$ or $2\pi$, in order to resolve the corresponding close to touching interactions.
 \end{rem}
 } 
-
-\note{Do we include a description of the discretization procedure we use in practice?}
  
  \bibliographystyle{elsarticle-num}
  \bibliography{bib_file2}

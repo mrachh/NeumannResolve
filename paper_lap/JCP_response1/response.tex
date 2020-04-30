@@ -1,12 +1,15 @@
 \documentclass[11pt]{letter}
-\usepackage{amssymb}
-\usepackage{amsmath}
-\usepackage{color}
-\usepackage{parskip}
+\usepackage{amsmath,amsthm,amssymb,amscd}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage{multirow}
+\usepackage{hhline}
+\usepackage{cleveref}
+\usepackage{xcolor}
+\usepackage{tikz}
 \usepackage{comment}
 \usepackage{mathpazo}
 \usepackage[utf8]{inputenc}
-
 \usepackage[margin=1in]{geometry}
 \usepackage{setspace}
 
@@ -99,13 +102,31 @@ adjacent panels ($A_{0}$ is of size $P + 2M \times P + 2M$ ). Also, I am not sur
 to form well-conditioned discretizations. Again, I am aware that this falls squarely into the scope of existing work (again, probably [14]), but find this also sufficiently important to at least summarize in the current work.
 
 \qb
-\todo{MR}
+We have included a remark to point out that the conditioning for the solution of Neumann problem is inherited from its corresponding Dirichlet discretization. (see remark)
+
+As noted, with our approach, the conditioning of the discrete system for the Neumann problem inherits the properties of the corresponding Dirichlet discretization. The conditioning of using this approach as expected is independent of the number of points used in the discretization. However, the physical conditioning of the problem itself is fairly complicated owing to the presence of continuous spectra on various intervals whose sizes depend on the angles formed at the corners. This is reflected in any Dirichlet or Neumann discretization for regions with corners and falls outside the scope of this work. For the triangle example, we have included a plot of the spectrum of the operator here for reference. We also plot the spectrum of the discretized operator based on a dyadic mesh at the corner.
+\begin{center}
+\includegraphics[width=0.4\linewidth]{sp-eigs-plot.pdf}
+\includegraphics[width=0.4\linewidth]{ref-eigs-plot.pdf}
+\end{center}
+
+
+Similar plots for the singular values of the operators for Dirichlet problem for Laplace and Stokes equations have already been reported in [1] and we feel that it would take away from the main point of the paper.
+
+1. K.~Serkh, V.~Rokhlin, On the solution of elliptic partial differential
+  equations on regions with corners, Journal of Computational Physics 305
+  (2016) 150--171.
 
 \qa
-7) p. 19. Even for a problem with 22k dofs, 105 iterations of a Krylov method seems like a lot, especially if the problem is well-conditioned. I can?t help but wonder if this is an artifact of the fact that your FMM tolerance is the same as your iterative method tolerance. If you set the latter to 1e-14 or 1e-13, does the number of iterations decrease drastically?
+7) p. 19. Even for a problem with 22k dofs, 105 iterations of a Krylov method seems like a lot, especially if the problem is well-conditioned. I can't help but wonder if this is an artifact of the fact that your FMM tolerance is the same as your iterative method tolerance. If you set the latter to 1e-14 or 1e-13, does the number of iterations decrease drastically?
 
 \qb
-\todo{MR}
+We use a version of GMRES which does not suffer from stagnation at low thresholds and an FMM whose tolerance was set to $5 \times 10^{-16}$. The number of iterations do not reduce drastically if we increase the iteration count. We attach here a plot of the relative residual as a function of iteration number. 
+\begin{center}
+\includegraphics[width=0.7\linewidth]{lap-iter-count-wheel.pdf}
+\end{center}
+
+Our boundary data has randomly generated charge strengths and sources. For a new run, the original discretization requires $106$ iterations for the Neumann problem. The iteration count for the corresponding adjoint Dirichlet problem is $83$, and iteration count on doubling the number of points in our existing discretization is $106$. 
 
 \qa
 8) 
@@ -119,7 +140,7 @@ on an interval of length 2.
 (c) The second paragraph on p. 22 is very unclear to me. I don?t even understand the first sentence as to why k(s,t) would be identically 0 on the same segment as $\gamma([s1,s2])$, or what is really even meant by ?segment? here. Furthermore, it is mentioned that k(s, t) when considered as a function of $t \in \mathbb{C}$ has a singularity at $\gamma(s)$. Given the current setup wouldn't the singularity be at s? I would recommend rewriting this entire paragraph to be more transparent.
 
 \qb
-Thank you for pushing on this. We have rewritten the section completely to address all of the concerns above and feel that the readability now is significantly improved. We have eliminated the assumptions on the geometry completely as it can be confusing and rather reduced it to an error estimate of a solution to a Dirichlet problem using the same grid.
+Thank you for bringing this to our notice. The section as written was confusing and we have rewritten the section completely to address all of the concerns above and feel that the readability now is significantly improved. We have eliminated the assumptions on the geometry completely as it can be confusing and rather reduced it to an error estimate of a solution to a Dirichlet problem using the same grid. The purpose of our approach is to show that a good Dirichlet discretization of the corner problem can be reutilized to obtain a discretization of the Neumann problem.
 \qa
 Small fixes and typos:
 
@@ -134,8 +155,7 @@ This article is not suitable for JCP. Most of it is Theorem, Lemma, Proposition,
 
 
 \qb
-
-\todo{MR}
+The solution of Laplace's equation in complicated domains is a classical problem in computational physics and has a large array of applications such as electrostatics, fluid flow, diffusion, and magnetohydrodynamics to name a few.  The use of theorems, lemmas, propositions has been mainly to summarize existing work based which serves as a foundation for our method. Here are a few other examples of papers in JCP which we believe are written in a similar style.
 
 \qa
 
@@ -143,15 +163,16 @@ The scope of the article completely misses an entire arena of literature in the 
 
 \qb
 
-\todo{MR}
-
+The unified transform method while handles the solution of Laplace's equation on simple polygons, it does not scale for larger problems like the ones presented in the paper. The "broken wheel" region for which $22,240$ nodes have been used has $107$
+corners and edges, thereby just requiring approximately $200$ nodes per edge for discretization. Moreover, our method has been coupled to FMMs thereby able to solve this problems in $O(N)$ CPU time, where $N$ is the number of degrees of freedom required to discretize the problem. We believe that Fokas' method wouldn't be competitive as compared to our method (105 iterations in 15 secs to 13 digits of accuracy and plotting the solution at 250000 points in 6.5 secs on a single CPU core).
+Moreover, our method also extends to discretizations of the Helmholtz problem (for any complex wave number in the first quadrant) and we are currently in the process of describing the discretization procedure for both Dirichlet and Neumann boundary value problems. 
 \qa
 
 The method does the simplest of problems, Laplace on a convex domain, that was attacked much earlier and neater in 2001/2003 by Fokas. This paper does not show non-convex polygonal domains or Helmholtz or modified Helmholtz.
 
 \qb
 
-\todo{MR}
+As stated above, the approach does not scale well for large complicated problems. Moreover, our example for the solution in the exterior of the "broken wheel" geometry is emphatically non-convex and we believe is suitably complicated as well. 
 
 
 
@@ -159,7 +180,7 @@ The method does the simplest of problems, Laplace on a convex domain, that was a
 We thank the reviewer for their careful reads of our manuscript, and comments 
 which have helped significantly improve the quality of the manuscript.
 We hope that our revised manuscript based on their suggestions is now
-suitable for publication in PAA.
+suitable for publication in JCP-X.
 
 
 \closing{Sincerely,}
@@ -168,4 +189,5 @@ suitable for publication in PAA.
 
 
 \end{letter}
+
 \end{document}
