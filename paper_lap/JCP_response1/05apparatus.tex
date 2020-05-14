@@ -1,28 +1,33 @@
 
 \section{Numerical apparatus \label{sec:napp}}
 \subsection{Adjoint discretization}
-
+\upd{Let $X = \mathbb{L}^2([0,L])$ and $\underline{X} = \mathbb{R}^{N}$.  Let $\left< \cdot, \cdot \right>_{Y}$
+denote the standard inner products on the Hilbert spaces $Y=X,\underline{X}$.}
 The following lemma relates the discretization of the inverse of an operator to the adjoint of the discretization of its inverse. Its proof follows directly from the definition of the adjoint and is omitted.
+\upd{
 \begin{lemma}\label{lem_adjm}
-Suppose $A: L^2([0,L]) \to L^2([0,L])$ is a bounded invertible operator and that $A_\epsilon$ is an operator such that
+Suppose $A: X \to X$ is a bounded invertible operator and that $\uA: \uX \to \uX$ is the corresponding discretized operator such that
 \begin{align}
-\left| \langle f,A^{-1} g \rangle - \langle f,A^{-1}_\epsilon g \rangle \right| \le \epsilon \|f\| \|g\|,
+\left| \langle f,A^{-1} g \rangle_{X} - \langle S[f],\uA^{-1} S[g] \rangle_{\uX} \right| \le \epsilon \|f\|_{X} \|g\|_{X},
 \end{align}
-for all $f$ and $g$ in some subspace $S_{\epsilon} \subset L^2([0,L]).$ Here $\langle \cdot, \cdot \rangle$ denotes the inner product on $L^2([0,L])$ and $\| \cdot\|$ denotes the norm for $L^2([0,L]).$ Then, for all functions $f$ and $g$ in $S_{\epsilon}$
+for all $f$ and $g$ in some subspace $S_{\epsilon} \subset L^2([0,L]).$  Then, for all functions $f$ and $g$ in $S_{\epsilon}$
 \begin{align}
-\left| \langle f,(A^{-1})^* g \rangle - \langle f,\left(A^{-1}_\epsilon\right)^* g \rangle \right| \le \epsilon \|f\| \|g\|
+\left| \langle f,(A^{-1})^* g \rangle_{X} - \langle S[f],\left(A^{-1}_\epsilon\right)^* S[g] \rangle_{\uX} \right| \le \epsilon \|f\|_{X} \|g\|_{X}
 \end{align}
 where $\,{{}^*}\,$ denotes the adjoint.
 \end{lemma}
+}
 
 The following corollary follows immediately from the previous result.
+\upd{
 \begin{corollary}
-Let $A$ be the $N\times N$ matrix obtained by discretizing the interior Dirichlet problem and $S_\epsilon$ be the collection of functions given by Definition \ref{def:seps}. Then for all functions $f,g \in S_\epsilon$
+Let $\uA$ be the $N\times N$ matrix obtained by discretizing the interior Dirichlet problem and $S_\epsilon$ be the collection of functions given by Definition \ref{def:seps}. Then for all functions $f,g \in S_\epsilon$
 \begin{align}
-\left| \langle {\bf g}, (A^T)^{-1}{\bf f} \rangle - \int_0^L g(t)\,\sigma(t)\,{\rm d}t \right| < \epsilon \|f\|\, \|g\|,
+\left| \langle S[g], (\uA^T)^{-1}S[f] \rangle - \int_0^L g(t)\,\sigma(t)\,{\rm d}t \right| < \epsilon \|f\|\, \|g\|,
 \end{align}
-where ${\bf f},{\bf g}$ are the discretizations of $f$ and $g$ scaled by the square roots of the discretization weights, and $\sigma$ is the solution to the exterior Neumann problem with boundary data $f$.
+where $\sigma$ is the solution to the exterior Neumann problem with boundary data $f$.
 \end{corollary}
+}
 
 Hence a discretization of the Neumann problem can be obtained simply by taking the adjoint of the Dirichlet problem. The resulting density $\sigma$ obtained is accurate in a weak sense, ie. its inner products against functions in $S_\epsilon$ are accurate to within an error of $\epsilon.$
 
@@ -36,29 +41,31 @@ We observe that if the solution to the boundary value problem is being calculate
 \label{rem:strong-sol-smooth}
 Similarly, if the point $\by \in \mathbb{R}^2 \setminus \Omega$ at which the solution to the Neumann boundary value problem is to be calculated lies close to a smooth panel then the density $\sigma$ near that point can be interpolated to a finer set of quadrature points and the value of $u(\by)$ can once again be obtained to precision $\epsilon.$ We note, however, that in general the density in the vicinity of a corner cannot be interpolated accurately. This follows from the fact that the interpolation scheme constructed is only guaranteed to interpolate the powers arising in the Dirichlet problem accurately near the corner. The collection of singular powers arising in Neumann problems contain negative powers which are not contained in this set and hence are not interpolated accurately.
 \end{remark}
+{\color{blue}
 \begin{remark}
 In this approach, note that the discretization of the Neumann problem, inherits its spectral properties from the discretization of the corresponding adjoint Dirichlet problem (eigenvalues and singular values are the same, but eigenvectors and singular vectors may differ). Thus, when using an iterative method for solving the discrete linear system for the Dirichlet and Neumann problem, the number of iterations required for the relative residual to converge below $\varepsilon$ would be fairly similar. 
 \end{remark}
+}
 
 \subsection{Weak corner re-solving \label{sec:resolve}}
 In this section we address the problem highlighted in the previous one; namely, the accurate evaluation of the solution to the exterior Neumann problem in the vicinity of a corner. Our approach is based on the observation that the potential generated by the density on the boundary outside of a sufficiently small neighborhood of the corner is smooth when evaluated in the vicinity of the corner. This allows us to convert the problem of evaluating the potential near the corner (given the approximation to the density obtained using the adjoint approach described in the previous section) into a purely local one. In particular, we re-discretize only a small neighborhood of the corner which in turn allows us to evaluate the potential arbitrarily close to the corner to within a small factor of machine precision. 
 
 In the following we assume that we are given a discretization of the interior Dirichlet boundary integral equation (\ref{bie_intd}) with nodes $x_1,\dots,x_N$ and corresponding weights $w_1,\dots,w_N.$ In particular, we assume that the discretization nodes are obtained by subdividing the boundary into panels. Those panels which contain a vertex are discretized using a custom discretization scheme (see Section \ref{sec:disc_dir}) while the remaining panels are discretized using a standard smooth quadrature rule (such as Gauss-Legendre or Chebyshev nodes). In the following we assume that an $M$-point Gauss-Legendre quadrature rule is used and the corner panels are discretized using $P$ nodes (together with a collection of orthonormal functions on that interval $\phi_1,\dots,\phi_P$).
 
-Additionally, we denote the discretization of the interior Dirichlet operator (using the custom quadratures described in Section \ref{sec:disc_dir}) by $A.$ Let $\underline{f} = (f_1,\dots,f_N)^T$ where $f_i = f(x_i) \sqrt{w_i}$ and $f: \partial \Omega \to \mathbb{R}$ is the right-hand side of the exterior Neumann problem. Finally, let $\underline{\sigma}$ be the approximation to the density (scaled by the square roots of the weights) obtained by solving the linear system
+Additionally, we denote the discretization of the interior Dirichlet operator (using the custom quadratures described in Section \ref{sec:disc_dir}) by $\upd{\uA}.$ As before, let $\underline{f} = (f_1,\dots,f_N)^T$ where $f_i = f(x_i) \sqrt{w_i}$ and $f: \partial \Omega \to \mathbb{R}$ is the right-hand side of the exterior Neumann problem. Finally, let $\underline{\sigma}$ be the approximation to the density (scaled by the square roots of the weights) obtained by solving the linear system
 \begin{align}\label{eqn:adj_linalg}
-A^T \underline{\sigma} = \underline{f}.
+\upd{\uA}^T \underline{\sigma} = \underline{f}.
 \end{align}
 For notational convenience we let $\gamma:[-\delta,L-\delta] \to \partial \Omega$ be a counterclockwise arclength parametrization of $\partial \Omega$ such that  $\gamma(0)$ corresponds to a vertex and $\gamma[-\delta,\delta]$ corresponds to a corner panel.
 
-For a panel $\gamma([s_1,s_2])$ with discretization nodes $x_i,\dots,x_{i+M-1}$ corresponding to a Gauss-Legendre panel the density is smooth and thus it is expected to be well-represented in the basis of Legendre polynomials (shifted and scaled to the interval $[s_1,s_2]$). Hence standard interpolation techniques can be used to obtain an accurate approximation to the density $\sigma$ on the interval $s_1 \le s\le s_2$ . Typically we use 16th order Gauss-Legendre panels and choose their sizes so that their length is no more than their distance to the nearest corner. This latter choice guarantees that for any $\epsilon>0$ there exists an $M$ such that if the Gauss-Legendre panels are discretized using an $M$-point Gauss-Legendre rule then the density on that panel can be interpolated to relative precision $\epsilon$ in an $L^2$-sense.
+For a panel $\gamma([s_1,s_2])$ with discretization nodes {\color{blue}$x_i,\dots,x_{i+M-1}$} corresponding to a Gauss-Legendre panel the density is smooth and thus it is expected to be well-represented in the basis of Legendre polynomials (shifted and scaled to the interval $[s_1,s_2]$). Hence standard interpolation techniques can be used to obtain an accurate approximation to the density $\sigma$ on the interval $s_1 \le s\le s_2$ . Typically we use 16th order Gauss-Legendre panels and choose their sizes so that their length is no more than their distance to the nearest corner. This latter choice guarantees that for any $\epsilon>0$ there exists an $M$ such that if the Gauss-Legendre panels are discretized using an $M$-point Gauss-Legendre rule then the density on that panel can be interpolated to relative precision $\epsilon$ in an $L^2$-sense.
 (We discuss a sketch of a proof in~\cref{sec:appb})
 
 For corner panels the nodes were constructed to enable stable interpolation of densities $s^\mu,$ $\mu \in 0 \cup [1/2,50],$ on the interval $s \in (-\delta,\delta)$ - assuming for simplicity that the corner is at $0$ and the panel is of length $2 \delta.$ As mentioned above, the density is expected to contain terms of the form $s^\mu$ for some finite collection of $\mu$ in the interval $(-1/2,1/2),$ and hence will not in general be stably interpolable on the interval $(-\delta,\delta).$ However, it is possible to use the density obtained using (\ref{eqn:adj_linalg}) to construct a sequence of nested problems in the neighborhood of the corner, the solutions of which enable accurate interpolation of the density arbitrarily close to the vertex. The number of these problems depends only on the distance of the closest evaluation point to the corner. In particular, if $r$ is the smallest distance of an evaluation point from the corner then only $\log_2 r/\delta$ levels are required. Each problem involves the solution of a small linear system (typically less than $100 \times 100$) and as such can be performed quickly. Furthermore, we note that the algorithm can be easily parallelized to treat multiple corners concomitantly.
 
 We begin with the following proposition, the proof of which follows immediately from the definition of the kernel $k$ and is omitted.
 \begin{proposition}
-Suppose that $f$ be a piecewise-analytic function in $S_\epsilon$ and  $\underline{\sigma} = (A^T)^{-1} {\bf f}$ is the approximation to the Neumann density obtained using the adjoint of the discretization for the interior Dirichlet boundary integral equation. Further suppose that the discretization nodes are ordered so that $s_1,\dots,s_P$ correspond to the corner panel associated with the interval $(-\delta,\delta),$ $s_{P+1},\dots,s_{P+M}$ correspond to the Gauss-Legendre panel immediately to the left associated with the interval $(-2\delta,-\delta),$ and $s_{P+M+1},\dots,s_{P+2M}$ to the Gauss-Legendre panel immediately to the right associated with the interval $(\delta,2\delta).$
+Suppose that $f$ be a piecewise-analytic function in $S_\epsilon$ and  $\underline{\sigma} = (\upd{\uA}^T)^{-1} \upd{\uf}$ is the approximation to the Neumann density obtained using the adjoint of the discretization for the interior Dirichlet boundary integral equation. Further suppose that the discretization nodes are ordered so that $s_1,\dots,s_P$ correspond to the corner panel associated with the interval $(-\delta,\delta),$ $s_{P+1},\dots,s_{P+M}$ correspond to the Gauss-Legendre panel immediately to the left associated with the interval $(-2\delta,-\delta),$ and $s_{P+M+1},\dots,s_{P+2M}$ to the Gauss-Legendre panel immediately to the right associated with the interval $(\delta,2\delta).$
 Then
 \begin{align}
 h(t) = \sum_{i=P+2M+1}^N k(s_i,t) \sqrt{w_i} \,\underline{\sigma}_i
@@ -74,11 +81,11 @@ We note that the solution to (\ref{eqn:resolve_neum0}) is equal to the solution 
 \begin{align}\label{eqn:resolve_diri0}
 -\sigma(s) + \int_{-2\delta}^{2\delta} k(t,s) \sigma(t)\,{\rm d}t = f(s)-h(s), \quad -2\delta \le s \le 2\delta.
 \end{align}
-which is a Dirichlet boundary integral equation for a wedge with a piecewise analytic right-hand side. In particular, we can discretize the operator using the method summarized in the previous section. Specifically, we subdivide the interval $[-\delta,\delta]$ into three subintervals $I_0 = [-\delta,\delta/2],$ $L_0 = [-\delta/2,\delta/2],$ and $J_0 = [\delta/2,\delta].$ On $I_0$ and $J_0$ we place standard Gauss-Legendre discretization nodes, while on $L_0$ we use the custom discretization scheme for corners, outlined in Section \ref{sec:disc_dir} (see \cite{} for a detailed description of the method). On the intervals $[-2\delta,-\delta]$ and $[\delta,2\delta]$ we use the same discretization nodes and weights as in the original system for those intervals (we call these panels $K_0$ and $Q_0$ respectively). Let $\underline{f}_0$ denote the right-hand side of (\ref{eqn:resolve_neum0}) evaluated at these discretization nodes and scaled by the square roots of the corresponding weights. Let $A_0$ be the discretization of the interior Dirichlet problem operator (ie. the operator acting on $\sigma$ on the left-hand side of (\ref{eqn:resolve_diri0})). We note that due to the scale invariance of Laplace's equation for polygonal domains the portion of $A_0$ corresponding to the self-interaction of $L_0$ is a submatrix of the original matrix $A.$ All other blocks can be generated using the discretization nodes as quadrature nodes.
+which is a Dirichlet boundary integral equation for a wedge with a piecewise analytic right-hand side. In particular, we can discretize the operator using the method summarized in the previous section. Specifically, we subdivide the interval $[-\delta,\delta]$ into three subintervals $I_0 = [-\delta,\delta/2],$ $L_0 = [-\delta/2,\delta/2],$ and $J_0 = [\delta/2,\delta].$ On $I_0$ and $J_0$ we place standard Gauss-Legendre discretization nodes, while on $L_0$ we use the custom discretization scheme for corners, outlined in Section \ref{sec:disc_dir} (see \cite{} for a detailed description of the method). On the intervals $[-2\delta,-\delta]$ and $[\delta,2\delta]$ we use the same discretization nodes and weights as in the original system for those intervals (we call these panels $K_0$ and $Q_0$ respectively). Let $\underline{f}_0$ denote the right-hand side of (\ref{eqn:resolve_neum0}) evaluated at these discretization nodes and scaled by the square roots of the corresponding weights. Let $\upd{\uA_0}$ be the discretization of the interior Dirichlet problem operator (ie. the operator acting on $\sigma$ on the left-hand side of (\ref{eqn:resolve_diri0})). We note that due to the scale invariance of Laplace's equation for polygonal domains the portion of $\upd{\uA_0}$ corresponding to the self-interaction of $L_0$ is a submatrix of the original matrix $\upd{\uA}.$ All other blocks can be generated using the discretization nodes as quadrature nodes.
 
 The analysis of the previous section then shows that if $\underline{\sigma}_0$ is the solution of the equation
 \begin{align}
-A_0^T \underline{\sigma}_0 = \underline{f}_0
+\upd{\uA_0^T} \underline{\sigma}_0 = \underline{f}_0
 \end{align}
 then $\underline{\sigma}_0$ gives a {weak solution} to the integral equation (\ref{eqn:resolve_neum0}), i.e. for any function $g$ which is analytic on $[-2\delta,0]$ and $[0,2\delta]$ the inner product $\langle g,\sigma \rangle$ can be calculated to precision $\epsilon$ using the solution $\underline{\sigma}_0.$ Moreover, since the true density $\sigma$ is smooth on $[\delta,2\delta]$ and $[-2\delta,-\delta]$ the Gauss-Legendre discretization allows accurate interpolation of the density on those regions.
 
@@ -92,9 +99,9 @@ Suppose that $\underline{f}_0$ is the discretization of the right-hand side of (
 \begin{align}
 w(t) = (\phi_1(t),\phi_2(t),\dots,\phi_P(t)),
 \end{align}
-and $\tilde{\sigma} = (\sigma_1,\dots,\sigma_P)^T$ be the approximation to the solution in the vicinity of the corner obtained by solving the original system (\ref{eqn:adj_linalg}). Then $|(f(t)-h(t)) - w(t) U^{-1} A_0^T \tilde{\sigma}| = O(\epsilon)$ for all $t \in(-\delta,\delta).$ In particular, if $\tilde{f}_0$ is the vector of length $N_0$ with entries defined by
+and $\tilde{\sigma} = (\sigma_1,\dots,\sigma_P)^T$ be the approximation to the solution in the vicinity of the corner obtained by solving the original system (\ref{eqn:adj_linalg}). Then $|(f(t)-h(t)) - w(t) U^{-1} \upd{\uA_0^T} \tilde{\sigma}| = O(\epsilon)$ for all $t \in(-\delta,\delta).$ In particular, if $\tilde{f}_0$ is the vector of length $N_0$ with entries defined by
 \begin{align}
-(\tilde{f}_0)_i = w(s^0_i) U^{-1} A_0^T \tilde{\sigma}, \quad i=1,\dots,N_0,
+(\tilde{f}_0)_i = w(s^0_i) U^{-1} \upd{\uA_0^T} \tilde{\sigma}, \quad i=1,\dots,N_0,
 \end{align}
 then $\| \underline{f}_0 - \tilde{f}_0\| = O(\epsilon).$
 \end{theorem}
@@ -106,15 +113,15 @@ f(t)-h(t) \approx w(t) U^{-1} (f(s_1)-h(s_1),\dots,f(s_P)-h(s_P))^T.
 A similar argument shows that $f(t)-h(t)$ is interpolable on $[-2\delta,-\delta]$ and $[\delta,2\delta].$
 On the other hand, by construction,
 \begin{align}\label{eqn:linalg_thm}
-\underline{f} = A^T \begin{pmatrix}\tilde{\sigma}\\ \sigma_{P+{2M+1}}\\ \vdots\\ \sigma_N\end{pmatrix}.
+\underline{f} = \upd{\uA^T} \begin{pmatrix}\tilde{\sigma}\\ \sigma_{P+{2M+1}}\\ \vdots\\ \sigma_N\end{pmatrix}.
 \end{align}
-Let $A_0$ be the $(P+2M)\times (P+2M)$ submatrix of $A$ corresponding to the first $P+2M$ rows and columns of $A,$ and $A_{\rm red}$ be the $P+2M \times (N-P-2M)$  submatrix of $A$ corresponding to selecting the first $P+2M$ rows of $A$ and all but the first $P+2M$ columns of $A.$ Using this notation, the first $P+2M$ rows of (\ref{eqn:linalg_thm}) can be re-written as
+Let $\upd{\uA}_0$ be the $(P+2M)\times (P+2M)$ submatrix of $\upd{\uA}$ corresponding to the first $P+2M$ rows and columns of $\upd{\uA},$ and $\upd{\uA}_{\rm red}$ be the $P+2M \times (N-P-2M)$  submatrix of $\upd{\uA}$ corresponding to selecting the first $P+2M$ rows of $\upd{\uA}$ and all but the first $P+2M$ columns of $\upd{\uA}.$ Using this notation, the first $P+2M$ rows of (\ref{eqn:linalg_thm}) can be re-written as
 \begin{align}
-\begin{pmatrix}f_1\\\vdots \\ f_{P+2M}\end{pmatrix}  = A_{\rm red}^T \begin{pmatrix} \sigma_{P+2M+1}\\ \vdots\\ \sigma_N\end{pmatrix} + A_0^T \tilde{\sigma}.
+\begin{pmatrix}f_1\\\vdots \\ f_{P+2M}\end{pmatrix}  = \upd{\uA}_{\rm red}^T \begin{pmatrix} \sigma_{P+2M+1}\\ \vdots\\ \sigma_N\end{pmatrix} + \upd{\uA}_0^T \tilde{\sigma}.
 \end{align}
 The first term on the right-hand side is $(h(s_1),\dots,h(s_{P+2M}))^T.$ Substituting this into the previous equation, we obtain
 \begin{align}
-(f(s_1)-h(s_1),\dots,f(s_{P+2M})-h(s_{P+2M}))^T = A_0^T \tilde{\sigma}.
+(f(s_1)-h(s_1),\dots,f(s_{P+2M})-h(s_{P+2M}))^T = \upd{\uA}_0^T \tilde{\sigma}.
 \end{align}
 The result follows by substituting the above equality into (\ref{eqn:approx_thm}).
 \end{proof}
