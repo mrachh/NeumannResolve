@@ -1,0 +1,267 @@
+\documentclass[12pt,times]{elsarticle}
+\usepackage{amsmath,amsthm,amssymb,amscd,fancybox,epsfig,float,subfigure}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphics}
+\usepackage{epstopdf}
+\usepackage{multirow}
+\usepackage{hhline}
+\usepackage{cleveref}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows,automata}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{remark}{Remark}[section]
+\newtheorem{conjecture}{Conjecture}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{corollary}{Corollary}[section]
+\newtheorem{remark1}{Remark}[section]
+\newcommand{\beqn}{\begin{equation}}
+\newcommand{\eeqn}{\end{equation}}
+\newcommand{\psub}{\mbox{$\ddot{-}$}}
+\newcommand{\cS}{\mathcal{S}}
+\newcommand{\sgn}{{\rm sgn}}
+\newcommand{\cN}{\mathcal{N}}
+\newcommand{\cD}{\mathcal{D}}
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\cB}{\mathcal{B}}
+\newcommand{\bS}{\mathbb{S}}
+\newcommand{\bR}{\mathbb{R}}
+\newcommand{\cR}{\mathcal{R}}
+\newcommand{\cI}{\mathcal{I}}
+\newcommand{\cG}{\mathcal{G}}
+\newcommand{\cH}{\mathcal{H}}
+\newcommand{\cF}{\overline{\bf F}}
+\newcommand{\cU}{\overline{\bf U}}
+\newcommand{\cT}{\mathcal{T}}
+\newcommand{\bP}{{\bf P}}
+\newcommand{\bT}{\mathbb{T}}
+\newcommand{\bq}{{\bf q}}
+\newcommand{\bv}{{\bf v}}
+\newcommand{\bu}{{\bf u}}
+\newcommand{\boldf}{{\bf f}}
+\newcommand{\bphi}{{\boldsymbol \phi}}
+\newcommand{\bmu}{{\boldsymbol \mu}}
+\newcommand{\brho}{{\boldsymbol \rho}}
+\newcommand{\bC}{{\bf C}}
+\newcommand{\bV}{{\bf V}}
+\newcommand{\bU}{{\bf U}}
+\newcommand{\bF}{{\bf F}}
+\newcommand{\bRes}{{\bf R}}
+\newcommand{\bM}{{\bf M}}
+\newcommand{\bI}{\mathbb{I}}
+\newcommand{\bN}{\mathbb{N}}
+\newcommand{\bL}{\mathbb{L}}
+\newcommand{\bX}{\mathbb{X}}
+\newcommand{\bx}{\boldsymbol{x}}
+\newcommand{\bnu}{\boldsymbol{\nu}}
+\newcommand{\bn}{\boldsymbol{n}}
+\newcommand{\by}{\boldsymbol{y}}
+\newcommand{\cL}{\mathcal{L}}
+\newcommand{\bub}{\underbar{b}}
+\newcommand{\xmyo}{\sqrt{x^2 + y^2 - 2xy\cos{\pi \alpha}}}
+\newcommand{\sina}{\sin{(\pi \alpha)}}
+\newcommand{\sqsina}{\sin^{2}{(\pi \alpha)}}
+\newcommand{\cosa}{\cos{(\pi \alpha)}}
+\newcommand{\sinna}{\sin{(\pi \nu (1-\alpha))}}
+\newcommand{\cosna}{\cos{(\pi \nu (1-\alpha))}}
+\newcommand{\sinn}{\sin{(\pi \nu)}}
+\newcommand{\cosn}{\cos{(\pi \nu)}}
+\newcommand{\bbmat}{\begin{bmatrix}}
+\newcommand{\ebmat}{\end{bmatrix}}
+\newcommand{\dudn}[1]{\frac{\partial u_{#1}}{\partial n}}
+
+\newcommand{\uA}{\underline{A}}
+\newcommand{\usigma}{\underline{\sigma}}
+\newcommand{\uf}{\underline{f}}
+\newcommand{\uX}{\underline{X}}
+\newcommand{\note}[1]{{\color{red} #1}}
+\newcommand{\upd}[1]{{\color{blue} #1}}
+
+
+
+%\usepackage{boxit}
+%\newcommand{\boxit}[1]{#1}
+%\newcommand{\dashboxit}[1]{#1}
+
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{thm}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{lem}{Lemma}
+\newtheorem{rem}{Remark}
+\newtheorem{comment}{Remark}
+
+
+\journal{Computational Physics}
+
+\begin{document}
+
+\begin{frontmatter}
+
+ \title{On the discretization of Laplace's equation with Neumann boundary conditions on polygonal domains}
+\author[jh]{Jeremy Hoskins}
+\author[mr]{Manas Rachh}
+\address[jh]{Applied Mathematics Program, Yale University, USA. \\ email: jeremy.hoskins@yale.edu}
+\address[mr]{Center for Computational Mathematics, Flatiron Institute, USA. \\ email: mrachh@flatironinstitute.org}
+ 
+\begin{abstract}
+In the present paper we describe a class of algorithms for the solution of Laplace's equation on polygonal domains with Neumann boundary conditions. It is well known that in such cases the solutions have singularities near the corners which poses a challenge for many existing methods. 
+If the boundary data is smooth on each edge of the polygon, then in the vicinity of each corner the solution to the corresponding boundary integral equation has an expansion in terms of certain (analytically available) singular powers. Using the known behavior of the solution, universal discretizations have been constructed for the solution of the Dirichlet problem. 
+However, the leading order behavior of solutions to the Neumann problem is $O(t^{\mu})$ for {\color{olive}$\mu \in (-1/2,1/2)$} depending on the angle at the corner (compared to $O(C+t^{\mu})$ with $\mu>1/2$ for the Dirichlet problem); this presents a significant challenge in the design of universal discretizations. Our approach is based on using the discretization for the Dirichlet problem in order to compute a solution in the ``weak sense'' by solving an adjoint linear system; namely, it can be used to compute inner products with smooth functions accurately, but it cannot be interpolated.  Furthermore we present a procedure to obtain accurate solutions arbitrarily close to the corner, by solving a sequence of small local subproblems in the vicinity of that corner. The results are illustrated with several numerical examples.
+\end{abstract}
+
+
+\begin{highlights}
+{\color{olive}
+\item Efficient discretization of boundary integral equations corresponding to Laplace's equation with Neumann boundary conditions on polygonal domains based on an adjoint Dirichlet discretization resulting
+in weak solutions to the integral equation. 
+\item A local re-solve algorithm for obtaining pointwise accurate solutions of the integral equation arbitrarily close to the corner, and rapid evaluation of solution at target locations in the volume arbitrarily close to the corner.
+\item Accurate solution of Laplace's equation arbitrarily close to corners at which solutions may have singularities.}
+\end{highlights}
+
+
+\begin{keyword}
+Boundary value problems, Potential theory, Singular solutions, Integral equations, Corners
+\end{keyword}
+
+\end{frontmatter}
+
+\input{01intro}
+\input{02mprelim}
+\input{03bvp}
+\input{04nprelim}
+\input{05apparatus}
+\input{06num}
+\input{07conc}
+
+\section{Acknowledgments}
+J. Hoskins was supported in part by AFOSR FA9550-16-1-0175 and by the ONR (award no. N00014-14-1-0797).
+The authors would like to thank Alex Barnett, Leslie Greengard, Michael O'Neil, and Vladimir Rokhlin for many useful discussions, and Jeremy Magland for providing sector plotting tools.
+
+\appendix
+\section{Approximation of data on corner panels for re-solve}
+Here we give explicit bounds for the rate of convergence of the contribution of the rest of the boundary to a corner panel.{\color{red} In particular, given a polygonal domain with boundary $\Gamma,$ let $\bx$ denote a vertex of $\Gamma$ and $C = \Gamma \cap B_r(\bx),$ where $B_r(\bx)$ is the ball of radius of $r$ centered at $\bx.$ We choose $r$ so that $\Gamma \cap B_{2r}(\bx)$ corresponds to a wedge with internal angle $\pi \alpha$ and side lengths $2r.$ }
+
+\begin{theorem}
+Let $\Gamma$ be the boundary of a polygon and $\bx$ be a vertex. Let $r>0$ be a real number such that $\Gamma \cap B_{2r}(\bx)$ corresponds to a wedge with internal angle $\pi \alpha$ and side lengths $2r,$ where $B_R(\bx)$ denotes a ball of radius $R$ centered at $\bx.$ Let $L$ denote the length of\, $\Gamma$ and $\gamma: [-L/2,L/2]\to \Gamma$ be an arclength counterclockwise parameterization of\, $\Gamma$ such that $\gamma(0) = \bx.$ Finally, for any $f \in L^2(\Gamma),$ let $H:[0,r] \to \mathbb{R}$ be the function defined by
+\begin{align}
+H(t) = \int_{\Gamma\backslash B_{2r}(\bx)} K(\gamma(t),\gamma(s)) f(\gamma(s))\,{\rm d}s.
+\end{align}
+Then $H$ is analytic in a neighborhood of $0$ with Taylor series coefficients $\{ a_n\}$ satisfying
+\begin{align}
+|a_n| \le \frac{\sqrt{L}}{2^nr^{n+1}} \|f\|_{L_2(\Gamma \backslash B_{2r}(\bx))}.
+\end{align}
+\end{theorem}
+\begin{proof}
+Without loss of generality we can assume that $\Gamma$ is shifted, oriented and parameterized so that $\bx = \gamma(0)= 0$ and the leg of the wedge corresponding to positive $t$ is oriented along the positive $x$ axis. Then
+\begin{align}
+H(t) = \int_{\Gamma\backslash B_{2r}(\bx)} K(\gamma(t),\gamma(s)) f(s)\,{\rm d}s = \int_{\Gamma\backslash B_{2r}(\bx)} \frac{y(s)}{(t-x(s))^2+y(s)^2}f(s)\,{\rm d}s.
+\end{align}
+Since $\|\gamma(s)-\gamma(t)\| >2r$ it follows that
+\begin{align}
+H(t) =\int _{\Gamma\backslash B_{2r}(\bx)}\sum {t^n i}\left(\frac{1}{(x(s)+i y(s))^{n+1}}-\frac{1}{(x(s)-i y(s))^{n+1}} \right) f(s)\,{\rm d}s.
+\end{align}
+In particular, $H$ has a Taylor series about $t=0,$
+\begin{align}
+\sum_{n=0}^\infty c_n \left(\frac{t}{2r}\right)^n
+\end{align}
+where
+\begin{align}
+|c_n| \le  \frac{\sqrt{L}}{r} \|f\|_{L_2(\Gamma \backslash B_{2r}(\bx))}.
+\end{align}
+\end{proof}
+
+\section{Strong approximation of density away from corner panels}
+\label{sec:appb}
+{\color{blue}
+In this section, we demonstrate that for a panel which is sufficiently far from the corner, the density computed using the adjoint of a Dirichlet discretization can be interpolated 
+accurately at any point on the panel. As before let $\Omega$ denote a polygonal domain with boundary $\Gamma$. Let
+$L$ denote the length of the boundary, and let $\gamma: [0,L]\to \mathbb{R}^2$ denote an arc-length parameterization of the boundary. Suppose that the boundary is discretized using the procedure discussed in~\cref{sec:resolve}. Recall that the discretizaton nodes are denoted by $x_{1},x_{2}\ldots x_{N}$, the corresponding weights are given by $w_{1}, \ldots w_{N}$, $X = \mathbb{L}^2({\Gamma})$, $\underline{X} = \mathbb{R}^{N}$, $\left< \cdot, \cdot \right>_{Y}$
+denote the standard inner products on the Hilbert spaces $Y=X,\underline{X}$, and
+$S:X \to \uX$ denote the operator which samples a function on the boundary at the discretization nodes scaled by the square root of the weights, i.e. 
+\begin{equation}
+S[f] = (f(x_{1})\sqrt{w_{1}},f(x_{2})\sqrt{w_{2}},\ldots, f(x_{N}) \sqrt{w_N} )^{T} = \underline{f} \, .
+\end{equation}
+Let $P:\underline{X} \to X$ denote the operator mapping the discretized samples to it's piecewise interpolant on the boundary.
+Let $\Gamma_{\ell} = \gamma([s_{1},s_{2}])$ denote a panel that does not contain a corner vertex and is discretized with $M$ nodes  $x_{i},x_{i+1},\ldots x_{i+M-1}$.
+
+
+Let $A$ denote operator corresponding to the interior Dirichlet problem where the solution is represented as a double layer potential. Let $\underline{A}$ denote the $N\times N$ matrix corresponding to the discretization of $A$. Let $g$ denote the
+right-hand side for the Neumann problem, and let $\sigma$ denote the corresponding solution.   Let $\underline{\sigma}$ denote the solution of the linear system $\uA^{T} \usigma = S[g]$. Let $h_{i}$, $i=1,2,\ldots M$, denote the scaled Legendre polynomials to the panel $\Gamma_{\ell}$.
+The main result of this appendix is to show that under suitable assumptions, that the computed density can be accurately interpolated on $\Gamma_{\ell}$, i.e.  
+\begin{equation}
+e = \max_{i=1,2\ldots, M} |\left< \sigma, h_{i} \right>_{X} -  \left< \usigma, S[h_{i}] \right>_{\uX}| < \varepsilon  
+\end{equation}
+
+In practice, given boundary data $g$ and a tolerance $\varepsilon$, it is extremely difficult to construct a discretization of the boundary for which the solution to the corresponding integral equation achieves the desired tolerance numerically for a generic $\Gamma$ (even when both the boundary and solution are smooth). 
+We instead derive an estimate for $e$ in terms of the error incurred in solving the interior Dirichlet problem for $M$ piecewise smooth boundary functions. 
+
+But first, we present a lemma about the accuracy of Gaussian quadrature
+\begin{lem}
+\label{lem:b1}
+Suppose that $p$ is a polynomial of degree less than $M$, then for any function $g$ in $\mathbb{L}^{2}[-1,1]$, then the integral
+$\int_{-1}^{1} p \cdot g$ can be computed accurately using Gaussian quadrature of any order greater than or equal to $M$.
+As a consequence, For any $g$ in $\mathbb{L}^{2}(\Gamma)$, then 
+\begin{equation}
+\left<h_{i},g \right>_{X} = \left< S[h_{i}], S[g] \right>_{\uX}
+\end{equation}
+\end{lem}
+
+Let $V$ denote the collection of corner points in parameter space $[0,L]$, i.e. $a \in V$ if $\gamma(a)$ is a corner vertex.
+
+\begin{lem}
+\label{lem:b2}
+Let $f_{i}$ be given by
+\begin{equation}
+f_{i}(s) = -2 \int_{s_{1}}^{s_{2}} k(s,t) h_{i}(t) dt \, , s\in [0,L] \setminus V \, . \label{eq:deff}
+\end{equation}
+Consider the interior Dirichlet problem with boundary data $f_{i}$, where we represent the solution via a double layer potential with density $\sigma_{D,i}$, i.e. $\sigma_{D,i}$ satisfies the integral equation
+\begin{equation}
+A[\sigma_{D,i}] = -\sigma_{D,i}/2 + \int_{0}^{L} k(s,t) \sigma_{D,i}(t) dt  = f_{i}(s) \, , s\in [0,L] \setminus V \, . 
+\end{equation}
+Then,
+\begin{equation}
+\left< \sigma, h_{i} \right>_{X} -  \left< \usigma, S[h_{i}] \right>_{\uX} = 
+\left< g, \sigma_{D,i} \right> - \left< S[g], \usigma_{D,i} \right>_{\uX}
+\end{equation}
+\end{lem}
+
+\begin{proof}
+We first note that if $\sigma_{D,h_{i}}$ is the solution to the integral equation
+\begin{equation}
+A[\sigma_{D,h_{i}}] = -\frac{\sigma_{D,h_{i}}}{2} + \int_{0}^{L} k(s,t) \sigma_{D,h_{i}} dt = h_{i}(s) \, , s \in [0,L] \setminus V \, ,
+\end{equation}
+then, $\sigma_{D,h_{i}} = -2h_{i} + \sigma_{D,i}$. 
+Similarly, the computed solution $\usigma_{D,h_{i}}$ satisfies $\usigma_{D,h_{i}} = -2S[h_{i}] + \usigma_{D,i}$, where
+$\underline{A} [\usigma_{D,h_{i}}] = S[h_{i}]$, and $\underline{A}[\usigma_{D,i}] = S[f_{i}]$. The result for $\usigma$ holds since $PS[h_{i}] = h_{i}$, since $h_{i}$ is a polynomial of degree less than $M$ on a Gauss-Legendre panel discretized using $M$ nodes, and since the Nystr\"{o}m discretization of $A$ is interpolatory in nature.
+
+The error in the inner product of the density with $h_{i}$, then is given by
+\begin{equation}
+\begin{aligned}
+\left< \sigma, h_{i} \right>_{X} -  \left< \usigma, S[h_{i}] \right>_{\uX} &=
+\left< (A^{-1})^{T}g, h_{i} \right>_{X} -  \left< (\underline{A}^{-1})^{T}S[g], S[h_{i}] \right>_{\uX}   \\
+&=\left< g, A^{-1}[h_{i}] \right>_{X} -  \left< S[g], \underline{A}^{-1}[S[h_{i}]] \right>_{\uX}   \\
+&=\left< g, \sigma_{D,h_{i}} \right>_{X} -  \left< S[g], \usigma_{D,h_{i}} \right>_{\uX}   \\
+&=\left< g, -2h_{i} + \sigma_{D,i} \right>_{X} -  \left< S[g], -2S[h_{i}] + \usigma_{D,i} \right>_{\uX}   \, .
+\end{aligned}
+\end{equation}
+The result then follows since $\left<g,h_{i} \right>_{X} = \left<S[g],S[h_{i}] \right>_{\uX}$ (\cref{lem:b1}).
+\end{proof}
+
+\Cref{lem:b2} shows that the error in evaluating the inner product of the computed density $\usigma$ with a polynomial on
+$\Gamma_{\ell}$ is the same as the error in evaluating the inner product of a computed density for a Dirichlet problem $\usigma_{D,i}$ with boundary data $g$. 
+The Dirichlet boundary data $f_{i}$ (\cref{eq:deff}) corresponding to the density $\sigma_{D,i}$ is an analytic function on each of the edges of the polygon. 
+The discretization of $A$ in~\cite{hoskins2019numerical} is precisely designed to compute $\sigma_{D,i}$ accurately to any desired tolerance, under sufficient refinement of the discretization. Since $g$ is also a smooth function, given a tolerance $\varepsilon$, there exists a sufficiently fine discretization of the boundary such that
+\begin{equation}
+\left| \left< g, \sigma_{D,i} \right>_{X} - \left< S[g], \usigma_{D,i} \right>_{\uX} \right| < \varepsilon \, . \label{eq:dest}
+\end{equation}
+In practice, a discretization with macroscopic panels at the corner, panels not at a corner vertex separated from the corner by their panel length, and which resolves $g$ to precision $\varepsilon$ is often sufficient to guarantee~\cref{eq:dest}. 
+\begin{rem}
+The size of the panel at the corner needs to be chosen based on the angle formed at the corner---smaller panels for angles closer to $0$ or $2\pi$, in order to resolve the corresponding close to touching interactions.
+\end{rem}
+} 
+ 
+ \bibliographystyle{elsarticle-num}
+ \bibliography{bib_file2}
+\end{document}
+

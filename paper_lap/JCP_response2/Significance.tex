@@ -1,0 +1,39 @@
+\documentclass[12pt,times]{elsarticle}
+\usepackage{amsmath,amsthm,amssymb,amscd,fancybox,epsfig,float,subfigure}
+\usepackage[margin=1.2in]{geometry}
+\usepackage{graphics}
+\usepackage{epstopdf}
+\usepackage{multirow}
+\usepackage{hhline}
+\usepackage[nocompress]{cite}
+\newcommand{\bx}{\boldsymbol {x}}
+
+\begin{document}
+ \title{Significance and novelty of this paper}
+ \maketitle
+The solutions to boundary integral equations corresponding to Laplace's equations
+with polygonal domains
+develop singularities near corners; this poses a challenge for designing
+efficient numerical methods for their solution. 
+If the boundary data on each edge of the polygon is smooth, then the solution
+to the corresponding boundary integral equation has an expansion in terms of certain analytically
+available singular powers. 
+Using the known behavior of the solution to the integral equation, efficient
+discretizations have been constructed for the Dirichlet problem.
+However, these methods do not directly extend to the solution of the Neumann problem
+since the leading order behavior of solutions to the Neumann problem is $O(t^{\mu})$ 
+for $\mu \in (-1/2,1/2)$ depending on the angle at the corner, while that of solutions
+to the Dirichlet problem is $O(C + t^{\mu})$ for $\mu>1/2$. 
+
+In this paper, we present a universal discretization for the solution of the Neumann problem
+on polygonal domains based on an adjoint Dirichlet discretization.
+We show that the solution obtained in this manner is accurate in a ``weak-sense'', i.e. 
+inner-products of the solution with smooth functions can be computed accurately. 
+Further, we show that the solution is also accurate pointwise away from the corners. 
+We also present an algorithm to obtain accurate solutions in the vicinity of the corner
+by solving a series of local subproblems in the vicinity of the corner. 
+This enables accurate evaluation of the corresponding potential at target locations arbitrarily
+close to a corner. We present the effectiveness of our method, both in terms of accuracy
+and speed through several numerical examples.
+\end{document}
+

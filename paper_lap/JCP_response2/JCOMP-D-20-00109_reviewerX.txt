@@ -1,0 +1,11 @@
+Reference Number: JCOMP-D-20-00109
+
+Title: On the discretization of Laplace's equation with Neumann boundary conditions on polygonal domains
+
+Reviewer 4
+
+1) This article is not suitable for JCP. Most of it is Theorem, Lemma, Proposition, Remark. Journal of Computational Physics focuses on computational aspects of physical problems and contributions in mathematical and numerical modeling, rather than numerical analysis. This paper should be submitted to SIAM NUM ANALYS., or IMA J. NUM. ANAL., or Numerische Mathematik.
+
+2) The scope of the article completely misses an entire arena of literature in the field, the unified transform (Fokas) method that has attacked the problem at hand in a much cleaner and nicer way in only 12 lines of code. It does not require a discretization with 22,240 points. See the work by Dr. Anthony Charles Lewis Ashton, Matthew J. Colbrook, and Natasha Flyer.
+
+3) The method does the simplest of problems, Laplace on a convex domain, that was attacked much earlier and neater in 2001/2003 by Fokas. This paper does not show non-convex polygonal domains or Helmholtz or modified Helmholtz.
