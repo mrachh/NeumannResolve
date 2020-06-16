@@ -3,3 +3,13 @@
 *.dat
 *.aux
 *.log
+fort.*
+*.save*
+*.dat*
+*.bbl
+*.blg
+*.spl
+*.aux
+*.log
+*.py
+*.svg

@@ -14,7 +14,6 @@
 \newtheorem{conjecture}{Conjecture}[section]
 \newtheorem{proposition}{Proposition}[section]
 \newtheorem{corollary}{Corollary}[section]
-\newtheorem{remark1}{Remark}[section]
 \newcommand{\beqn}{\begin{equation}}
 \newcommand{\eeqn}{\end{equation}}
 \newcommand{\psub}{\mbox{$\ddot{-}$}}
@@ -107,15 +106,16 @@
 \begin{abstract}
 In the present paper we describe a class of algorithms for the solution of Laplace's equation on polygonal domains with Neumann boundary conditions. It is well known that in such cases the solutions have singularities near the corners which poses a challenge for many existing methods. 
 If the boundary data is smooth on each edge of the polygon, then in the vicinity of each corner the solution to the corresponding boundary integral equation has an expansion in terms of certain (analytically available) singular powers. Using the known behavior of the solution, universal discretizations have been constructed for the solution of the Dirichlet problem. 
-However, the leading order behavior of solutions to the Neumann problem is $O(t^{\mu})$ for $\mu \in (-1/2,0)$ depending on the angle at the corner (compared to $O(C+t^{\mu})$ with $\mu>1/2$ for the Dirichlet problem); this presents a significant challenge in the design of universal discretizations. Our approach is based on using the discretization for the Dirichlet problem in order to compute a solution in the ``weak sense'' by solving an adjoint linear system; namely, it can be used to compute inner products with smooth functions accurately, but it cannot be interpolated.  Furthermore we present a procedure to obtain accurate solutions arbitrarily close to the corner, by solving a sequence of small local subproblems in the vicinity of that corner. The results are illustrated with several numerical examples.
+However, the leading order behavior of solutions to the Neumann problem is $O(t^{\mu})$ for {\color{olive}$\mu \in (-1/2,1/2)$} depending on the angle at the corner (compared to $O(C+t^{\mu})$ with $\mu>1/2$ for the Dirichlet problem); this presents a significant challenge in the design of universal discretizations. Our approach is based on using the discretization for the Dirichlet problem in order to compute a solution in the ``weak sense'' by solving an adjoint linear system; namely, it can be used to compute inner products with smooth functions accurately, but it cannot be interpolated.  Furthermore we present a procedure to obtain accurate solutions arbitrarily close to the corner, by solving a sequence of small local subproblems in the vicinity of that corner. The results are illustrated with several numerical examples.
 \end{abstract}
 
 
 \begin{highlights}
-\item Efficient discretization to boundary integral equations corresponding to Laplace's equation with Neumann boundary conditions on polygonal domains based on an adjoint Dirichlet discretization resulting
+\upd{
+\item Efficient discretization of boundary integral equations corresponding to Laplace's equation with Neumann boundary conditions on polygonal domains based on an adjoint Dirichlet discretization resulting
 in weak solutions to the integral equation. 
-\item A local re-solve algorithm for obtaining pointwise accurate solutions of the integral equation arbitrarily close to the corner.
-\item Rapid evaluation of solution at target locations in the volume arbitrarily close to the corner.
+\item A local re-solve algorithm for obtaining pointwise accurate solutions of the integral equation arbitrarily close to the corner, and rapid evaluation of solution at target locations in the volume arbitrarily close to the corner.
+\item Accurate solution of Laplace's equation arbitrarily close to corners at which solutions may have singularities.}
 \end{highlights}
 
 
@@ -139,14 +139,12 @@ The authors would like to thank Alex Barnett, Leslie Greengard, Michael O'Neil, 
 
 \appendix
 \section{Approximation of data on corner panels for re-solve}
-Here we give explicit bounds for the rate of convergence of the contribution of the rest of the boundary to a corner panel. In particular, given a polygonal domain with boundary $\Gamma,$ let $\bx$ denote a vertex of $\Gamma$ and $C = \Gamma \cap B_r(\bx),$ where $B_r(\bx)$ is the ball of radius of $r$ centered at $\bx.$ We choose $r$ so that $\Gamma \cap B_{2r}(\bx)$ corresponds to a wedge with internal angle $\pi \alpha$ and side lengths $2r.$ 
-
-%Let $\Gamma_*$ be any other straight line segment contained entirely within $\Gamma \setminus B_{2r}(\bx).$ Then
+Here we give explicit bounds for the rate of convergence of the contribution of the rest of the boundary to a corner panel.{\color{red}  In particular, given a polygonal domain with boundary $\Gamma,$ let $\bx$ denote a vertex of $\Gamma$ and $C = \Gamma \cap B_r(\bx),$ where $B_r(\bx)$ is the ball of radius of $r$ centered at $\bx.$ We choose $r$ so that $\Gamma \cap B_{2r}(\bx)$ corresponds to a wedge with internal angle $\pi \alpha$ and side lengths $2r.$ }
 
 \begin{theorem}
-Let $\Gamma$ be the boundary of a polygon and $\bx$ be a vertex. Let $r>0$ be a real number such that $\Gamma \cap B_{2r}(\bx)$ corresponds to a wedge with internal angle $\pi \alpha$ and side lengths $2r,$ where $B_R(\bx)$ denotes a ball of radius $R$ centered at $\bx.$ Let $L$ denote the length of $\Gamma$ and $\gamma: [-L/2,L/2]\to \Gamma$ be an arclength counterclockwise parameterization of $\Gamma$ such that $\gamma(0) = \bx.$ Finally, for any $f \in L^2(\Gamma),$ let $H:[0,r] \to \mathbb{R}$ be the function defined by
+Let $\Gamma$ be the boundary of a polygon and $\bx$ be a vertex. Let $r>0$ be a real number such that $\Gamma \cap B_{2r}(\bx)$ corresponds to a wedge with internal angle $\pi \alpha$ and side lengths $2r,$ where $B_R(\bx)$ denotes a ball of radius $R$ centered at $\bx.$ Let $L$ denote the length of\, $\Gamma$ and $\gamma: [-L/2,L/2]\to \Gamma$ be an arclength counterclockwise parameterization of\, $\Gamma$ such that $\gamma(0) = \bx.$ Finally, for any $f \in L^2(\Gamma),$ let $H:[0,r] \to \mathbb{R}$ be the function defined by
 \begin{align}
-H(t) = \int_{\Gamma\backslash B_{2r}(\bx)} K(\gamma(t),\gamma(s)) f(s)\,{\rm d}s.
+H(t) = \int_{\Gamma\backslash B_{2r}(\bx)} K(\gamma(t),\gamma(s)) f(\gamma(s))\,{\rm d}s.
 \end{align}
 Then $H$ is analytic in a neighborhood of $0$ with Taylor series coefficients $\{ a_n\}$ satisfying
 \begin{align}
@@ -174,24 +172,24 @@ where
 
 \section{Strong approximation of density away from corner panels}
 \label{sec:appb}
-{\color{blue}
+\upd{
 In this section, we demonstrate that for a panel which is sufficiently far from the corner, the density computed using the adjoint of a Dirichlet discretization can be interpolated 
 accurately at any point on the panel. As before let $\Omega$ denote a polygonal domain with boundary $\Gamma$. Let
 $L$ denote the length of the boundary, and let $\gamma: [0,L]\to \mathbb{R}^2$ denote an arc-length parameterization of the boundary. Suppose that the boundary is discretized using the procedure discussed in~\cref{sec:resolve}. Recall that the discretizaton nodes are denoted by $x_{1},x_{2}\ldots x_{N}$, the corresponding weights are given by $w_{1}, \ldots w_{N}$, $X = \mathbb{L}^2({\Gamma})$, $\underline{X} = \mathbb{R}^{N}$, $\left< \cdot, \cdot \right>_{Y}$
 denote the standard inner products on the Hilbert spaces $Y=X,\underline{X}$, and
 $S:X \to \uX$ denote the operator which samples a function on the boundary at the discretization nodes scaled by the square root of the weights, i.e. 
 \begin{equation}
-S[f] = (f(x_{1})\sqrt{w_{1}},f(x_{2})\sqrt{w_{2}},\ldots f(x_{N}) \sqrt{w_N} )^{T} = \underline{f} \, .
+S[f] = (f(x_{1})\sqrt{w_{1}},f(x_{2})\sqrt{w_{2}},\ldots, f(x_{N}) \sqrt{w_N} )^{T} = \underline{f} \, .
 \end{equation}
 Let $P:\underline{X} \to X$ denote the operator mapping the discretized samples to it's piecewise interpolant on the boundary.
 Let $\Gamma_{\ell} = \gamma([s_{1},s_{2}])$ denote a panel that does not contain a corner vertex and is discretized with $M$ nodes  $x_{i},x_{i+1},\ldots x_{i+M-1}$.
 
 
 Let $A$ denote operator corresponding to the interior Dirichlet problem where the solution is represented as a double layer potential. Let $\underline{A}$ denote the $N\times N$ matrix corresponding to the discretization of $A$. Let $g$ denote the
-right hand side for the Neumann problem, let $\sigma$ denote the corresponding solution.   Let $\underline{\sigma}$ denote the solution of the linear system $\uA^{T} \usigma = S[g]$. Let $h_{i}$, $i=1,2,\ldots M$, denote the scaled Legendre polynomials to the panel $\Gamma_{\ell}$.
+right-hand side for the Neumann problem, and let $\sigma$ denote the corresponding solution.   Let $\underline{\sigma}$ denote the solution of the linear system $\uA^{T} \usigma = S[g]$. Let $h_{i}$, $i=1,2,\ldots M$, denote the scaled Legendre polynomials to the panel $\Gamma_{\ell}$.
 The main result of this appendix is to show that under suitable assumptions, that the computed density can be accurately interpolated on $\Gamma_{\ell}$, i.e.  
 \begin{equation}
-e = \max_{i=1,2\ldots M} |\left< \sigma, h_{i} \right>_{X} -  \left< \usigma, S[h_{i}] \right>_{\uX}| < \varepsilon  
+e = \max_{i=1,2\ldots, M} |\left< \sigma, h_{i} \right>_{X} -  \left< \usigma, S[h_{i}] \right>_{\uX}| < \varepsilon  
 \end{equation}
 
 In practice, given boundary data $g$ and a tolerance $\varepsilon$, it is extremely difficult to construct a discretization of the boundary for which the solution to the corresponding integral equation achieves the desired tolerance numerically for a generic $\Gamma$ (even when both the boundary and solution are smooth). 
@@ -252,7 +250,7 @@ The result then follows since $\left<g,h_{i} \right>_{X} = \left<S[g],S[h_{i}] \
 \Cref{lem:b2} shows that the error in evaluating the inner product of the computed density $\usigma$ with a polynomial on
 $\Gamma_{\ell}$ is the same as the error in evaluating the inner product of a computed density for a Dirichlet problem $\usigma_{D,i}$ with boundary data $g$. 
 The Dirichlet boundary data $f_{i}$ (\cref{eq:deff}) corresponding to the density $\sigma_{D,i}$ is an analytic function on each of the edges of the polygon. 
-The discretization of $A$ of~\cite{hoskins2019numerical} is precisely designed to compute $\sigma_{D,i}$ accurately to any desired tolerance, under sufficient refinement of the discretization. Since $g$ is also a smooth function, given a tolerance $\varepsilon$, there exists a sufficiently fine discretization of the boundary such that
+The discretization of $A$ in~\cite{hoskins2019numerical} is precisely designed to compute $\sigma_{D,i}$ accurately to any desired tolerance, under sufficient refinement of the discretization. Since $g$ is also a smooth function, given a tolerance $\varepsilon$, there exists a sufficiently fine discretization of the boundary such that
 \begin{equation}
 \left| \left< g, \sigma_{D,i} \right>_{X} - \left< S[g], \usigma_{D,i} \right>_{\uX} \right| < \varepsilon \, . \label{eq:dest}
 \end{equation}

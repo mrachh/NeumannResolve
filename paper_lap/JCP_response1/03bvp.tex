@@ -21,16 +21,17 @@ For $\bx \in \Gamma$ we define the kernel $K(\bx,\by)$ by
 \begin{equation}
 K(\bx,\by) =\bnu(\bx) \cdot \nabla_{\bx} G(\bx,\by),
 \end{equation}
-where $\nu(\bx)$ is the inward-pointing normal to $\Gamma$ at $\bx.$ It will often be convenient to 
+where $\bnu(\bx)$ is the inward-pointing normal to $\Gamma$ at $\bx.$ It will often be convenient to 
 work instead with a parametrization of $K.$ In particular, if $\gamma :[0,L] \to \Gamma$ is a counterclockwise 
 arclength parametrization of $\Gamma,$ 
 we denote by $k:[0,L]\times [0,L] \to \mathbb{R}$ the function defined by
 \begin{align}
 k(s,t) = K(\gamma(s),\gamma(t)).
 \end{align}
+\upd{By a standard abuse of notation we use $\cS$ and $\cD$ to denote both the operators acting on $L^2(\Gamma)$ as well as the corresponding operators acting on $L^2([0,L]),$ the latter being obtained from the former by composition with the parameterization.}
 \end{definition}
 
-The following theorems describe the behavior of the single and double layer potentials in the vicinity of the boundary curve $\Gamma.$
+The following theorems {\color{olive}(see \cite{kress1989linear})} describe the behavior of the single and double layer potentials in the vicinity of the boundary curve $\Gamma.$
 
 \begin{theorem}\label{thm:potlim}
 Suppose the point $\bx$ approaches a point $\bx_0 = \gamma(t_0)$ (where $\bx_{0}$ is not a corner vertex) from the inside along a path such that 
@@ -38,26 +39,27 @@ Suppose the point $\bx$ approaches a point $\bx_0 = \gamma(t_0)$ (where $\bx_{0}
 -1+\alpha<\frac{\bx-\bx_0}{\|\bx-\bx_0\|} \cdot \gamma'(t_0) <1-\alpha
 \end{align}
 for some $\alpha >0.$ Then for any continuous function $\sigma:\Gamma \to \mathbb{R},$
+\upd{
 \begin{align}
 &\lim_{\bx \to \bx_0} \cS[\sigma](\bx) = \cS[\sigma](\bx_0)\\
-&\lim_{\bx \to \bx_0} \cD[\sigma](\bx) = \cD[\sigma](\bx_0)- \frac{\sigma(\bx_0)}{2})\\
-&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx+\tau \bnu(\bx_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx_0+\tau \bnu(\bx_0))+ \frac{\sigma(\bx_0)}{2}.
+&\lim_{\bx \to \bx_0} \cD[\sigma](\bx) = \cD[\sigma](\bx_0)- \frac{\sigma(\bx_0)}{2}\\
+&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx+\tau \bnu(\bx_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0^+}\cS[\sigma](\bx_0+\tau \bnu(\bx_0))+ \frac{\sigma(\bx_0)}{2},
 \end{align}
-Similarly, if $\bx$ approaches a point $\bx_0 = \gamma(t_0)$ from the outside then for any continuous function $\sigma:\Gamma \to \mathbb{R},$
+where $\bnu$ is the inward-pointing normal.} Similarly, if $\bx$ approaches a point $\bx_0 = \gamma(t_0)$ from the outside then for any continuous function $\sigma:\Gamma \to \mathbb{R},$
+\upd{
 \begin{align}
 &\lim_{\bx \to \bx_0} \cS[\sigma](\bx) = \cS[\sigma](\bx_0)\\
 &\lim_{\bx \to \bx_0} \cD[\sigma](\bx) = \cD[\sigma](\bx_0)+ \frac{\sigma(\bx_0)}{2}\\
-&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx+\tau \bnu(\bx_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx_0+\tau \bnu(\bx_0))- \frac{\sigma(\bx_0)}{2}.
-\end{align}
+&\lim_{\bx \to \bx_0} \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0}\cS[\sigma](\bx+\tau \bnu(\bx_0)) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau= 0^+}\cS[\sigma](\bx_0+\tau \bnu(\bx_0))- \frac{\sigma(\bx_0)}{2}.
+\end{align}}
 \end{theorem}
 
 Next we define the following operator which arises in the study of Neumann boundary value problems.
 \begin{definition}\label{def_singder}
 Let $\cS$ be the single-layer potential operator and $\bnu\cdot \nabla \cS$  denote its normal derivative restricted to $\Gamma.$ In particular, for $\bx_0 \in \Gamma,$
 \begin{align}
-\bnu(\by)\cdot \nabla \cS[\rho] (\bx_0) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau = 0} \cS[\rho](\bx_0 + \tau \bnu(\bx_0)),
+\bnu(\bx_0)\cdot \nabla \cS[\rho] (\bx_0) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau = 0} \cS[\rho](\bx_0 + \tau \bnu(\bx_0)).
 \end{align}
-where $\gamma(t_0) = \bx_0.$
 \end{definition}
 
 The following proposition relates the normal derivative of the single-layer operator to the double-layer operator. Its proof follows directly from Definitions \ref{def_layerpots} and \ref{def_singder}.
@@ -81,16 +83,16 @@ and
 In this section we describe the conversion of the Laplace boundary value problems (interior Dirichlet, exterior  Dirichlet, interior Neumann, and exterior Neumann) to second-kind integral equations.
 
 \begin{theorem} [Interior Dirichlet problem for Laplace's equation]
-For every $f:[0,L] \rightarrow \mathbb{R}$ in $L^{2}[0,L],$ there exists a unique $\sigma \in L^{2}[0,L]$ which satisfies
+For every $f:[0,L] \rightarrow \mathbb{R}$ in $L^{2}([0,L]),$ there exists a unique $\sigma \in L^{2}([0,L])$ which satisfies
 \begin{align}
 f(s)= - \frac{\sigma(s)}{2}+ \int_0^L k(t,s)\,\sigma(t)\,{\rm d}t,
 \label{bie_intd}
 \end{align}
-Moreover, the solution to the interior Dirichlet problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cD[\sigma](\by)$ for all $\by \in \Omega.$
+for all $s \in [0,L).$ Moreover, the solution to the interior Dirichlet problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cD[\sigma](\by)$ for all $\by \in \Omega.$
 \end{theorem}
 
 \begin{theorem} [Exterior Dirichlet problem for Laplace's equation]
-For every $f:[0,L] \rightarrow \mathbb{R}$ in $L^{2}[0,L]$ there exists a unique $\sigma \in L^{2}[0,L]$ which
+For every $f:[0,L] \rightarrow \mathbb{R}$ in $L^{2}([0,L])$ there exists a unique $\sigma \in L^{2}([0,L])$ which
 satisfies
 \begin{align}
 f(s)=  \frac{\sigma(s)}{2}+ \int_0^L (k(t,s) + 1)\,\sigma(t)\,{\rm d}t,
@@ -103,27 +105,27 @@ for all $\by \in \mathbb{R}^2 \setminus \Omega.$
 
 
 \begin{theorem}[Interior Neumann problem for Laplace's equation]
-For every  $f:[0,L] \rightarrow \mathbb{C}$ in $L^{2}[0,L]$ such that $\int_{0}^{L} f(t) = 0,$ there exists a unique $\sigma \in L^{2}[0,L]$ which satisfies
+For every  $f:[0,L] \rightarrow \mathbb{R}$ in $L^{2}([0,L])$ such that $\int_{0}^{L} f(t)\,{\rm d}t = 0,$ there exists a unique $\sigma \in L^{2}([0,L])$ which satisfies
 \begin{align}
 f(s)=  \frac{\sigma(s)}{2}+ \int_0^L (k(s,t) + 1)\,\sigma(t)\,{\rm d}t,
 \label{bie_intn}
 \end{align}
-Moreover, the solution to the interior Neumann problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cS[\sigma](\by)$ for all $\by \in \Omega.$
+for all $s \in [0,L).$ Moreover, the solution to the interior Neumann problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cS[\sigma](\by)$ for all $\by \in \Omega.$
 \end{theorem}
 
 
 \begin{theorem}[Exterior Neumann problem for Laplace's equation]
-For every $f:[0,L] \rightarrow \mathbb{C}$ in $L^{2}[0,L]$ there exists a unique $\sigma \in L^{2}[0,L]$ which satisfies
+For every $f:[0,L] \rightarrow \mathbb{R}$ in $L^{2}([0,L])$ there exists a unique $\sigma \in L^{2}([0,L])$ which satisfies
 \begin{align}
 f(s)=  \frac{\sigma(s)}{2}+ \int_0^L k(s,t) \,\sigma(t)\,{\rm d}t,
 \label{bie_extn}
 \end{align}
-Moreover, the solution to the interior Neumann problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cS[\sigma](\by)$ for all $\by \in \Omega.$
+for all $s \in [0,L).$ Moreover, the solution to the interior Neumann problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cS[\sigma](\by)$ for all $\by \in \Omega.$
 \end{theorem}
 
 \subsection{Corner expansions}
 
-In the remainder of this section, we assume $\Gamma$ is an open wedge with sides of length one and interior angle $\pi \alpha$ with $0 <\alpha<2.$ Let $\gamma:[-1,1] \rightarrow \Gamma$ be an arc length parametrization of $\Gamma$ and $\nu:[-1,1] \rightarrow \mathbb{R}^2$ be the inward-pointing normal to $\Gamma.$ 
+In the remainder of this section, we assume $\Gamma$ is an open wedge with sides of length one and interior angle $\pi \alpha$ with $0 <\alpha<2.$ Let $\gamma:[-1,1] \rightarrow \Gamma$ be an arclength parametrization of $\Gamma$ and $\bnu:[-1,1] \rightarrow \mathbb{R}^2$ be the inward-pointing normal to $\Gamma.$ 
 The following theorem  gives an explicit representation of the solutions of the boundary integral equation (\ref{bie_intd}) in this geometry.
 
 \begin{theorem}[\cite{serkhacha}]\label{thm_cord}
@@ -139,18 +141,18 @@ $\underline{M}$ by the following formulas
 \end{align}
 Suppose further that $\sigma$ is defined via the formula
 \begin{align}
-\sigma(t) =& b_0+\sum_{i=1}^{\overline{L}} b_i |t|^{\frac{2i-1}{\alpha}}+\sum_{i=1}^{\underline{M}} b_{\overline{L}+i} |t|^\frac{2i}{2-\alpha}\left(\log|t|\right)^{\sigma_{N,\alpha}(i)}\nonumber\\
-&+\sum_{i=1}^{\overline{M}}c_i \sgn(t) |t|^\frac{2i-1}{2-\alpha}+\sum_{i=1}^{\underline{L}}c_{\overline{M}+i} \sgn(t) |t|^\frac{2i}{\alpha}\left(\log|t|\right)^{\nu_{N,\alpha}(i)}\label{eqn_rhfm}
+\sigma(t) =& b_0+\sum_{i=1}^{\overline{L}} b_i |t|^{\frac{2i-1}{\alpha}}+\sum_{i=1}^{\underline{M}} b_{\overline{L}+i} |t|^\frac{2i}{2-\alpha}\left(\log|t|\right)^{\phi_{N,\alpha}(i)}\nonumber\\
+&+\sum_{i=1}^{\overline{M}}c_i \sgn(t) |t|^\frac{2i-1}{2-\alpha}+\sum_{i=1}^{\underline{L}}c_{\overline{M}+i} \sgn(t) |t|^\frac{2i}{\alpha}\left(\log|t|\right)^{\psi_{N,\alpha}(i)}\label{eqn_rhfm}
 \end{align}
-where $b_0,b_1,\dots,b_N$ and $c_1,c_2,\dots,c_N$ are arbitrary real numbers and the functions $\sigma_{\alpha,N}(i)$ and $\nu_{\alpha,N}(i)$ are defined as follows
+where $b_0,b_1,\dots,b_N$ and $c_1,c_2,\dots,c_N$ are arbitrary real numbers and the functions $\phi_{N,\alpha}(i)$ and $\psi_{N,\alpha}(i)$ are defined as follows
 \begin{align}
-\sigma_{N,\alpha}(i) = \begin{cases}
+\phi_{N,\alpha}(i) = \begin{cases}
 1 \quad\quad & \,\text{if}\,\, \frac{2i}{2-\alpha} = \frac{2j-1}{\alpha}\,\,\text{for some}\,\, j \in \mathbb{Z},\, 1\le j \le \left\lceil \frac{\alpha N}{2} \right\rceil\\
 0 \quad\quad & \,\text{otherwise},
 \end{cases}
 \end{align}
 \begin{align}
-\nu_{N,\alpha}(i) = \begin{cases}
+\psi_{N,\alpha}(i) = \begin{cases}
 1 \quad\quad & \,\text{if}\,\, \frac{2i}{\alpha} = \frac{2j-1}{2-\alpha}\,\,\text{for some}\,\, j \in \mathbb{Z},\, 1\le j \le \left\lceil \frac{(2-\alpha) N}{2} \right\rceil\\
 0 \quad\quad & \,\text{otherwise}.
 \end{cases}
@@ -165,13 +167,18 @@ and $\sigma$ is defined by (\ref{eqn_rhfm}) then there exist two sequences of re
 f(t) = \sum_{n=0}^\infty\beta_n |t|^n + \sum_{n=0}^\infty \gamma_n \sgn(t) |t|^n,
 \label{eqn_gfrm}
 \end{align}
-for all $-1 \le t \le 1.$ Conversely, suppose that $f$ has the form (\ref{eqn_gfrm}). Suppose further that $N$ is an arbitrary positive integer. Then, for all angles $\pi \alpha$ there exist unique real numbers $b_0,\,b_1,\,\dots,\,b_N$ and $c_0,\,c_1,\,\dots,\,c_N$ such that $\rho,$ defined by (\ref{eqn_rhfm}), solves equation  (\ref{eqn_grho}) to within an error ${\rm O}(t^{N+1}).$ 
+for all $-1 \le t \le 1.$ Conversely, suppose that $f$ has the form (\ref{eqn_gfrm}). Suppose further that $N$ is an arbitrary positive integer. Then, for all angles $\pi \alpha$ there exist unique real numbers $b_0,\,b_1,\,\dots,\,b_N$ and $c_0,\,c_1,\,\dots,\,c_N$ such that $\sigma,$ defined by (\ref{eqn_rhfm}), solves equation  (\ref{eqn_grho}) to within an error ${\rm O}(t^{N+1}).$ 
 \end{theorem}
 
-\begin{remark1}
+\begin{remark}
 A similar result holds for the case where the identity term in (\ref{eqn_grho}) is replaced by its negative; the change in sign corresponds to replacing the boundary integral equation for the interior Dirichlet problem with the boundary integral equation corresponding to exterior Dirichlet problem. Similar expansions also hold for both the exterior and interior Neumann problems, in which case the singular powers are obtained by subtracting one from the singular powers arising in the Dirichlet problem.
-\end{remark1}
+\end{remark}
 
+\upd{
+\begin{remark}
+We note that the smoothness of the kernel $k$ for well-separated portions of the domain guarantees that the problem of determining the singularities arising in the vicinity of a corner for a polygonal domain can be reduced to the analysis of the wedge case, see the discussion in \cite{} for example.
+\end{remark}
+}
 
 The following corollary, proved in \cite{serkhacha} gives a characterization of the solutions to the Dirichlet and Neumann boundary integral equations in the vicinity of a corner.
 
