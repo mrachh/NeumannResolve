@@ -170,7 +170,7 @@ where
 \upd{
 In this section, we demonstrate that for a panel which is sufficiently far from the corner, the density computed using the adjoint of a Dirichlet discretization can be interpolated 
 accurately at any point on the panel. As before let $\Omega$ denote a polygonal domain with boundary $\Gamma$. Let
-$L$ denote the length of the boundary, and let $\gamma: [0,L]\to \mathbb{R}^2$ denote an arc-length parameterization of the boundary. Suppose that the boundary is discretized using the procedure discussed in~\cref{sec:resolve}. Recall that the discretizaton nodes are denoted by $x_{1},x_{2}\ldots x_{N}$, the corresponding weights are given by $w_{1}, \ldots w_{N}$, $X = \mathbb{L}^2({\Gamma})$, $\underline{X} = \mathbb{R}^{N}$, $\left< \cdot, \cdot \right>_{Y}$
+$L$ denote the length of the boundary, and let $\gamma: [0,L]\to \mathbb{R}^2$ denote an arc-length parameterization of the boundary. Suppose that the boundary is discretized using the procedure discussed in~\cref{sec:resolve}. Recall that the discretizaton nodes are denoted by $x_{1},x_{2}\ldots x_{N}$, the corresponding weights are given by $w_{1}, \ldots w_{N}$, $X = L^2({\Gamma})$, $\underline{X} = \mathbb{R}^{N}$, $\left< \cdot, \cdot \right>_{Y}$
 denote the standard inner products on the Hilbert spaces $Y=X,\underline{X}$, and
 $S:X \to \uX$ denote the operator which samples a function on the boundary at the discretization nodes scaled by the square root of the weights, i.e. 
 \begin{equation}
@@ -193,9 +193,9 @@ We instead derive an estimate for $e$ in terms of the error incurred in solving 
 But first, we present a lemma about the accuracy of Gaussian quadrature
 \begin{lemma}
 \label{lem:b1}
-Suppose that $p$ is a polynomial of degree less than $M$, then for any function $g$ in $\mathbb{L}^{2}[-1,1]$, then the integral
+Suppose that $p$ is a polynomial of degree less than $M$, then for any function $g$ in $L^{2}[-1,1]$, then the integral
 $\int_{-1}^{1} p \cdot g$ can be computed accurately using Gaussian quadrature of any order greater than or equal to $M$.
-As a consequence, For any $g$ in $\mathbb{L}^{2}(\Gamma)$, then 
+As a consequence, For any $g$ in $\L^{2}(\Gamma)$, then 
 \begin{equation}
 \left<h_{i},g \right>_{X} = \left< S[h_{i}], S[g] \right>_{\uX}
 \end{equation}
