@@ -9,11 +9,11 @@
 \usepackage{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{arrows,automata}
-\newtheorem{definition}{Definition}[section]
-\newtheorem{remark}{Remark}[section]
-\newtheorem{conjecture}{Conjecture}[section]
-\newtheorem{proposition}{Proposition}[section]
-\newtheorem{corollary}{Corollary}[section]
+\newtheorem{definition}{Definition}
+\newtheorem{remark}[definition]{Remark}
+\newtheorem{conjecture}[definition]{Conjecture}
+\newtheorem{proposition}[definition]{Proposition}
+\newtheorem{corollary}[definition]{Corollary}
 \newcommand{\beqn}{\begin{equation}}
 \newcommand{\eeqn}{\end{equation}}
 \newcommand{\psub}{\mbox{$\ddot{-}$}}
@@ -83,12 +83,8 @@
 %\newcommand{\dashboxit}[1]{#1}
 
 
-\newtheorem{theorem}{Theorem}
-\newtheorem{thm}{Theorem}
-\newtheorem{lemma}{Lemma}
-\newtheorem{lem}{Lemma}
-\newtheorem{rem}{Remark}
-\newtheorem{comment}{Remark}
+\newtheorem{theorem}[definition]{Theorem}
+\newtheorem{lemma}[definition]{Lemma}
 
 
 \journal{Computational Physics}
@@ -106,7 +102,7 @@
 \begin{abstract}
 In the present paper we describe a class of algorithms for the solution of Laplace's equation on polygonal domains with Neumann boundary conditions. It is well known that in such cases the solutions have singularities near the corners which poses a challenge for many existing methods. 
 If the boundary data is smooth on each edge of the polygon, then in the vicinity of each corner the solution to the corresponding boundary integral equation has an expansion in terms of certain (analytically available) singular powers. Using the known behavior of the solution, universal discretizations have been constructed for the solution of the Dirichlet problem. 
-However, the leading order behavior of solutions to the Neumann problem is $O(t^{\mu})$ for {\color{olive}$\mu \in (-1/2,1/2)$} depending on the angle at the corner (compared to $O(C+t^{\mu})$ with $\mu>1/2$ for the Dirichlet problem); this presents a significant challenge in the design of universal discretizations. Our approach is based on using the discretization for the Dirichlet problem in order to compute a solution in the ``weak sense'' by solving an adjoint linear system; namely, it can be used to compute inner products with smooth functions accurately, but it cannot be interpolated.  Furthermore we present a procedure to obtain accurate solutions arbitrarily close to the corner, by solving a sequence of small local subproblems in the vicinity of that corner. The results are illustrated with several numerical examples.
+However, the leading order behavior of solutions to the Neumann problem is $O(t^{\mu})$ for \upd{$\mu \in (-1/2,1/2)$} depending on the angle at the corner (compared to $O(C+t^{\mu})$ with $\mu>1/2$ for the Dirichlet problem); this presents a significant challenge in the design of universal discretizations. Our approach is based on using the discretization for the Dirichlet problem in order to compute a solution in the ``weak sense'' by solving an adjoint linear system; namely, it can be used to compute inner products with smooth functions accurately, but it cannot be interpolated.  Furthermore we present a procedure to obtain accurate solutions arbitrarily close to the corner, by solving a sequence of small local subproblems in the vicinity of that corner. The results are illustrated with several numerical examples.
 \end{abstract}
 
 
@@ -139,8 +135,7 @@ The authors would like to thank Alex Barnett, Leslie Greengard, Michael O'Neil, 
 
 \appendix
 \section{Approximation of data on corner panels for re-solve}
-Here we give explicit bounds for the rate of convergence of the contribution of the rest of the boundary to a corner panel.{\color{red}  In particular, given a polygonal domain with boundary $\Gamma,$ let $\bx$ denote a vertex of $\Gamma$ and $C = \Gamma \cap B_r(\bx),$ where $B_r(\bx)$ is the ball of radius of $r$ centered at $\bx.$ We choose $r$ so that $\Gamma \cap B_{2r}(\bx)$ corresponds to a wedge with internal angle $\pi \alpha$ and side lengths $2r.$ }
-
+Here we give explicit bounds for the rate of convergence of the contribution of the rest of the boundary to a corner panel.
 \begin{theorem}
 Let $\Gamma$ be the boundary of a polygon and $\bx$ be a vertex. Let $r>0$ be a real number such that $\Gamma \cap B_{2r}(\bx)$ corresponds to a wedge with internal angle $\pi \alpha$ and side lengths $2r,$ where $B_R(\bx)$ denotes a ball of radius $R$ centered at $\bx.$ Let $L$ denote the length of\, $\Gamma$ and $\gamma: [-L/2,L/2]\to \Gamma$ be an arclength counterclockwise parameterization of\, $\Gamma$ such that $\gamma(0) = \bx.$ Finally, for any $f \in L^2(\Gamma),$ let $H:[0,r] \to \mathbb{R}$ be the function defined by
 \begin{align}
@@ -196,7 +191,7 @@ In practice, given boundary data $g$ and a tolerance $\varepsilon$, it is extrem
 We instead derive an estimate for $e$ in terms of the error incurred in solving the interior Dirichlet problem for $M$ piecewise smooth boundary functions. 
 
 But first, we present a lemma about the accuracy of Gaussian quadrature
-\begin{lem}
+\begin{lemma}
 \label{lem:b1}
 Suppose that $p$ is a polynomial of degree less than $M$, then for any function $g$ in $\mathbb{L}^{2}[-1,1]$, then the integral
 $\int_{-1}^{1} p \cdot g$ can be computed accurately using Gaussian quadrature of any order greater than or equal to $M$.
@@ -204,11 +199,11 @@ As a consequence, For any $g$ in $\mathbb{L}^{2}(\Gamma)$, then
 \begin{equation}
 \left<h_{i},g \right>_{X} = \left< S[h_{i}], S[g] \right>_{\uX}
 \end{equation}
-\end{lem}
+\end{lemma}
 
 Let $V$ denote the collection of corner points in parameter space $[0,L]$, i.e. $a \in V$ if $\gamma(a)$ is a corner vertex.
 
-\begin{lem}
+\begin{lemma}
 \label{lem:b2}
 Let $f_{i}$ be given by
 \begin{equation}
@@ -223,7 +218,7 @@ Then,
 \left< \sigma, h_{i} \right>_{X} -  \left< \usigma, S[h_{i}] \right>_{\uX} = 
 \left< g, \sigma_{D,i} \right> - \left< S[g], \usigma_{D,i} \right>_{\uX}
 \end{equation}
-\end{lem}
+\end{lemma}
 
 \begin{proof}
 We first note that if $\sigma_{D,h_{i}}$ is the solution to the integral equation
@@ -255,9 +250,9 @@ The discretization of $A$ in~\cite{hoskins2019numerical} is precisely designed t
 \left| \left< g, \sigma_{D,i} \right>_{X} - \left< S[g], \usigma_{D,i} \right>_{\uX} \right| < \varepsilon \, . \label{eq:dest}
 \end{equation}
 In practice, a discretization with macroscopic panels at the corner, panels not at a corner vertex separated from the corner by their panel length, and which resolves $g$ to precision $\varepsilon$ is often sufficient to guarantee~\cref{eq:dest}. 
-\begin{rem}
+\begin{remark}
 The size of the panel at the corner needs to be chosen based on the angle formed at the corner---smaller panels for angles closer to $0$ or $2\pi$, in order to resolve the corresponding close to touching interactions.
-\end{rem}
+\end{remark}
 } 
  
  \bibliographystyle{elsarticle-num}

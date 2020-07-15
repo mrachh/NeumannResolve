@@ -1,7 +1,7 @@
  \section{Boundary integral equations \label{sec:bvp}}
 A classical technique for solving the four Laplace boundary value problems given above is to reduce them to boundary integral equations. Before describing this procedure we first define the single and double layer potential operators and summarize their relevant properties.
+\upd{
  \subsection{Layer potentials}
-\begin{definition}\label{def_layerpots}
 Given a function $\sigma:\Gamma \to \mathbb{R}$, the single-layer potential is defined by
 \beqn
 \cS[\sigma](\by) =  \int_{\Gamma} G (\bx,\by)\sigma(\bx) {\rm d}S_{\bx} \, ,
@@ -14,9 +14,8 @@ Similarly, the double-layer potential is defined via the formula
 \beqn
 \cD[\sigma](\by) =\int_{\Gamma} \bnu(\bx) \cdot \nabla_{\bx} G(\bx,\by) \sigma(\bx) {\rm d}S_{\bx}.
 \eeqn
-\end{definition}
 In the following we will often refer to the function $\sigma$ as the {\it density} which generates the corresponding potential.
-\begin{definition}
+
 For $\bx \in \Gamma$ we define the kernel $K(\bx,\by)$ by
 \begin{equation}
 K(\bx,\by) =\bnu(\bx) \cdot \nabla_{\bx} G(\bx,\by),
@@ -26,10 +25,11 @@ work instead with a parametrization of $K.$ In particular, if $\gamma :[0,L] \to
 arclength parametrization of $\Gamma,$ 
 we denote by $k:[0,L]\times [0,L] \to \mathbb{R}$ the function defined by
 \begin{align}
+\label{eq:def_kerst}
 k(s,t) = K(\gamma(s),\gamma(t)).
 \end{align}
-\upd{By a standard abuse of notation we use $\cS$ and $\cD$ to denote both the operators acting on $L^2(\Gamma)$ as well as the corresponding operators acting on $L^2([0,L]),$ the latter being obtained from the former by composition with the parameterization.}
-\end{definition}
+By a standard abuse of notation we use $\cS$ and $\cD$ to denote both the operators acting on $L^2(\Gamma)$ as well as the corresponding operators acting on $L^2([0,L]),$ the latter being obtained from the former by composition with the parameterization.}
+
 
 The following theorems {\color{blue}(see for example \cite{kress1989linear})} describe the behavior of the single and double layer potentials in the vicinity of the boundary curve $\Gamma.$
 
@@ -55,73 +55,71 @@ where $\bnu$ is the inward-pointing normal.} Similarly, if $\bx$ approaches a po
 \end{theorem}
 
 Next we define the following operator which arises in the study of Neumann boundary value problems.
-\begin{definition}\label{def_singder}
 Let $\cS$ be the single-layer potential operator and $\bnu\cdot \nabla \cS$  denote its normal derivative restricted to $\Gamma.$ In particular, for $\bx_0 \in \Gamma,$
 \begin{align}
 \bnu(\bx_0)\cdot \nabla \cS[\rho] (\bx_0) = \left.\frac{{\rm d}}{{\rm d}\tau}\right|_{\tau = 0} \cS[\rho](\bx_0 + \tau \bnu(\bx_0)).
 \end{align}
-\end{definition}
 
-The following proposition relates the normal derivative of the single-layer operator to the double-layer operator. Its proof follows directly from Definitions \ref{def_layerpots} and \ref{def_singder}.
-\begin{proposition}
-Let $\cS,\cD:L^2(\Gamma) \to L^2(\Gamma)$ be defined as above. Let $\bnu \cdot \nabla \cS$ denote the normal derivative of $\cS$ in the sense of the previous definition. Then $\bnu \cdot \nabla \cS= \cD^{T}$ where $T$ denotes the adjoint operator with respect to the inner product
+\upd{
+It is well known that $\bnu \cdot \nabla \cS = \cD^{T}$ where $^T$ denotes the adjoint with respect to
+the inner product, 
 \beqn
 \langle f,g \rangle = \int_{0}^{L} f(\gamma(t)) g(\gamma(t)) {\rm d}t\,,
 \eeqn
-where $\gamma:[0,L] \to \Gamma$ is a counterclockwise arclength parametrization of $\Gamma.$ 
+and $\gamma:[0,L] \to \Gamma$ is a counterclockwise arclength parametrization of $\Gamma.$  
 In particular, for all $\rho,\sigma \in L^2(\Gamma),$
 \begin{align}
 \cD[\sigma](\gamma(t)) = \int_0^L k(s,t)\,\sigma(\gamma(s))\, {\rm d}s
 \end{align}
 and
 \begin{align}
-\bnu(\gamma(t))\cdot \nabla\cS[\rho](\gamma(t)) = \int_0^L k(t,s)\,\rho(\gamma(s))\, {\rm d}s.
+\bnu(\gamma(t))\cdot \nabla\cS[\rho](\gamma(t)) = \int_0^L k(t,s)\,\rho(\gamma(s))\, {\rm d}s \,
 \end{align}
-\end{proposition}
+where $k(s,t)$ is defined in~\cref{eq:def_kerst}.
+
 
 \subsection{Reduction of boundary value problems}
-In this section we describe the conversion of the Laplace boundary value problems (interior Dirichlet, exterior  Dirichlet, interior Neumann, and exterior Neumann) to second-kind integral equations.
+In this section we describe the conversion of the Laplace boundary value problems (interior Dirichlet, exterior  Dirichlet, interior Neumann, and exterior Neumann) to second-kind integral equations. \upd{These results are classical and we present them below for completeness (see~\cite{kress1989linear}, for example).}
 
-\begin{theorem} [Interior Dirichlet problem for Laplace's equation]
+\begin{enumerate}
+\item Interior Dirichlet problem: \\ 
 For every $f:[0,L] \rightarrow \mathbb{R}$ in $L^{2}([0,L]),$ there exists a unique $\sigma \in L^{2}([0,L])$ which satisfies
 \begin{align}
 f(s)= - \frac{\sigma(s)}{2}+ \int_0^L k(t,s)\,\sigma(t)\,{\rm d}t,
 \label{bie_intd}
 \end{align}
-for all $s \in [0,L).$ Moreover, the solution to the interior Dirichlet problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cD[\sigma](\by)$ for all $\by \in \Omega.$
-\end{theorem}
+for all $s \in [0,L).$ Moreover, the solution to the interior Dirichlet problem with boundary data $f$ is given by $u(\by) = \cD[\sigma](\by)$ for all $\by \in \Omega.$
 
-\begin{theorem} [Exterior Dirichlet problem for Laplace's equation]
+\item Exterior Dirichlet problem:\\ 
 For every $f:[0,L] \rightarrow \mathbb{R}$ in $L^{2}([0,L])$ there exists a unique $\sigma \in L^{2}([0,L])$ which
 satisfies
 \begin{align}
 f(s)=  \frac{\sigma(s)}{2}+ \int_0^L (k(t,s) + 1)\,\sigma(t)\,{\rm d}t,
 \end{align}\label{bie_extd}
 for all $s \in [0,L].$ 
-Moreover, the solution to the exterior Dirichlet problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cD[\sigma](\by) + \int_{0}^{L} \sigma(t) dt$
+Moreover, the solution to the exterior Dirichlet problem with boundary data $f$ is given by $u(\by) = \cD[\sigma](\by) + \int_{0}^{L} \sigma(t) dt$
 for all $\by \in \mathbb{R}^2 \setminus \Omega.$
-\end{theorem}
 
 
 
-\begin{theorem}[Interior Neumann problem for Laplace's equation]
+\item Interior Neumann problem:\\ 
 For every  $f:[0,L] \rightarrow \mathbb{R}$ in $L^{2}([0,L])$ such that $\int_{0}^{L} f(t)\,{\rm d}t = 0,$ there exists a unique $\sigma \in L^{2}([0,L])$ which satisfies
 \begin{align}
 f(s)=  \frac{\sigma(s)}{2}+ \int_0^L (k(s,t) + 1)\,\sigma(t)\,{\rm d}t,
 \label{bie_intn}
 \end{align}
-for all $s \in [0,L).$ Moreover, the solution to the interior Neumann problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cS[\sigma](\by)$ for all $\by \in \Omega.$
-\end{theorem}
+for all $s \in [0,L).$ Moreover, a solution to the interior Neumann problem with boundary data $f$ is given by $u(\by) = \cS[\sigma](\by)$ for all $\by \in \Omega.$
 
 
-\begin{theorem}[Exterior Neumann problem for Laplace's equation]
+\item Exterior Neumann problem:\\
 For every $f:[0,L] \rightarrow \mathbb{R}$ in $L^{2}([0,L])$ there exists a unique $\sigma \in L^{2}([0,L])$ which satisfies
 \begin{align}
 f(s)=  \frac{\sigma(s)}{2}+ \int_0^L k(s,t) \,\sigma(t)\,{\rm d}t,
 \label{bie_extn}
 \end{align}
-for all $s \in [0,L).$ Moreover, the solution to the interior Neumann problem for Laplace's equation with boundary data $f$ is given by $u(\by) = \cS[\sigma](\by)$ for all $\by \in \Omega.$
-\end{theorem}
+for all $s \in [0,L).$ Moreover, the solution to the exterior Neumann problem with boundary data $f$ is given by $u(\by) = \cS[\sigma](\by)$ for all $\by \in \mathbb{R}^{2} \setminus \Omega.$
+\end{enumerate}
+}
 
 \subsection{Corner expansions}
 

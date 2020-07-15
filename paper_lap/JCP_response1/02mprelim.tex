@@ -3,30 +3,30 @@
 Given a polygonal domain  $\Omega \subset \mathbb{R}^2$ with boundary $\Gamma$ and outward-pointing 
 unit normal $\bnu$, as well as a function 
 $f: \Gamma \to \mathbb{R},$ we consider 
-the following four boundary value problems. 
+the following four boundary value problems for Laplace's equation. 
 
 \begin{enumerate}
-\item The interior Dirichlet problem for Laplace's equation:
+\item The interior Dirichlet problem:
 \begin{align}\label{eqn:BVPIDL}
 \Delta u(\bx) &= 0, \hspace{1 cm} \bx \in \Omega,\\
 u(\bx) &= f(\bx), \hspace{0.43 cm} \bx \in \Gamma.
 \end{align}
 
-\item The exterior Dirichlet problem for Laplace's equation:
+\item The exterior Dirichlet problem:
 \begin{align}\label{eqn:BVPEDL}
 \Delta u(\bx) &= 0, \hspace{1 cm} \bx \in \mathbb{R}^2\setminus\Omega,\\
 u(\bx) &= f(\bx), \hspace{0.43 cm}\bx \in \Gamma, \\
 u(\bx) &= O(1) , \hspace{0.4cm} |\bx| \to \infty.
 \end{align}
 
-\item The interior Neumann problem for Laplace's equation:
+\item The interior Neumann problem:
 \begin{align}\label{eqn:BVPINL}
 \Delta u(\bx) &= 0, \hspace{1 cm} \bx \in \Omega,\\
 \nabla u(\bx)\cdot \bnu(\bx)  &= f(\bx), \hspace{0.45 cm} \bx \in \Gamma,\\
 \int_\Gamma f(\bx) {\rm d}S_{\bx} &= 0.
 \end{align}
 
-\item The exterior Neumann problem for Laplace's equation:
+\item The exterior Neumann problem:
 \begin{align}\label{eqn:BVPEDL}
 \Delta u(\bx) &= 0, \hspace{1 cm} \bx \in \mathbb{R}^2\setminus\Omega,\\
 \nabla u(\bx)\cdot \bnu(\bx)  &= f(\bx), \hspace{0.43 cm} \bx \in \Gamma, \\
