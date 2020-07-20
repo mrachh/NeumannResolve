@@ -172,17 +172,17 @@ In this section, we demonstrate that for a panel which is sufficiently far from 
 accurately at any point on the panel. As before let $\Omega$ denote a polygonal domain with boundary $\Gamma$. Let
 $L$ denote the length of the boundary, and let $\gamma: [0,L]\to \mathbb{R}^2$ denote an arc-length parameterization of the boundary. Suppose that the boundary is discretized using the procedure discussed in~\cref{sec:resolve}. Recall that the discretizaton nodes are denoted by $x_{1},x_{2}\ldots x_{N}$, the corresponding weights are given by $w_{1}, \ldots w_{N}$, $X = L^2({\Gamma})$, $\underline{X} = \mathbb{R}^{N}$, $\left< \cdot, \cdot \right>_{Y}$
 denote the standard inner products on the Hilbert spaces $Y=X,\underline{X}$, and
-$S:X \to \uX$ denote the operator which samples a function on the boundary at the discretization nodes scaled by the square root of the weights, i.e. 
+$S:X \to \uX$ denotes the operator which samples a function on the boundary at the discretization nodes scaled by the square root of the weights, i.e. 
 \begin{equation}
 S[f] = (f(x_{1})\sqrt{w_{1}},f(x_{2})\sqrt{w_{2}},\ldots, f(x_{N}) \sqrt{w_N} )^{T} = \underline{f} \, .
 \end{equation}
-Let $P:\underline{X} \to X$ denote the operator mapping the discretized samples to it's piecewise interpolant on the boundary.
+Let $P:\underline{X} \to X$ denote the operator mapping the discretized samples to its piecewise interpolant on the boundary.
 Let $\Gamma_{\ell} = \gamma([s_{1},s_{2}])$ denote a panel that does not contain a corner vertex and is discretized with $M$ nodes  $x_{i},x_{i+1},\ldots x_{i+M-1}$.
 
 
 Let $A$ denote operator corresponding to the interior Dirichlet problem where the solution is represented as a double layer potential. Let $\underline{A}$ denote the $N\times N$ matrix corresponding to the discretization of $A$. Let $g$ denote the
 right-hand side for the Neumann problem, and let $\sigma$ denote the corresponding solution.   Let $\underline{\sigma}$ denote the solution of the linear system $\uA^{T} \usigma = S[g]$. Let $h_{i}$, $i=1,2,\ldots M$, denote the scaled Legendre polynomials to the panel $\Gamma_{\ell}$.
-The main result of this appendix is to show that under suitable assumptions, that the computed density can be accurately interpolated on $\Gamma_{\ell}$, i.e.  
+The main result of this appendix is to show that under suitable assumptions the computed density can be accurately interpolated on $\Gamma_{\ell}$, i.e.  
 \begin{equation}
 e = \max_{i=1,2\ldots, M} |\left< \sigma, h_{i} \right>_{X} -  \left< \usigma, S[h_{i}] \right>_{\uX}| < \varepsilon  
 \end{equation}
@@ -190,7 +190,7 @@ e = \max_{i=1,2\ldots, M} |\left< \sigma, h_{i} \right>_{X} -  \left< \usigma, S
 In practice, given boundary data $g$ and a tolerance $\varepsilon$, it is extremely difficult to construct a discretization of the boundary for which the solution to the corresponding integral equation achieves the desired tolerance numerically for a generic $\Gamma$ (even when both the boundary and solution are smooth). 
 We instead derive an estimate for $e$ in terms of the error incurred in solving the interior Dirichlet problem for $M$ piecewise smooth boundary functions. 
 
-But first, we present a lemma about the accuracy of Gaussian quadrature
+Before doing so, we first state a lemma about the accuracy of Gaussian quadrature.
 \begin{lemma}
 \label{lem:b1}
 Suppose that $p$ is a polynomial of degree less than $M$, then for any function $g$ in $L^{2}[-1,1]$, then the integral
